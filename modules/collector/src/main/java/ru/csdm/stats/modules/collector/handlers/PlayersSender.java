@@ -38,8 +38,14 @@ public class PlayersSender {
                         totalKills += session.getKills();
                         totalDeaths += session.getDeaths();
 
-                        totalTimeInSecs += Duration.between(session.getStarted(), session.getFinished()).getSeconds();
+                        long diff = Duration.between(session.getStarted(), session.getFinished()).getSeconds();
+
+                        if(diff > 0)
+                            totalTimeInSecs += diff;
                     }
+
+//                    if(totalKills == 0 && totalDeaths == 0 && totalTimeInSecs == 0)
+//                        return null;
 
                     PlayerStat stat = new PlayerStat();
                     stat.setName(name);
@@ -48,17 +54,17 @@ public class PlayersSender {
                     stat.setTotalTimeInSecs(totalTimeInSecs);
 
                     return stat;
-                }).collect(Collectors.toList());
+                })
+//                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
 
         if(playerStats.isEmpty()) {
             log.info(address + " Skip flushing players stats, due empty playerStats");
             return;
         }
 
-        if(log.isDebugEnabled()) {
-            for (PlayerStat stat : playerStats) {
-                log.debug(address + " " + stat);
-            }
+        for (PlayerStat stat : playerStats) {
+            log.info(address + " " + stat);
         }
 
         try {

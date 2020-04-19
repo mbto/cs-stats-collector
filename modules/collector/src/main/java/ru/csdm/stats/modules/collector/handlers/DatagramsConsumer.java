@@ -70,7 +70,7 @@ public class DatagramsConsumer {
 
         LocalDateTime now = LocalDateTime.now();
         for (String address : gameSessionByAddress.keySet()) {
-            flushSessions(address, now, "on PreDestroy lifecycle");
+            flushSessions(address, now, "PreDestroy lifecycle");
         }
 
         if(debugEnabled)
@@ -203,7 +203,7 @@ public class DatagramsConsumer {
 
 /* L 01/21/2020 - 20:50:08: Started map "de_dust2" (CRC "1159425449") */
                 if (eventName.equals("Started map")) {
-                    flushSessions(address, dateTime, "on started new game map");
+                    flushSessions(address, dateTime, "started new game map");
                     continue;
                 }
 
@@ -212,7 +212,7 @@ public class DatagramsConsumer {
 
 /* L 01/21/2020 - 20:52:15: Server shutdown */
             if(rawMsg.equals("Server shutdown")) {
-                flushSessions(address, dateTime, "on shutdown game server");
+                flushSessions(address, dateTime, "shutdown game server");
                 continue;
             }
         }
@@ -230,7 +230,7 @@ public class DatagramsConsumer {
             gameSessionByAddress.put(address, gameSessions);
 
             if(log.isDebugEnabled())
-                log.debug(address + " Created gameSessions");
+                log.debug(address + " Created gameSessions container");
         }
 
         return gameSessions;
@@ -255,13 +255,13 @@ public class DatagramsConsumer {
         Map<String, Player> gameSessions = gameSessionByAddress.get(address);
 
         if(Objects.isNull(gameSessions)) {
-            log.info(address + " Skip flushing sessions, due gameSessions not created. Event: '" + fromEvent + "'");
+            log.info(address + " Skip flushing sessions, due gameSessions container not exists. Event: '" + fromEvent + "'");
             return;
         }
 
         int gameSessionsSize = gameSessions.size();
         if (gameSessionsSize == 0) {
-            log.info(address + " Skip flushing sessions, due empty gameSessions. Event: '" + fromEvent + "'");
+            log.info(address + " Skip flushing sessions, due empty gameSessions container. Event: '" + fromEvent + "'");
             return;
         }
 
