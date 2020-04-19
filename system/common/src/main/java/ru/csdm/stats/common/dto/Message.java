@@ -1,18 +1,16 @@
 package ru.csdm.stats.common.dto;
 
-import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
 
 @Getter
 @Setter
-@AllArgsConstructor
 public class Message {
-    private String address;
+    private ServerSetting serverSetting;
     private String payload;
 
     @Override
     public String toString() {
-        return address + ": " + payload;
+        return (serverSetting != null ? serverSetting.getIpport() : "-") + ": " + payload;
     }
 }

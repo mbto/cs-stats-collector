@@ -13,10 +13,14 @@ import org.springframework.web.bind.annotation.*;
 import ru.csdm.stats.common.dto.DatagramsQueue;
 import ru.csdm.stats.common.dto.Message;
 import ru.csdm.stats.common.dto.Player;
+import ru.csdm.stats.common.dto.ServerSetting;
 import ru.csdm.stats.modules.collector.handlers.DatagramsConsumer;
 
 import java.time.LocalDateTime;
-import java.util.*;
+import java.util.Arrays;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @RestController
@@ -26,7 +30,7 @@ public class StatsEndpoint {
     @Autowired
     private ApplicationContext applicationContext;
     @Autowired
-    private Set<String> availableAddresses;
+    private Map<String, ServerSetting> availableAddresses;
     @Autowired
     private Map<String, Integer> registeredAddresses;
     @Autowired
@@ -64,7 +68,13 @@ public class StatsEndpoint {
     public Map<String, Object> stats() {
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("addresses", Arrays.asList(
-                Pair.of("available", availableAddresses),
+                Pair.of("available", availableAddresses
+                        .values()
+                        .stream()
+                        .collect(Collectors.groupingBy(ServerSetting::getIpport,
+                                LinkedHashMap::new,
+                                Collectors.toList()))
+                ),
                 Pair.of("registered with queue id", registeredAddresses)
         ));
 
@@ -81,7 +91,7 @@ public class StatsEndpoint {
                     DatagramsQueue value = entry.getValue();
                     return value.getDatagramsQueue()
                             .stream()
-                            .collect(Collectors.groupingBy(Message::getAddress,
+                            .collect(Collectors.groupingBy(msg -> msg.getServerSetting().getIpport(),
                                     LinkedHashMap::new,
                                     Collectors.mapping(Message::getPayload, Collectors.toList())));
                 }));

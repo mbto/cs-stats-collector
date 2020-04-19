@@ -11,12 +11,11 @@ import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import ru.csdm.stats.common.dto.DatagramsQueue;
 import ru.csdm.stats.common.dto.Player;
+import ru.csdm.stats.common.dto.ServerSetting;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.ConcurrentSkipListMap;
-import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.ThreadPoolExecutor;
 
 import static org.springframework.boot.autoconfigure.task.TaskExecutionAutoConfiguration.APPLICATION_TASK_EXECUTOR_BEAN_NAME;
@@ -29,11 +28,12 @@ public class Application {
     }
 
     /**
-     * Server address (ip:port)
+     * Key: Server address (ip:port)
+     * Value: ServerInfo
      */
     @Bean
-    public Set<String> availableAddresses() {
-        return new CopyOnWriteArraySet<>();
+    public Map<String, ServerSetting> availableAddresses() {
+        return new ConcurrentSkipListMap<>();
     }
     /**
      * Key: Server address (ip:port)

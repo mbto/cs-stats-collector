@@ -6,8 +6,10 @@ import org.jooq.impl.DSL;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 import ru.csdm.stats.common.dto.PlayerStat;
+import ru.csdm.stats.common.dto.ServerSetting;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 @Repository
@@ -19,12 +21,13 @@ public class AmxDao {
     private static final Table<Record> amx_servers_table = DSL.table("amx_servers");
     private static final Field<String> ipport_field = DSL.field("ipport", String.class);
     private static final Field<Boolean> active_field = DSL.field("active", Boolean.class);
+    private static final Field<Boolean> ffa_field = DSL.field("ffa", Boolean.class);
 
-    public List<String> fetchAvailableAddresses() {
-        return statsDsl.selectDistinct(ipport_field)
+    public Map<String, ServerSetting> fetchAvailableAddresses() {
+        return statsDsl.selectDistinct(ipport_field, ffa_field)
                 .from(amx_servers_table)
                 .where(active_field.eq(true))
-                .fetchInto(String.class);
+                .fetchMap(ipport_field, ServerSetting.class);
     }
 
     private static final Table<Record> amx_stats_table = DSL.table("amx_stats");
@@ -61,7 +64,7 @@ public class AmxDao {
                     ).execute();
                 } else {
                     UpdateSetStep<Record> updateStep = transactionalDsl.update(amx_stats_table);
-                    
+
                     if(stat.getTotalKills() != 0) {
                         updateStep.set(kills_field, kills_field.plus(stat.getTotalKills()));
                     }

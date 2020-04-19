@@ -5,12 +5,12 @@ import org.jooq.exception.DataAccessException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
+import ru.csdm.stats.common.dto.ServerSetting;
 import ru.csdm.stats.dao.AmxDao;
 import ru.csdm.stats.modules.collector.handlers.Listener;
 
 import javax.annotation.PostConstruct;
-import java.util.List;
-import java.util.Set;
+import java.util.Map;
 
 @Service
 @Lazy(false)
@@ -22,19 +22,18 @@ public class Module {
     private AmxDao amxDao;
 
     @Autowired
-    private Set<String> availableAddresses;
+    private Map<String, ServerSetting> availableAddresses;
 
     @PostConstruct
     public void init() {
         if(log.isDebugEnabled())
             log.debug("init() start");
 
-        List<String> ipports = null;
         try {
-            ipports = amxDao.fetchAvailableAddresses();
+            Map<String, ServerSetting> serverInfos = amxDao.fetchAvailableAddresses();
 
-            if(!ipports.isEmpty()) {
-                availableAddresses.addAll(ipports);
+            if(!serverInfos.isEmpty()) {
+                availableAddresses.putAll(serverInfos);
             }
         } catch (DataAccessException e) {
             log.warn("Unable to fetch ipport's from database", e);
@@ -46,8 +45,8 @@ public class Module {
             log.info("Available " + availableAddresses.size() +
                     " address" + (availableAddresses.size() > 1 ? "es" : "" ) +":");
 
-            for (String availableIp : availableAddresses) {
-                log.info(availableIp);
+            for (ServerSetting serverSetting : availableAddresses.values()) {
+                log.info(serverSetting.toString());
             }
         }
 

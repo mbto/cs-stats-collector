@@ -11,6 +11,7 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.stereotype.Service;
 import ru.csdm.stats.common.dto.DatagramsQueue;
 import ru.csdm.stats.common.dto.Message;
+import ru.csdm.stats.common.dto.ServerSetting;
 
 import javax.annotation.PreDestroy;
 import java.net.DatagramPacket;
@@ -19,7 +20,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
 
 import static org.springframework.boot.autoconfigure.task.TaskExecutionAutoConfiguration.APPLICATION_TASK_EXECUTOR_BEAN_NAME;
 import static ru.csdm.stats.common.utils.SomeUtils.addressToString;
@@ -32,7 +32,7 @@ public class Listener {
     private ApplicationContext applicationContext;
 
     @Autowired
-    private Set<String> availableAddresses;
+    private Map<String, ServerSetting> availableAddresses;
     @Autowired
     private DatagramsConsumer datagramsConsumer;
     @Autowired
@@ -116,14 +116,15 @@ public class Listener {
 
     public void onMessage(DatagramPacket packet) {
         String address = addressToString(packet.getSocketAddress());
+        ServerSetting serverSetting = availableAddresses.get(address);
 
-        if(!availableAddresses.contains(address))
+        if(Objects.isNull(serverSetting))
             return;
 
         byte[] data = packet.getData(); // [-1, -1, -1, -1, 108, 111, 103, 32, 76, ...]
         if(!(data.length >= 9 && (data[4] == 'l' && data[5] == 'o' && data[6] == 'g' && data[7] == ' ' && data[8] == 'L'))) {
             if(log.isDebugEnabled())
-                log.debug(address + ": Invalid data=" + new String(data, 0, data.length, StandardCharsets.UTF_8) + ", raw=" + Arrays.toString(data));
+                log.debug(address + ": Invalid data: '" + new String(data, 0, data.length, StandardCharsets.UTF_8) + "', raw: " + Arrays.toString(data));
 
             return;
         }
@@ -148,10 +149,12 @@ public class Listener {
             datagramsConsumer.startConsumeAsync(datagramsQueue);
         }
 
-        Message message = new Message(address, new String(data, 8, packet.getLength() -8, StandardCharsets.UTF_8).trim());
+        Message message = new Message();
+        message.setServerSetting(serverSetting);
+        message.setPayload(new String(data, 8, packet.getLength() -8, StandardCharsets.UTF_8).trim());
 
         if(log.isDebugEnabled())
-            log.debug("Sending message=" + message);
+            log.debug("Sending message: " + message);
 
         int tryes = 0;
         while (true) {

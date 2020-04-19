@@ -1,6 +1,7 @@
 package ru.csdm.stats.modules.collector.handlers;
 
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.scheduling.annotation.Async;
@@ -9,10 +10,11 @@ import org.springframework.stereotype.Service;
 import ru.csdm.stats.common.dto.DatagramsQueue;
 import ru.csdm.stats.common.dto.Message;
 import ru.csdm.stats.common.dto.Player;
+import ru.csdm.stats.common.dto.ServerSetting;
 
 import javax.annotation.PreDestroy;
 import java.time.LocalDateTime;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -98,7 +100,7 @@ public class DatagramsConsumer {
                 message = datagramsQueue.getDatagramsQueue().takeFirst();
 
                 if(debugEnabled)
-                    log.debug("Taked message=" + message);
+                    log.debug("Taked message: " + message);
             } catch (Throwable e) {
                 if (deactivated) {
                     log.info("Deactivation detected");
@@ -114,7 +116,8 @@ public class DatagramsConsumer {
             if (!msgMatcher.find())
                 continue;
 
-            String address = message.getAddress();
+            ServerSetting serverSetting = message.getServerSetting();
+            String address = serverSetting.getIpport();
 
             LocalDateTime dateTime = LocalDateTime.parse(msgMatcher.group("date"), MMDDYYYY_HHMMSS_PATTERN);
 
@@ -137,11 +140,19 @@ public class DatagramsConsumer {
                         String killerName = sourceMatcher.group("name");
                         String victimName = targetMatcher.group("name");
 
-                        Player killer = allocatePlayer(address, killerName);
-                        killer.upKills(dateTime);
+                        if(serverSetting.getFfa()) {
+                            countFrag(address, dateTime, killerName, victimName);
+                        } else {
+                            String killerTeam = sourceMatcher.group("team");
+                            String victimTeam = targetMatcher.group("team");
 
-                        Player victim = allocatePlayer(address, victimName);
-                        victim.upDeaths(dateTime);
+                            if(StringUtils.isNotBlank(killerTeam)
+                                    && StringUtils.isNotBlank(victimTeam)
+                                    && !StringUtils.equals(killerTeam, victimTeam)
+                            ) {
+                                countFrag(address, dateTime, killerName, victimName);
+                            }
+                        }
                     }
 
                     continue;
@@ -223,14 +234,21 @@ public class DatagramsConsumer {
         log.info("Deactivated");
     }
 
+    private void countFrag(String address, LocalDateTime dateTime, String killerName, String victimName) {
+        Player killer = allocatePlayer(address, killerName);
+        killer.upKills(dateTime);
+
+        Player victim = allocatePlayer(address, victimName);
+        victim.upDeaths(dateTime);
+    }
+
     private Map<String, Player> allocateGameSession(String address, boolean create) {
         Map<String, Player> gameSessions = gameSessionByAddress.get(address);
         if(Objects.isNull(gameSessions) && create) {
-            gameSessions = new HashMap<>();
+            gameSessions = new LinkedHashMap<>();
             gameSessionByAddress.put(address, gameSessions);
 
-            if(log.isDebugEnabled())
-                log.debug(address + " Created gameSessions container");
+            log.info(address + " Created gameSessions container");
         }
 
         return gameSessions;
@@ -244,8 +262,7 @@ public class DatagramsConsumer {
             player = new Player(name);
             gameSessions.put(name, player);
 
-            if(log.isDebugEnabled())
-                log.debug(address + " Created player=" + player);
+            log.info(address + " Created player: " + player);
         }
 
         return player;

@@ -12,6 +12,7 @@ import ru.csdm.stats.dao.AmxDao;
 
 import java.time.Duration;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Service
@@ -44,8 +45,8 @@ public class PlayersSender {
                             totalTimeInSecs += diff;
                     }
 
-//                    if(totalKills == 0 && totalDeaths == 0 && totalTimeInSecs == 0)
-//                        return null;
+                    if(totalKills == 0 && totalDeaths == 0 && totalTimeInSecs == 0)
+                        return null;
 
                     PlayerStat stat = new PlayerStat();
                     stat.setName(name);
@@ -55,7 +56,7 @@ public class PlayersSender {
 
                     return stat;
                 })
-//                .filter(Objects::nonNull)
+                .filter(Objects::nonNull)
                 .collect(Collectors.toList());
 
         if(playerStats.isEmpty()) {
