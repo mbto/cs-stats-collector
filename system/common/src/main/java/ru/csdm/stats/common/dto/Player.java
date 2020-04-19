@@ -1,5 +1,6 @@
 package ru.csdm.stats.common.dto;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
@@ -13,6 +14,7 @@ import java.util.Objects;
 @Setter
 @ToString
 public class Player {
+    @JsonIgnore
     private String name;
     private List<Session> sessions = new ArrayList<>();
 
@@ -20,6 +22,7 @@ public class Player {
         this.name = name;
     }
 
+    @JsonIgnore
     public Session getLastSession() {
         int size = sessions.size();
         if(size == 0) {

@@ -61,7 +61,7 @@ public class AmxDao {
                     ).execute();
                 } else {
                     UpdateSetStep<Record> updateStep = transactionalDsl.update(amx_stats_table);
-
+                    
                     if(stat.getTotalKills() != 0) {
                         updateStep.set(kills_field, kills_field.plus(stat.getTotalKills()));
                     }

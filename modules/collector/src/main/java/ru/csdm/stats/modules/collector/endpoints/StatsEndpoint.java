@@ -56,7 +56,7 @@ public class StatsEndpoint {
     public void flush() {
         LocalDateTime now = LocalDateTime.now();
         for (String address : gameSessionByAddress.keySet()) {
-            datagramsConsumer.flushSessions(address, now);
+            datagramsConsumer.flushSessions(address, now, "from endpoint");
         }
     }
 

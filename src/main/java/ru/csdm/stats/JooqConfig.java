@@ -13,23 +13,28 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.jdbc.DataSourceBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.DependsOn;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.jdbc.datasource.TransactionAwareDataSourceProxy;
 
 import javax.sql.DataSource;
 
+import static org.springframework.boot.autoconfigure.task.TaskExecutionAutoConfiguration.APPLICATION_TASK_EXECUTOR_BEAN_NAME;
+
 @Configuration
 public class JooqConfig {
 
     @Bean
     @Lazy(false)
+    @DependsOn("statsDataSource")
     DSLContext statsDsl(HikariDataSource statsDataSource) {
         return configJooqContext(statsDataSource, SQLDialect.MYSQL);
     }
 
     @Bean
     @ConfigurationProperties("stats.datasource")
+    @DependsOn(APPLICATION_TASK_EXECUTOR_BEAN_NAME)
     public HikariDataSource statsDataSource() {
         HikariDataSource ds = DataSourceBuilder.create()
                 .driverClassName("com.mysql.cj.jdbc.Driver")

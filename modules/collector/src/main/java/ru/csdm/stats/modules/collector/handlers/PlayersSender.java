@@ -50,8 +50,10 @@ public class PlayersSender {
                     return stat;
                 }).collect(Collectors.toList());
 
-        if(playerStats.isEmpty())
+        if(playerStats.isEmpty()) {
+            log.info(address + " Skip flushing players stats, due empty playerStats");
             return;
+        }
 
         if(log.isDebugEnabled()) {
             for (PlayerStat stat : playerStats) {
@@ -61,8 +63,12 @@ public class PlayersSender {
 
         try {
             amxDao.mergePlayersStats(playerStats);
+
+            log.info(address + " Successed merged " + playerStats.size() +
+                    " player" + (playerStats.size() > 1 ? "s" : "") + " stats");
         } catch (Throwable e) {
-            log.warn(address + " Batch " + playerStats.size() + " playerStats failed", e);
+            log.warn(address + " Failed merging " + playerStats.size() +
+                    " player" + (playerStats.size() > 1 ? "s" : "") + " stats", e);
         }
     }
 }

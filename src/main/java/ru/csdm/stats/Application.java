@@ -85,7 +85,7 @@ public class Application {
     }
 
     @Bean
-    @DependsOn(APPLICATION_TASK_EXECUTOR_BEAN_NAME)
+    @DependsOn("statsDataSource")
     public ThreadPoolTaskExecutor playersSenderTaskExecutor(
             @Value("${stats.playersSender.pool.maxSize}") int poolMaxSize
     ) {

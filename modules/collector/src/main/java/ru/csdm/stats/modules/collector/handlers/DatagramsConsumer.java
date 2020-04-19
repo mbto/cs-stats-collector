@@ -55,10 +55,13 @@ public class DatagramsConsumer {
             Thread[] consumers = new Thread[poolSize];
             tg.enumerate(consumers);
 
-            if(debugEnabled)
-                log.debug("Interrupting " + consumers.length + " consumers...");
+            if(consumers.length > 0) {
+                if(debugEnabled)
+                    log.debug("Interrupting " + consumers.length +
+                            " consumer" + (consumers.length > 1 ? "s" : "") + "...");
 
-            tg.interrupt();
+                tg.interrupt();
+            }
         }
 
         try {
@@ -67,7 +70,7 @@ public class DatagramsConsumer {
 
         LocalDateTime now = LocalDateTime.now();
         for (String address : gameSessionByAddress.keySet()) {
-            flushSessions(address, now);
+            flushSessions(address, now, "on PreDestroy lifecycle");
         }
 
         if(debugEnabled)
@@ -200,7 +203,7 @@ public class DatagramsConsumer {
 
 /* L 01/21/2020 - 20:50:08: Started map "de_dust2" (CRC "1159425449") */
                 if (eventName.equals("Started map")) {
-                    flushSessions(address, dateTime);
+                    flushSessions(address, dateTime, "on started new game map");
                     continue;
                 }
 
@@ -209,7 +212,7 @@ public class DatagramsConsumer {
 
 /* L 01/21/2020 - 20:52:15: Server shutdown */
             if(rawMsg.equals("Server shutdown")) {
-                flushSessions(address, dateTime);
+                flushSessions(address, dateTime, "on shutdown game server");
                 continue;
             }
         }
@@ -225,6 +228,9 @@ public class DatagramsConsumer {
         if(Objects.isNull(gameSessions) && create) {
             gameSessions = new HashMap<>();
             gameSessionByAddress.put(address, gameSessions);
+
+            if(log.isDebugEnabled())
+                log.debug(address + " Created gameSessions");
         }
 
         return gameSessions;
@@ -237,27 +243,30 @@ public class DatagramsConsumer {
         if(Objects.isNull(player)) {
             player = new Player(name);
             gameSessions.put(name, player);
+
+            if(log.isDebugEnabled())
+                log.debug(address + " Created player=" + player);
         }
 
         return player;
     }
 
-    public void flushSessions(String address, LocalDateTime dateTime) {
+    public void flushSessions(String address, LocalDateTime dateTime, String fromEvent) {
         Map<String, Player> gameSessions = gameSessionByAddress.get(address);
 
         if(Objects.isNull(gameSessions)) {
-            log.info(address + " Skip flushing sessions, due gameSessions not created");
+            log.info(address + " Skip flushing sessions, due gameSessions not created. Event: '" + fromEvent + "'");
             return;
         }
 
         int gameSessionsSize = gameSessions.size();
         if (gameSessionsSize == 0) {
-            log.info(address + " Skip flushing sessions, due empty gameSessions");
+            log.info(address + " Skip flushing sessions, due empty gameSessions. Event: '" + fromEvent + "'");
             return;
         }
 
         log.info(address + " Prepared " + gameSessionsSize +
-                " session" + (gameSessionsSize > 1 ? "s" : "") + " to flush");
+                " session" + (gameSessionsSize > 1 ? "s" : "") + " to flush. Event: '" + fromEvent + "'");
         List<Player> players = gameSessions.values()
                 .stream()
                 .peek(player -> player.prepareToFlushSessions(dateTime))
@@ -266,7 +275,7 @@ public class DatagramsConsumer {
         gameSessions.clear();
 
         if(players.isEmpty()) {
-            log.info(address + " No players to flush");
+            log.info(address + " No players to flush. Event: '" + fromEvent + "'");
             return;
         }
 

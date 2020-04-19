@@ -148,12 +148,10 @@ public class Listener {
             datagramsConsumer.startConsumeAsync(datagramsQueue);
         }
 
-        String payload = new String(data, 8, packet.getLength() -8, StandardCharsets.UTF_8).trim();
+        Message message = new Message(address, new String(data, 8, packet.getLength() -8, StandardCharsets.UTF_8).trim());
 
         if(log.isDebugEnabled())
-            log.debug(address + ": " + payload);
-
-        Message message = new Message(address, payload);
+            log.debug("Sending message=" + message);
 
         int tryes = 0;
         while (true) {
