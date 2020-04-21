@@ -100,7 +100,7 @@ public class DatagramsConsumer {
                 message = datagramsQueue.getDatagramsQueue().takeFirst();
 
                 if(debugEnabled)
-                    log.debug("Taked message: " + message);
+                    log.debug(message.getServerSetting().getIpport() + " Taked message: " + message);
             } catch (Throwable e) {
                 if (deactivated) {
                     log.info("Deactivation detected");
@@ -140,6 +140,14 @@ public class DatagramsConsumer {
                         String killerName = sourceMatcher.group("name");
                         String victimName = targetMatcher.group("name");
 
+                        if(serverSetting.getIgnore_bots()) {
+                            String killerAuth = sourceMatcher.group("auth");
+                            String victimAuth = targetMatcher.group("auth");
+
+                            if("BOT".equals(killerAuth) || "BOT".equals(victimAuth))
+                                continue;
+                        }
+
                         if(serverSetting.getFfa()) {
                             countFrag(address, dateTime, killerName, victimName);
                         } else {
@@ -170,6 +178,14 @@ public class DatagramsConsumer {
                     String sourceRaw = eventMatcher.group(1);
                     Matcher sourceMatcher = PLAYER.pattern.matcher(sourceRaw);
                     if (sourceMatcher.matches()) {
+                        if(serverSetting.getIgnore_bots()) {
+                            String sourceAuth = sourceMatcher.group("auth");
+
+                            if("BOT".equals(sourceAuth)) {
+                                continue;
+                            }
+                        }
+
                         String sourceName = sourceMatcher.group("name");
                         allocatePlayer(address, sourceName);
 

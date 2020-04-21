@@ -3,9 +3,6 @@ package ru.csdm.stats.modules.collector.endpoints;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.tuple.Pair;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.SpringApplication;
-import org.springframework.context.ApplicationContext;
-import org.springframework.context.annotation.Profile;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
@@ -15,6 +12,7 @@ import ru.csdm.stats.common.dto.Message;
 import ru.csdm.stats.common.dto.Player;
 import ru.csdm.stats.common.dto.ServerSetting;
 import ru.csdm.stats.modules.collector.handlers.DatagramsConsumer;
+import ru.csdm.stats.modules.collector.service.SettingsService;
 
 import java.time.LocalDateTime;
 import java.util.Arrays;
@@ -27,8 +25,6 @@ import java.util.stream.Collectors;
 @RequestMapping("/stats")
 @Slf4j
 public class StatsEndpoint {
-    @Autowired
-    private ApplicationContext applicationContext;
     @Autowired
     private Map<String, ServerSetting> availableAddresses;
     @Autowired
@@ -47,13 +43,15 @@ public class StatsEndpoint {
     @Autowired
     private DatagramsConsumer datagramsConsumer;
 
-    @Profile("dev")
-    @PostMapping(value = "/quit")
-    @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void quit() {
-        int code = SpringApplication.exit(applicationContext, () -> 0);
-        System.exit(code);
-    }
+/* for tests */
+//    @Autowired
+//    private ApplicationContext applicationContext;
+//    @PostMapping(value = "/quit")
+//    @ResponseStatus(HttpStatus.NO_CONTENT)
+//    public void quit() {
+//        int code = SpringApplication.exit(applicationContext, () -> 0);
+//        System.exit(code);
+//    }
 
     @PostMapping(value = "/flush")
     @ResponseStatus(HttpStatus.NO_CONTENT)
@@ -62,6 +60,15 @@ public class StatsEndpoint {
         for (String address : gameSessionByAddress.keySet()) {
             datagramsConsumer.flushSessions(address, now, "/flush endpoint");
         }
+    }
+
+    @Autowired
+    private SettingsService settingsService;
+
+    @PostMapping(value = "/updateSettings")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void updateSettings() {
+        settingsService.updateSettings(false);
     }
 
     @GetMapping(value = "", produces = MediaType.APPLICATION_JSON_UTF8_VALUE)

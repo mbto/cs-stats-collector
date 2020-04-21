@@ -21,10 +21,11 @@ public class AmxDao {
     private static final Table<Record> amx_servers_table = DSL.table("amx_servers");
     private static final Field<String> ipport_field = DSL.field("ipport", String.class);
     private static final Field<Boolean> active_field = DSL.field("active", Boolean.class);
-    private static final Field<Boolean> ffa_field = DSL.field("ffa", Boolean.class);
+//    private static final Field<Boolean> ffa_field = DSL.field("ffa", Boolean.class);
+//    private static final Field<Boolean> ignore_bots_field = DSL.field("ignore_bots", Boolean.class);
 
-    public Map<String, ServerSetting> fetchAvailableAddresses() {
-        return statsDsl.selectDistinct(ipport_field, ffa_field)
+    public Map<String, ServerSetting> fetchServersSettings() {
+        return statsDsl.select(DSL.asterisk())
                 .from(amx_servers_table)
                 .where(active_field.eq(true))
                 .fetchMap(ipport_field, ServerSetting.class);

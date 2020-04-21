@@ -134,6 +134,8 @@ public class Listener {
             queueId = nextQueueIdCounter;
             registeredAddresses.put(address, queueId);
 
+            log.info(address + " registered with queue id: " + queueId);
+
             if(maxConsumers > 1) {
                 if(++nextQueueIdCounter >= maxConsumers) {
                     nextQueueIdCounter = 0;
@@ -146,6 +148,7 @@ public class Listener {
             datagramsQueue = new DatagramsQueue();
             datagramsInQueuesById.put(queueId, datagramsQueue);
 
+            log.info("Created DatagramsQueue #" + datagramsInQueuesById.size());
             datagramsConsumer.startConsumeAsync(datagramsQueue);
         }
 
@@ -154,7 +157,7 @@ public class Listener {
         message.setPayload(new String(data, 8, packet.getLength() -8, StandardCharsets.UTF_8).trim());
 
         if(log.isDebugEnabled())
-            log.debug("Sending message: " + message);
+            log.debug(address + " Sending message: " + message);
 
         int tryes = 0;
         while (true) {
