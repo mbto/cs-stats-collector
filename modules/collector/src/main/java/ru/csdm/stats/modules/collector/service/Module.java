@@ -22,6 +22,8 @@ public class Module {
         if(log.isDebugEnabled())
             log.debug("init() start");
 
+        log.info("Available processors: " + Runtime.getRuntime().availableProcessors());
+
         settingsService.updateSettings(true);
 
         listener.launchAsync();
