@@ -38,11 +38,11 @@ allprojects {
         testCompile("org.projectlombok:lombok:$lombokVer");
         testAnnotationProcessor("org.projectlombok:lombok:$lombokVer");
 
-        compile("org.apache.commons:commons-math3:3.6.1")
-        compile("org.apache.commons:commons-collections4:4.3")
-        compile("commons-codec:commons-codec:1.11")
+//        compile("org.apache.commons:commons-math3:3.6.1")
+//        compile("org.apache.commons:commons-collections4:4.3")
+//        compile("commons-codec:commons-codec:1.11")
         compile("org.apache.commons:commons-lang3:3.8.1")
-        compile("commons-io:commons-io:2.6")
+//        compile("commons-io:commons-io:2.6")
 
 //        compile("org.springframework.boot:spring-boot-actuator:$springVersion")
         compile("org.springframework.boot:spring-boot-starter-jooq:$springVersion")
