@@ -35,7 +35,7 @@ public class Player {
     public Session getCurrentSession(LocalDateTime startedDateTime) {
         Session session = getLastSession();
 
-        if(Objects.isNull(session)) {
+        if(Objects.isNull(session) || Objects.nonNull(session.getFinished())) {
             session = new Session(startedDateTime);
             sessions.add(session);
         }

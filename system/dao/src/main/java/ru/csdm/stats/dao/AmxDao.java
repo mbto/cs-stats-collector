@@ -18,7 +18,7 @@ public class AmxDao {
     @Autowired
     private DSLContext statsDsl;
 
-    private static final Table<Record> amx_servers_table = DSL.table("amx_servers");
+    private static final Table<Record> csstats_servers_table = DSL.table("csstats_servers");
     private static final Field<String> ipport_field = DSL.field("ipport", String.class);
     private static final Field<Boolean> active_field = DSL.field("active", Boolean.class);
 //    private static final Field<Boolean> ffa_field = DSL.field("ffa", Boolean.class);
@@ -26,12 +26,12 @@ public class AmxDao {
 
     public Map<String, ServerSetting> fetchServersSettings() {
         return statsDsl.select(DSL.asterisk())
-                .from(amx_servers_table)
+                .from(csstats_servers_table)
                 .where(active_field.eq(true))
                 .fetchMap(ipport_field, ServerSetting.class);
     }
 
-    private static final Table<Record> amx_stats_table = DSL.table("amx_stats");
+    private static final Table<Record> csstats_table = DSL.table("csstats");
     private static final Field<Long> id_field = DSL.field("id", Long.class);
     private static final Field<String> name_field = DSL.field("name", String.class);
     private static final Field<Long> kills_field = DSL.field("kills", Long.class);
@@ -47,13 +47,13 @@ public class AmxDao {
 
             for (PlayerStat stat : playerStats) {
                 Long id = transactionalDsl.select(id_field)
-                        .from(amx_stats_table)
+                        .from(csstats_table)
                         .where(name_field.equalIgnoreCase(stat.getName()))
                         .forUpdate()
                         .fetchOneInto(id_field.getType());
 
                 if (Objects.isNull(id)) {
-                    transactionalDsl.insertInto(amx_stats_table)
+                    transactionalDsl.insertInto(csstats_table)
                             .columns(name_field,
                                     kills_field,
                                     deaths_field,
@@ -64,7 +64,7 @@ public class AmxDao {
                             stat.getTotalTimeInSecs()
                     ).execute();
                 } else {
-                    UpdateSetStep<Record> updateStep = transactionalDsl.update(amx_stats_table);
+                    UpdateSetStep<Record> updateStep = transactionalDsl.update(csstats_table);
 
                     if(stat.getTotalKills() != 0) {
                         updateStep.set(kills_field, kills_field.plus(stat.getTotalKills()));
