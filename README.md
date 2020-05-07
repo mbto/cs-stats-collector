@@ -76,3 +76,8 @@ GET http://localhost:8890/stats - prints in json format current players statisti
 POST http://localhost:8890/stats/flush - manually merge all players statistics to database
 POST http://localhost:8890/stats/updateSettings - reload & apply servers settings from database, without restart JVM.
 ```
+
+### **Compile:**
+```
+gradle assemble
+```
