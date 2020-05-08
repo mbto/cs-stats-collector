@@ -136,7 +136,7 @@ POST http://localhost:8890/stats/updateSettings - reload & apply servers setting
 ---
 **Example screenshots:**
 * Logs:
-![Screenshot_1](https://user-images.githubusercontent.com/8545291/81405179-d58d5d00-913f-11ea-9905-57fbfae205f9.png)
+![Screenshot_1](https://user-images.githubusercontent.com/8545291/81408357-c27d8b80-9145-11ea-9631-8be1044f42b7.png)
 ---
 * Example result from `/stats` endpoint _(RESTED plugin for FireFox)_:
 ![Screenshot_3](https://user-images.githubusercontent.com/8545291/81405183-d6be8a00-913f-11ea-93ca-07b2ea5a8d05.png)
