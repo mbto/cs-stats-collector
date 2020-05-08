@@ -26,13 +26,13 @@ sv_logrelay 1		// 1 - логировать в консоль сообщение 
 sv_logsecret 0		// 0 - отправлять логи как "log %s", 1 - "%c%s%s", S2A_LOGKEY, sv_logsecret.string, string
 ```
 
-**Create MySQL database (optional):**
+**Use existing MySQL database or create new:**
 ```
 CREATE SCHEMA `amx` DEFAULT CHARACTER SET utf8 COLLATE utf8_bin;
 ```
 **Create MySQL tables:**
 ```
-USE `amx`; -- optional
+USE `amx`; -- your database
 
 DROP TABLE IF EXISTS `csstats`;
 CREATE TABLE `csstats` (
