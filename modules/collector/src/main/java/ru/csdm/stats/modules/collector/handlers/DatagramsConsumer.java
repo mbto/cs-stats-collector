@@ -3,7 +3,6 @@ package ru.csdm.stats.modules.collector.handlers;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
@@ -38,9 +37,6 @@ public class DatagramsConsumer {
 
     @Autowired
     private ThreadPoolTaskExecutor consumerTaskExecutor;
-
-    @Value("${stats.session.startOnAction:true}")
-    private boolean startSessionOnAction;
 
     private volatile boolean deactivated;
     private CountDownLatch deactivationLatch;
@@ -179,7 +175,7 @@ public class DatagramsConsumer {
 
 /* L 01/21/2020 - 20:50:20: "timoxatw<3><BOT><>" entered the game */
                 if (eventName.equals("entered the game")) {
-                    if(startSessionOnAction) {
+                    if(serverSetting.getStart_session_on_action()) {
                         continue;
                     }
 

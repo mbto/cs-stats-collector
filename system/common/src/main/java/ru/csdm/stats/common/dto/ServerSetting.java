@@ -21,4 +21,9 @@ public class ServerSetting {
      * false - считать статистику если killer или victim боты
      */
     private Boolean ignore_bots;
+    /**
+     * true - start player's session on event "... killed ... with ..." (not for kreedz servers)
+     * false - start player's session on event "... entered the game"
+     */
+    private Boolean start_session_on_action;
 }

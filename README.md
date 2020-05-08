@@ -53,6 +53,7 @@ CREATE TABLE `csstats_servers` (
   `active` tinyint NOT NULL DEFAULT '0' COMMENT 'Are ip:port allowed?: 1-allowed; 0-not allowed (logs/stats from this ip:port will be ignored)',
   `ffa` tinyint NOT NULL DEFAULT '0' COMMENT 'game server is FREE-FOR-ALL mode (Example: CS-DeathMatch): 1-on; 0-off',
   `ignore_bots` tinyint NOT NULL DEFAULT '0' COMMENT '1-ignore statistics, when killer or victim is BOT; 0-don''t ignore (include all players)',
+  `start_session_on_action` tinyint NOT NULL DEFAULT '1' COMMENT '1-start player''s session on event "... killed ... with ..." (not for kreedz servers); 0-start player''s session on event "... entered the game"',
   PRIMARY KEY (`id`),
   UNIQUE KEY `id_UNIQUE` (`id`),
   UNIQUE KEY `ipport_UNIQUE` (`ipport`)
@@ -73,12 +74,16 @@ or
 **Add ip:port and settings to table of allowed servers:**
 ```
 -- for 0.0.0.0:27015 or 127.0.0.1:27015
-INSERT INTO `csstats_servers` (`ipport`,`active`,`ffa`,`ignore_bots`) VALUES ('127.0.0.1:27015',1,0,0);
+INSERT INTO `csstats_servers` (`ipport`,`active`,`ffa`,`ignore_bots`,'start_session_on_action') VALUES 
+('127.0.0.1:27015',1,0,0,1)
+;
 ```
 or
 ```
 -- for 192.168.1.111:27015
-INSERT INTO `csstats_servers` (`ipport`,`active`,`ffa`,`ignore_bots`) VALUES ('192.168.1.111:27015',1,0,0);
+INSERT INTO `csstats_servers` (`ipport`,`active`,`ffa`,`ignore_bots`,'start_session_on_action') VALUES 
+('192.168.1.111:27015',1,0,0,1)
+;
 ```
 
 **Add MySQL user:**
@@ -93,7 +98,6 @@ FLUSH PRIVILEGES;
 
 **Configure config values `/opt/csstats/application.properties` as you want:**
 * `stats.datasource.jdbcUrl = jdbc:mysql://127.0.0.1:3306/amx?user=stats&password=stats`
-* `stats.session.startOnAction=true`
 * `stats.listener.port=8888`
 * `server.servlet.context-path=/`
 * `server.port=8890`
@@ -135,7 +139,7 @@ POST http://localhost:8890/stats/updateSettings - reload & apply servers setting
 ```
 ---
 **Example screenshots:**
-* Logs:
+* Example logs:
 ![Screenshot_1](https://user-images.githubusercontent.com/8545291/81408357-c27d8b80-9145-11ea-9631-8be1044f42b7.png)
 ---
 * Example result from `/stats` endpoint _(RESTED plugin for FireFox)_:
@@ -157,5 +161,5 @@ gradle assemble
 #### **Downloads:**
 https://github.com/mbto/cs-stats-collector/releases
 
-#### **Questions:**
+#### **FAQ:**
 https://github.com/mbto/cs-stats-collector/wiki/Questions
