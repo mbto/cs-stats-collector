@@ -1,6 +1,6 @@
 #### **cs-stats-collector**
 * `Consuming game logs from counter-strike 1.6 dedicated-servers at UDP port 8888;`
-* `Collecting & caching players statistics (kills, deaths, online at server in seconds);`
+* `Collecting & caching players statistics (kills, deaths, online at server in seconds) by player name;`
 * `Merging players statistics to MySQL database on 'next map', 'shutdown server' events, or manually;`
 * `Provides REST-api for management;`
 
@@ -155,14 +155,23 @@ gradle assemble
 ```
 ---
 #### **Questions:**
-**Why only kills/deaths/online time?:**
+**By what criteria is statistics collected?**
+* By player name (nick)
+
+**Are statistics planned by STEAM_ID?**
+* Likely scarcely. Usually, players register their name on the server so that no one else plays with these names
+
+**Why only kills/deaths/online time?**
 * I believe that other statistics, such as `headshots counts`,` weapon stats`, `map stats`, do not make much sense, since they are almost the same everywhere
 
-**Can I launch module on Java 11, not Java 8?:**
+**What happens if another player is already playing on another server with the same nickname as mine at the same time?**
+* All is well, players statistics will be merged when sent to the database*
+
+**Can I launch module on Java 11, not Java 8?**
 * Try it, should work
 
-**Can I assume that your module is a mini-HLStatsX and almost like Psychostats?:**
+**Can I assume that your module is a mini-HLStatsX and almost like Psychostats?**
 * Yes, but there are no php, perl scripts, only multi-threaded java
 
-**Can I use MySQL server 8.0.19 or later?:**
+**Can I use MySQL server 8.0.19 or later?**
 * Ok
