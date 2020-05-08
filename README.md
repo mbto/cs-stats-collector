@@ -154,24 +154,8 @@ POST http://localhost:8890/stats/updateSettings - reload & apply servers setting
 gradle assemble
 ```
 ---
+#### **Downloads:**
+https://github.com/mbto/cs-stats-collector/releases
+
 #### **Questions:**
-**By what criteria is statistics collected?**
-* By player name (nick)
-
-**Are statistics planned by STEAM_ID?**
-* Likely scarcely. Usually, players register their name on the server so that no one else plays with these names
-
-**Why only kills/deaths/online time?**
-* I believe that other statistics, such as `headshots counts`,` weapon stats`, `map stats`, do not make much sense, since they are almost the same everywhere
-
-**What happens if another player is already playing on another server with the same nickname as mine at the same time?**
-* All is well, players statistics will be merged when sent to the database*
-
-**Can I launch module on Java 11, not Java 8?**
-* Try it, should work
-
-**Can I assume that your module is a mini-HLStatsX and almost like Psychostats?**
-* Yes, but there are no php, perl scripts, only multi-threaded java
-
-**Can I use MySQL server 8.0.19 or later?**
-* Ok
+https://github.com/mbto/cs-stats-collector/wiki/Questions
