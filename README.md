@@ -1,4 +1,4 @@
-#### **cs-stats-collector**
+#### **Features:**
 * `Consuming game logs from counter-strike 1.6 dedicated-servers at UDP port 8888;`
 * `Collecting & caching players statistics (kills, deaths, online at server in seconds) by player name;`
 * `Merging players statistics to MySQL database on 'next map', 'shutdown server' events, or manually;`
