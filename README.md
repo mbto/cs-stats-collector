@@ -1,13 +1,16 @@
-# cs-stats-collector
-* Listening UDP port 8888
-* Consuming game logs from counter-strike dedicated-servers
-* Collecting & caching players statistics (kills, deaths, online at server in seconds)
-* Merging players statistics to MySQL database on 'next map', 'shutdown server' events
-* Provides REST-api for management
+#### **cs-stats-collector**
+* `Consuming game logs from counter-strike 1.6 dedicated-servers at UDP port 8888;`
+* `Collecting & caching players statistics (kills, deaths, online at server in seconds);`
+* `Merging players statistics to MySQL database on 'next map', 'shutdown server' events, or manually;`
+* `Provides REST-api for management;`
 
-### **Install:**
+#### **Requirements:**
+* `Java 8+`
+* `MySQL 8.0.20+`
+---
+#### **Install:**
 
-server.cfg:
+**Add settings into server.cfg file:**
 ```
 // logs
 logaddress 127.0.0.1 8888
@@ -23,8 +26,14 @@ sv_logrelay 1		// 1 - логировать в консоль сообщение 
 sv_logsecret 0		// 0 - отправлять логи как "log %s", 1 - "%c%s%s", S2A_LOGKEY, sv_logsecret.string, string
 ```
 
-MySQL tables:
+**Create MySQL database (optional):**
 ```
+CREATE SCHEMA `amx` DEFAULT CHARACTER SET utf8 COLLATE utf8_bin;
+```
+**Create MySQL tables:**
+```
+USE `amx`; -- optional
+
 DROP TABLE IF EXISTS `csstats`;
 CREATE TABLE `csstats` (
   `id` bigint unsigned NOT NULL AUTO_INCREMENT,
@@ -40,44 +49,120 @@ CREATE TABLE `csstats` (
 DROP TABLE IF EXISTS `csstats_servers`;
 CREATE TABLE `csstats_servers` (
   `id` bigint unsigned NOT NULL AUTO_INCREMENT,
-  `ipport` varchar(21) COLLATE utf8_bin NOT NULL,
-  `active` tinyint NOT NULL DEFAULT '0',
-  `ffa` tinyint NOT NULL DEFAULT '0',
-  `ignore_bots` tinyint NOT NULL DEFAULT '0',
+  `ipport` varchar(21) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL COMMENT 'ip:port of the server from which the logs will be expected',
+  `active` tinyint NOT NULL DEFAULT '0' COMMENT 'Are ip:port allowed?: 1-allowed; 0-not allowed (logs/stats from this ip:port will be ignored)',
+  `ffa` tinyint NOT NULL DEFAULT '0' COMMENT 'game server is FREE-FOR-ALL mode (Example: CS-DeathMatch): 1-on; 0-off',
+  `ignore_bots` tinyint NOT NULL DEFAULT '0' COMMENT '1-ignore statistics, when killer or victim is BOT; 0-don''t ignore (include all players)',
   PRIMARY KEY (`id`),
   UNIQUE KEY `id_UNIQUE` (`id`),
   UNIQUE KEY `ipport_UNIQUE` (`ipport`)
-) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
-
-LOCK TABLES `csstats_servers` WRITE;
-INSERT INTO `csstats_servers` VALUES (1,'127.0.0.1:27015',1,1,1);
-UNLOCK TABLES;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 ```
 
-Config location:
+**Determine server's ip:port:**
 ```
-/src/main/resources/application.properties - copy config into /opt/csstats/
+Execute `net_address` at server console or rcon:
+Result can be
+    "net_address" is "0.0.0.0:27015"`
+or
+    "net_address" is "127.0.0.1:27015"`
+or
+    "net_address" is "192.168.1.111:27015"`
 ```
 
-Structure:
+**Add ip:port and settings to table of allowed servers:**
+```
+-- for 0.0.0.0:27015 or 127.0.0.1:27015
+INSERT INTO `csstats_servers` (`ipport`,`active`,`ffa`,`ignore_bots`) VALUES ('127.0.0.1:27015',1,0,0);
+```
+or
+```
+-- for 192.168.1.111:27015
+INSERT INTO `csstats_servers` (`ipport`,`active`,`ffa`,`ignore_bots`) VALUES ('192.168.1.111:27015',1,0,0);
+```
+
+**Add MySQL user:**
+* `stats` (password `stats`):
+```
+INSERT INTO `mysql`.`user` VALUES ('%', 'stats', 'Y', 'Y', 'Y', 'N', 'N', 'N', 'N', 'N', 'N', 'N', 'N', 'N', 'N', 'N', 'Y', 'N', 'N', 'Y', 'N', 'N', 'N', 'N', 'Y', 'N', 'N', 'N', 'N', 'N', 'N', '', '', '', '', 0, 0, 0, 0, 'mysql_native_password', '*2707D57595F6CBAD52FA17AD4B08C85FA7185BAC', 'N', '2020-05-01 00:00:00', NULL, 'N', 'Y', 'Y', NULL, NULL, NULL, NULL);
+FLUSH PRIVILEGES;
+```
+
+**Config location:**
+* `/src/main/resources/application.properties` - copy config into /opt/csstats/ 
+
+**Configure config values `/opt/csstats/application.properties` as you want:**
+* `stats.datasource.jdbcUrl = jdbc:mysql://127.0.0.1:3306/amx?user=stats&password=stats`
+* `stats.session.startOnAction=true`
+* `stats.listener.port=8888`
+* `server.servlet.context-path=/`
+* `server.port=8890`
+* `etc...`
+
+**Directory structure overview:**
 ```
 root@user-desktop:~# ls /opt/csstats/
 application.properties  cs-stats-collector.jar  logs/
 ```
 
-Launch:
+**Unix launch:**
 ```
-/usr/bin/java -jar /opt/csstats/cs-stats-collector.jar --spring.config.location=/opt/csstats/application.properties >> /opt/csstats/logs/collector.log
+/usr/bin/java -jar /opt/csstats/cs-stats-collector.jar --spring.config.location=/opt/csstats/application.properties >> /opt/csstats/logs/collector.log 2>&1
+or
+/usr/bin/java -jar /opt/csstats/cs-stats-collector.jar --spring.config.location=/opt/csstats/application.properties --logging.file=/opt/csstats/logs/collector.log
+```
+**Windows launch:**
+```
+java -jar C:\csstats\cs-stats-collector.jar --spring.config.location=C:\csstats\application.properties --logging.file=C:\csstats\logs\collector.log
+```
+**Launch via start.bat file for Windows (example):**
+* Create **start.bat** with payload:
+```
+@ECHO OFF
+START "cs-stats-collector" "C:\Program Files\Java\jre1.8.0_231\bin\java.exe" -jar C:\csstats\cs-stats-collector.jar --spring.config.location=C:\csstats\application.properties --logging.file=C:\csstats\logs\collector.log
+exit
 ```
 
-Management - use Postman or Curl:
+**Stop:**
+* **Ctrl+C** or **kill [process pid]**
+
+**Management:**
+* **Curl** or **Postman plugin for Chrome** or **RESTED plugin for FireFox**
 ```
 GET http://localhost:8890/stats - prints in json format current players statistics & servers settings
 POST http://localhost:8890/stats/flush - manually merge all players statistics to database
 POST http://localhost:8890/stats/updateSettings - reload & apply servers settings from database, without restart JVM.
 ```
-
-### **Compile:**
+---
+**Example screenshots:**
+* Logs:
+![Screenshot_1](https://user-images.githubusercontent.com/8545291/81405179-d58d5d00-913f-11ea-9905-57fbfae205f9.png)
+---
+* Example result from `/stats` endpoint _(RESTED plugin for FireFox)_:
+![Screenshot_3](https://user-images.githubusercontent.com/8545291/81405183-d6be8a00-913f-11ea-93ca-07b2ea5a8d05.png)
+---
+* Example result from `/stats/flush` endpoint _(RESTED plugin for FireFox)_:
+![Screenshot_5](https://user-images.githubusercontent.com/8545291/81405185-d6be8a00-913f-11ea-8844-af75aab6c840.png)
+---
+* Example SQL query in MySQL Workbench:
+![Screenshot_7](https://user-images.githubusercontent.com/8545291/81405670-ca86fc80-9140-11ea-9136-4ac0ab1f8b58.png)
+---
+#### **Compile:**
+#### **Requirements:**
+* `Gradle 5.4+`
 ```
 gradle assemble
 ```
+---
+#### **Questions:**
+**Why only kills/deaths/online time?:**
+* I believe that other statistics, such as `headshots counts`,` weapon stats`, `map stats`, do not make much sense, since they are almost the same everywhere
+
+**Can I launch module on Java 11, not Java 8?:**
+* Try it, should work
+
+**Can I assume that your module is a mini-HLStatsX and almost like Psychostats?:**
+* Yes, but there are no php, perl scripts, only multi-threaded java
+
+**Can I use MySQL server 8.0.19 or later?:**
+* Ok
