@@ -6,7 +6,7 @@
 
 #### **Requirements:**
 * `Java 8+`
-* `MySQL 8.0.20+`
+* `MySQL server`
 
 #### **FAQ:**
 * https://github.com/mbto/cs-stats-collector/wiki/Questions
