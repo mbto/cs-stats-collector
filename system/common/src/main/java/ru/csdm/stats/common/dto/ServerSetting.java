@@ -3,11 +3,9 @@ package ru.csdm.stats.common.dto;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Getter;
 import lombok.Setter;
-import lombok.ToString;
 
 @Getter
 @Setter
-@ToString
 public class ServerSetting {
     @JsonIgnore
     private String ipport;
@@ -26,4 +24,15 @@ public class ServerSetting {
      * false - start player's session on event "... entered the game"
      */
     private Boolean start_session_on_action;
+
+    public void applyNewValues(ServerSetting sourceServerSetting) {
+        this.ffa = sourceServerSetting.ffa;
+        this.ignore_bots = sourceServerSetting.ignore_bots;
+        this.start_session_on_action = sourceServerSetting.start_session_on_action;
+    }
+
+    @Override
+    public String toString() {
+        return ipport + ": ffa=" + ffa + ", ignore_bots=" + ignore_bots + ", start_session_on_action=" + start_session_on_action;
+    }
 }

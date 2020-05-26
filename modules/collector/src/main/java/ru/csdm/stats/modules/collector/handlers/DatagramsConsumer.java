@@ -7,21 +7,15 @@ import org.springframework.context.annotation.Lazy;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.stereotype.Service;
-import ru.csdm.stats.common.dto.DatagramsQueue;
-import ru.csdm.stats.common.dto.Message;
-import ru.csdm.stats.common.dto.Player;
-import ru.csdm.stats.common.dto.ServerSetting;
+import ru.csdm.stats.common.FlushEvent;
+import ru.csdm.stats.common.dto.*;
 
 import javax.annotation.PreDestroy;
 import java.time.LocalDateTime;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
-import java.util.stream.Collectors;
 
 import static ru.csdm.stats.common.Constants.MMDDYYYY_HHMMSS_PATTERN;
 import static ru.csdm.stats.modules.collector.settings.Patterns.*;
@@ -30,6 +24,8 @@ import static ru.csdm.stats.modules.collector.settings.Patterns.*;
 @Lazy(false)
 @Slf4j
 public class DatagramsConsumer {
+    @Autowired
+    private Map<String, ServerData> availableAddresses;
     @Autowired
     private Map<String, Map<String, Player>> gameSessionByAddress;
     @Autowired
@@ -70,9 +66,8 @@ public class DatagramsConsumer {
             deactivationLatch.await(10, TimeUnit.SECONDS);
         } catch (InterruptedException ignored) {}
 
-        LocalDateTime now = LocalDateTime.now();
         for (String address : gameSessionByAddress.keySet()) {
-            flushSessions(address, now, "PreDestroy lifecycle");
+            flushSessions(address, null, FlushEvent.PRE_DESTROY_LIFECYCLE);
         }
 
         if(debugEnabled)
@@ -100,7 +95,7 @@ public class DatagramsConsumer {
                 message = datagramsQueue.getDatagramsQueue().takeFirst();
 
                 if(debugEnabled)
-                    log.debug(message.getServerSetting().getIpport() + " Taked message: " + message);
+                    log.debug(message.getServerData().getServerSetting().getIpport() + " Taked message: " + message);
             } catch (Throwable e) {
                 if (deactivated) {
                     log.info("Deactivation detected");
@@ -116,19 +111,22 @@ public class DatagramsConsumer {
             if (!msgMatcher.find())
                 continue;
 
-            ServerSetting serverSetting = message.getServerSetting();
-            String address = serverSetting.getIpport();
-
             LocalDateTime dateTime = LocalDateTime.parse(msgMatcher.group("date"), MMDDYYYY_HHMMSS_PATTERN);
 
-/* L 01/21/2020 - 20:50:08: Started map "de_dust2" (CRC "1159425449") -> Started map "de_dust2" (CRC "1159425449") */
+            ServerData serverData = message.getServerData();
+            serverData.setLastTouchDateTime(dateTime);
+
+            ServerSetting serverSetting = serverData.getServerSetting();
+            String address = serverSetting.getIpport();
+
+/* L 01/01/2020 - 20:50:08: Started map "de_dust2" (CRC "1159425449") -> Started map "de_dust2" (CRC "1159425449") */
             String rawMsg = msgMatcher.group("msg");
             Matcher actionMatcher = TWO.pattern.matcher(rawMsg);
 
             if (actionMatcher.find()) {
                 String eventName = actionMatcher.group(2);
 
-/* L 01/21/2020 - 13:15:02: "Name1<5><STEAM_ID_LAN><CT>" killed "Name2<6><STEAM_ID_LAN><T>" with "m4a1" */
+/* L 01/01/2020 - 13:15:02: "Name1<5><STEAM_ID_LAN><CT>" killed "Name2<6><STEAM_ID_LAN><T>" with "m4a1" */
                 if (eventName.equals("killed")) {
                     String sourceRaw = actionMatcher.group(1);
                     String targetRaw = actionMatcher.group(3);
@@ -173,7 +171,7 @@ public class DatagramsConsumer {
             if (eventMatcher.find()) {
                 String eventName = eventMatcher.group(2);
 
-/* L 01/21/2020 - 20:50:20: "timoxatw<3><BOT><>" entered the game */
+/* L 01/01/2020 - 20:50:20: "timoxatw<3><BOT><>" entered the game */
                 if (eventName.equals("entered the game")) {
                     if(serverSetting.getStart_session_on_action()) {
                         continue;
@@ -204,7 +202,7 @@ public class DatagramsConsumer {
                     continue;
                 }
 
-/* L 01/21/2020 - 20:52:10: "timoxatw<3><BOT><TERRORIST>" disconnected */
+/* L 01/01/2020 - 20:52:10: "timoxatw<3><BOT><TERRORIST>" disconnected */
                 if (eventName.equals("disconnected")) {
                     String sourceRaw = eventMatcher.group(1);
                     Matcher sourceMatcher = PLAYER.pattern.matcher(sourceRaw);
@@ -232,18 +230,18 @@ public class DatagramsConsumer {
             if (eventMatcher.find()) {
                 String eventName = eventMatcher.group(1);
 
-/* L 01/21/2020 - 20:50:08: Started map "de_dust2" (CRC "1159425449") */
+/* L 01/01/2020 - 20:50:08: Started map "de_dust2" (CRC "1159425449") */
                 if (eventName.equals("Started map")) {
-                    flushSessions(address, dateTime, "started new game map");
+                    flushSessions(address, dateTime, FlushEvent.NEW_GAME_MAP);
                     continue;
                 }
 
                 continue;
             }
 
-/* L 01/21/2020 - 20:52:15: Server shutdown */
+/* L 01/01/2020 - 20:52:15: Server shutdown */
             if(rawMsg.equals("Server shutdown")) {
-                flushSessions(address, dateTime, "shutdown game server");
+                flushSessions(address, dateTime, FlushEvent.SHUTDOWN_GAME_SERVER);
                 continue;
             }
         }
@@ -288,31 +286,36 @@ public class DatagramsConsumer {
         return player;
     }
 
-    public void flushSessions(String address, LocalDateTime dateTime, String fromEvent) {
+    public void flushSessions(String address, LocalDateTime dateTime, FlushEvent fromEvent) {
         Map<String, Player> gameSessions = gameSessionByAddress.get(address);
 
         if(Objects.isNull(gameSessions)) {
-            log.info(address + " Skip flushing sessions, due gameSessions container not exists. Event: '" + fromEvent + "'");
+            log.info(address + " Skip flushing sessions, due gameSessions container not exists. " + fromEvent);
             return;
         }
 
         int gameSessionsSize = gameSessions.size();
         if (gameSessionsSize == 0) {
-            log.info(address + " Skip flushing sessions, due empty gameSessions container. Event: '" + fromEvent + "'");
+            log.info(address + " Skip flushing sessions, due empty gameSessions container. " + fromEvent);
             return;
         }
 
-        log.info(address + " Prepared " + gameSessionsSize +
-                " session" + (gameSessionsSize > 1 ? "s" : "") + " to flush. Event: '" + fromEvent + "'");
-        List<Player> players = gameSessions.values()
-                .stream()
-                .peek(player -> player.prepareToFlushSessions(dateTime))
-                .collect(Collectors.toList());
+        if(Objects.isNull(dateTime)) {
+            dateTime = availableAddresses.get(address).getLastTouchDateTime();
+        }
 
+        log.info(address + " Prepared " + gameSessionsSize +
+                " session" + (gameSessionsSize > 1 ? "s" : "") + " to flush. " + fromEvent);
+
+        List<Player> players = new ArrayList<>(gameSessions.values());
         gameSessions.clear();
 
+        for (Player player : players) {
+            player.prepareToFlushSessions(dateTime);
+        }
+
         if(players.isEmpty()) {
-            log.info(address + " No players to flush. Event: '" + fromEvent + "'");
+            log.info(address + " No players to flush. " + fromEvent);
             return;
         }
 

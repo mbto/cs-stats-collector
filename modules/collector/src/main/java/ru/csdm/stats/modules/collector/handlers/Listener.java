@@ -11,7 +11,7 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.stereotype.Service;
 import ru.csdm.stats.common.dto.DatagramsQueue;
 import ru.csdm.stats.common.dto.Message;
-import ru.csdm.stats.common.dto.ServerSetting;
+import ru.csdm.stats.common.dto.ServerData;
 
 import javax.annotation.PreDestroy;
 import java.net.DatagramPacket;
@@ -32,7 +32,7 @@ public class Listener {
     private ApplicationContext applicationContext;
 
     @Autowired
-    private Map<String, ServerSetting> availableAddresses;
+    private Map<String, ServerData> availableAddresses;
     @Autowired
     private DatagramsConsumer datagramsConsumer;
     @Autowired
@@ -116,9 +116,9 @@ public class Listener {
 
     public void onMessage(DatagramPacket packet) {
         String address = addressToString(packet.getSocketAddress());
-        ServerSetting serverSetting = availableAddresses.get(address);
+        ServerData serverData = availableAddresses.get(address);
 
-        if(Objects.isNull(serverSetting))
+        if(Objects.isNull(serverData) || !serverData.isListening())
             return;
 
         byte[] data = packet.getData(); // [-1, -1, -1, -1, 108, 111, 103, 32, 76, ...]
@@ -153,7 +153,7 @@ public class Listener {
         }
 
         Message message = new Message();
-        message.setServerSetting(serverSetting);
+        message.setServerData(serverData);
         message.setPayload(new String(data, 8, packet.getLength() -8, StandardCharsets.UTF_8).trim());
 
         if(log.isDebugEnabled())
@@ -166,6 +166,9 @@ public class Listener {
                 datagramsQueue.getDatagramsQueue().putLast(message);
                 break;
             } catch (InterruptedException e) {
+                if(deactivated)
+                    break;
+
                 log.info(address + " InterruptedException catched, due put message " + message + " in datagramsQueue, " + tryes + "/3");
 
                 if (tryes == 3) {

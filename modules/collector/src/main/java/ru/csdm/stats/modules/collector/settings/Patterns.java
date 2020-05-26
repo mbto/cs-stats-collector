@@ -3,7 +3,7 @@ package ru.csdm.stats.modules.collector.settings;
 import java.util.regex.Pattern;
 
 public enum Patterns {
-    // L 01/21/2020 - 13:15:00: "Name1<STEAM_ID_LAN><5><>" connected, address "12.12.12.12:27005"
+    // L 01/01/2020 - 13:15:00: "Name1<STEAM_ID_LAN><5><>" connected, address "12.12.12.12:27005"
     LOG("L (?<date>\\d{2}/\\d{2}/\\d{4} - \\d{2}:\\d{2}:\\d{2}): (?<msg>.*)"),
 
     //    # matches events 057,058,059,066

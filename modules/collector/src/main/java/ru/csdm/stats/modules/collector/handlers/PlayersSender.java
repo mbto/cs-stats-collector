@@ -8,7 +8,7 @@ import org.springframework.stereotype.Service;
 import ru.csdm.stats.common.dto.Player;
 import ru.csdm.stats.common.dto.PlayerStat;
 import ru.csdm.stats.common.dto.Session;
-import ru.csdm.stats.dao.AmxDao;
+import ru.csdm.stats.dao.CsStatsDao;
 
 import java.time.Duration;
 import java.util.List;
@@ -20,7 +20,7 @@ import java.util.stream.Collectors;
 @Slf4j
 public class PlayersSender {
     @Autowired
-    private AmxDao amxDao;
+    private CsStatsDao csStatsDao;
 
     @Async("playersSenderTaskExecutor")
     public void sendAsync(String address, List<Player> players) {
@@ -69,7 +69,7 @@ public class PlayersSender {
         }
 
         try {
-            amxDao.mergePlayersStats(playerStats);
+            csStatsDao.mergePlayersStats(playerStats);
 
             log.info(address + " Successed merged " + playerStats.size() +
                     " player" + (playerStats.size() > 1 ? "s" : "") + " stats");

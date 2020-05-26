@@ -7,6 +7,7 @@ import org.jooq.impl.DataSourceConnectionProvider;
 import org.jooq.impl.DefaultConfiguration;
 import org.jooq.impl.DefaultDSLContext;
 import org.jooq.impl.DefaultExecuteListenerProvider;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.jooq.JooqExceptionTranslator;
 import org.springframework.boot.autoconfigure.jooq.SpringTransactionProvider;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -20,6 +21,7 @@ import org.springframework.jdbc.datasource.TransactionAwareDataSourceProxy;
 
 import javax.sql.DataSource;
 
+import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.springframework.boot.autoconfigure.task.TaskExecutionAutoConfiguration.APPLICATION_TASK_EXECUTOR_BEAN_NAME;
 
 @Configuration
@@ -35,14 +37,22 @@ public class JooqConfig {
     @Bean
     @ConfigurationProperties("stats.datasource")
     @DependsOn(APPLICATION_TASK_EXECUTOR_BEAN_NAME)
-    public HikariDataSource statsDataSource() {
+    public HikariDataSource statsDataSource(
+            @Value("${stats.playersSender.pool.maxSize}") int poolMaxSize
+    ) {
         HikariDataSource ds = DataSourceBuilder.create()
                 .driverClassName("com.mysql.cj.jdbc.Driver")
                 .type(HikariDataSource.class)
                 .build();
-/* 1 connection to database in pool, due exclude conflicts / deadlocks
-on identical players names on insert statements in parallel threads */
-        ds.setMaximumPoolSize(1);
+
+        int poolSize = Math.max(1,
+                Math.min(poolMaxSize, Runtime.getRuntime().availableProcessors())
+        );
+
+        ds.setMaximumPoolSize(poolSize);
+        ds.setMinimumIdle(1);
+        ds.setIdleTimeout(MINUTES.toMillis(1));
+
         ds.setPoolName("stats-pool");
         return ds;
     }
