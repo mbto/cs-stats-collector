@@ -14,9 +14,9 @@ public class PlayerStat {
 
     @Override
     public String toString() {
-        return name + ": totalKills=" + totalKills +
-                ", totalDeaths=" + totalDeaths +
-                ", totalTimeInSecs=" + totalTimeInSecs +
+        return name + ": kills=" + totalKills +
+                ", deaths=" + totalDeaths +
+                ", time=" + totalTimeInSecs + "s" +
                 " (" + SomeUtils.humanLifetime(totalTimeInSecs * 1000) + ")";
     }
 }

@@ -24,7 +24,7 @@ public class PlayersSender {
 
     @Async("playersSenderTaskExecutor")
     public void sendAsync(String address, List<Player> players) {
-        log.info(address + " Preparing " + players.size() + " player" + (players.size() > 1 ? "s" : ""));
+        log.info(address + " Calculating stats from " + players.size() + " player" + (players.size() > 1 ? "s" : ""));
 
         List<PlayerStat> playerStats = players
                 .stream()
@@ -73,7 +73,7 @@ public class PlayersSender {
         try {
             csStatsDao.mergePlayersStats(playerStats);
 
-            log.info(address + " Successed merged " + playerStats.size() +
+            log.info(address + " Successfully merged " + playerStats.size() +
                     " player" + (playerStats.size() > 1 ? "s" : "") + " stats");
         } catch (Throwable e) {
             log.warn(address + " Failed merging " + playerStats.size() +

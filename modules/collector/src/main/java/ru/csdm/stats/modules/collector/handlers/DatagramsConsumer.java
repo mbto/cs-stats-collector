@@ -288,7 +288,7 @@ public class DatagramsConsumer {
                 player = new Player(name);
                 gameSessions.put(name, player);
 
-                log.info(address + " Created player: " + player);
+                log.info(address + " Founded player: " + player);
             }
         }
 
@@ -316,7 +316,7 @@ public class DatagramsConsumer {
         }
 
         log.info(address + " Prepared " + playersSize +
-                " players" + (playersSize > 1 ? "s" : "") + " to flush. " + fromEvent);
+                " player" + (playersSize > 1 ? "s" : "") + " to flush. " + fromEvent);
 
         if(Objects.isNull(dateTime)) {
             dateTime = availableAddresses.get(address).getLastTouchDateTime();
