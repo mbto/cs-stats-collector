@@ -20,9 +20,10 @@ import java.util.stream.Collectors;
 @Slf4j
 public class SettingsService {
     @Autowired
-    private CsStatsDao csStatsDao;
-    @Autowired
     private Map<String, ServerData> availableAddresses;
+
+    @Autowired
+    private CsStatsDao csStatsDao;
 
     public void updateSettings(boolean firstLoading) {
         log.info("Updating servers settings from database");

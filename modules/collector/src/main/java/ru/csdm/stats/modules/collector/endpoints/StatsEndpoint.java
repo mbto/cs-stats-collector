@@ -26,15 +26,16 @@ import java.util.stream.Collectors;
 @Slf4j
 public class StatsEndpoint {
     @Autowired
-    private Map<String, ServerData> availableAddresses;
-    @Autowired
-    private Map<String, Integer> registeredAddresses;
-    @Autowired
     private ThreadPoolTaskExecutor applicationTaskExecutor;
     @Autowired
     private ThreadPoolTaskExecutor consumerTaskExecutor;
     @Autowired
     private ThreadPoolTaskExecutor playersSenderTaskExecutor;
+
+    @Autowired
+    private Map<String, ServerData> availableAddresses;
+    @Autowired
+    private Map<String, Integer> registeredAddresses;
     @Autowired
     private Map<Integer, DatagramsQueue> datagramsInQueuesById;
     @Autowired
@@ -43,15 +44,8 @@ public class StatsEndpoint {
     @Autowired
     private DatagramsConsumer datagramsConsumer;
 
-/* for tests */
-//    @Autowired
-//    private ApplicationContext applicationContext;
-//    @PostMapping(value = "/quit")
-//    @ResponseStatus(HttpStatus.NO_CONTENT)
-//    public void quit() {
-//        int code = SpringApplication.exit(applicationContext, () -> 0);
-//        System.exit(code);
-//    }
+    @Autowired
+    private SettingsService settingsService;
 
     @PostMapping(value = "/flush")
     @ResponseStatus(HttpStatus.NO_CONTENT)
@@ -60,9 +54,6 @@ public class StatsEndpoint {
             datagramsConsumer.flushSessions(address, null, FlushEvent.ENDPOINT);
         }
     }
-
-    @Autowired
-    private SettingsService settingsService;
 
     @PostMapping(value = "/updateSettings")
     @ResponseStatus(HttpStatus.NO_CONTENT)
@@ -108,7 +99,7 @@ public class StatsEndpoint {
         return result;
     }
 
-    public Map<String, Integer> buildThreadPoolStats(ThreadPoolTaskExecutor threadPoolTaskExecutor) {
+    private Map<String, Integer> buildThreadPoolStats(ThreadPoolTaskExecutor threadPoolTaskExecutor) {
         Map<String, Integer> result = new LinkedHashMap<>();
         result.put("corePoolSize", threadPoolTaskExecutor.getCorePoolSize());
         result.put("maxPoolSize", threadPoolTaskExecutor.getMaxPoolSize());

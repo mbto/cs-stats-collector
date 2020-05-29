@@ -32,19 +32,24 @@ public class Listener {
     private ApplicationContext applicationContext;
 
     @Autowired
+    private ThreadPoolTaskExecutor consumerTaskExecutor;
+
+    @Autowired
     private Map<String, ServerData> availableAddresses;
     @Autowired
-    private DatagramsConsumer datagramsConsumer;
+    private Map<String, Integer> registeredAddresses;
     @Autowired
     private Map<Integer, DatagramsQueue> datagramsInQueuesById;
+
     @Autowired
-    private ThreadPoolTaskExecutor consumerTaskExecutor;
+    private DatagramsConsumer datagramsConsumer;
 
     @Value("${stats.listener.port:8888}")
     private int listenerPort;
 
     private DatagramSocket datagramSocket;
     private int maxConsumers;
+    private int nextQueueIdCounter;
 
     private volatile boolean deactivated;
 
@@ -109,11 +114,6 @@ public class Listener {
         log.info("Deactivated");
     }
 
-    @Autowired
-    private Map<String, Integer> registeredAddresses;
-
-    private int nextQueueIdCounter;
-
     public void onMessage(DatagramPacket packet) {
         String address = addressToString(packet.getSocketAddress());
         ServerData serverData = availableAddresses.get(address);
@@ -123,8 +123,11 @@ public class Listener {
 
         byte[] data = packet.getData(); // [-1, -1, -1, -1, 108, 111, 103, 32, 76, ...]
         if(!(data.length >= 9 && (data[4] == 'l' && data[5] == 'o' && data[6] == 'g' && data[7] == ' ' && data[8] == 'L'))) {
-            if(log.isDebugEnabled())
-                log.debug(address + ": Invalid data: '" + new String(data, 0, data.length, StandardCharsets.UTF_8) + "', raw: " + Arrays.toString(data));
+            if(log.isDebugEnabled()) {
+                log.debug(address + " Invalid data: '"
+                        + new String(data, 0, packet.getLength(), StandardCharsets.UTF_8) + "'"
+                        + ", raw: " + Arrays.toString(Arrays.copyOf(data, packet.getLength())));
+            }
 
             return;
         }

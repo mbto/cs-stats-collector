@@ -25,17 +25,19 @@ import static ru.csdm.stats.modules.collector.settings.Patterns.*;
 @Slf4j
 public class DatagramsConsumer {
     @Autowired
+    private ThreadPoolTaskExecutor consumerTaskExecutor;
+
+    @Autowired
     private Map<String, ServerData> availableAddresses;
     @Autowired
     private Map<String, Map<String, Player>> gameSessionByAddress;
+
     @Autowired
     private PlayersSender playersSender;
 
-    @Autowired
-    private ThreadPoolTaskExecutor consumerTaskExecutor;
+    private CountDownLatch deactivationLatch;
 
     private volatile boolean deactivated;
-    private CountDownLatch deactivationLatch;
 
     @PreDestroy
     public void destroy() {
@@ -212,7 +214,10 @@ public class DatagramsConsumer {
                         Map<String, Player> gameSessions = allocateGameSession(address, false);
 
                         if(Objects.nonNull(gameSessions)) {
-                            Player player = gameSessions.get(sourceName);
+                            Player player;
+                            synchronized (gameSessions) {
+                                player = gameSessions.get(sourceName);
+                            }
 
                             if (Objects.nonNull(player)) {
                                 player.onDisconnected(dateTime);
@@ -274,13 +279,17 @@ public class DatagramsConsumer {
 
     private Player allocatePlayer(String address, String name) {
         Map<String, Player> gameSessions = allocateGameSession(address, true);
-        Player player = gameSessions.get(name);
 
-        if(Objects.isNull(player)) {
-            player = new Player(name);
-            gameSessions.put(name, player);
+        Player player;
+        synchronized (gameSessions) {
+            player = gameSessions.get(name);
 
-            log.info(address + " Created player: " + player);
+            if (Objects.isNull(player)) {
+                player = new Player(name);
+                gameSessions.put(name, player);
+
+                log.info(address + " Created player: " + player);
+            }
         }
 
         return player;
@@ -290,33 +299,31 @@ public class DatagramsConsumer {
         Map<String, Player> gameSessions = gameSessionByAddress.get(address);
 
         if(Objects.isNull(gameSessions)) {
-            log.info(address + " Skip flushing sessions, due gameSessions container not exists. " + fromEvent);
+            log.info(address + " Skip flushing players, due gameSessions container not exists. " + fromEvent);
             return;
         }
 
-        int gameSessionsSize = gameSessions.size();
-        if (gameSessionsSize == 0) {
-            log.info(address + " Skip flushing sessions, due empty gameSessions container. " + fromEvent);
+        List<Player> players;
+        synchronized (gameSessions) { // synchronizing, due flushSession can invoked from /flush endpoint
+            players = new ArrayList<>(gameSessions.values());
+            gameSessions.clear();
+        }
+
+        int playersSize = players.size();
+        if (playersSize == 0) {
+            log.info(address + " Skip flushing players, due empty players container. " + fromEvent);
             return;
         }
+
+        log.info(address + " Prepared " + playersSize +
+                " players" + (playersSize > 1 ? "s" : "") + " to flush. " + fromEvent);
 
         if(Objects.isNull(dateTime)) {
             dateTime = availableAddresses.get(address).getLastTouchDateTime();
         }
 
-        log.info(address + " Prepared " + gameSessionsSize +
-                " session" + (gameSessionsSize > 1 ? "s" : "") + " to flush. " + fromEvent);
-
-        List<Player> players = new ArrayList<>(gameSessions.values());
-        gameSessions.clear();
-
         for (Player player : players) {
             player.prepareToFlushSessions(dateTime);
-        }
-
-        if(players.isEmpty()) {
-            log.info(address + " No players to flush. " + fromEvent);
-            return;
         }
 
         playersSender.sendAsync(address, players);

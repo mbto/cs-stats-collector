@@ -11,6 +11,6 @@ public class Message {
 
     @Override
     public String toString() {
-        return serverData.getServerSetting().getIpport() + ": " + payload;
+        return payload;
     }
 }

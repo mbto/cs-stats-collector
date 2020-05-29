@@ -24,7 +24,7 @@ public class PlayersSender {
 
     @Async("playersSenderTaskExecutor")
     public void sendAsync(String address, List<Player> players) {
-        log.info(address + " Flushing " + players.size() + " player" + (players.size() > 1 ? "s" : ""));
+        log.info(address + " Preparing " + players.size() + " player" + (players.size() > 1 ? "s" : ""));
 
         List<PlayerStat> playerStats = players
                 .stream()
@@ -63,6 +63,8 @@ public class PlayersSender {
             log.info(address + " Skip flushing players stats, due empty playerStats");
             return;
         }
+
+        log.info(address + " Flushing " + playerStats.size() + " player" + (playerStats.size() > 1 ? "s" : "") + " stats");
 
         for (PlayerStat stat : playerStats) {
             log.info(address + " " + stat);
