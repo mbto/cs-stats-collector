@@ -1,11 +1,13 @@
 package ru.csdm.stats.common.dto;
 
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
 import ru.csdm.stats.common.utils.SomeUtils;
 
 @Getter
 @Setter
+@EqualsAndHashCode
 public class PlayerStat {
     private String name;
     private long totalKills;
