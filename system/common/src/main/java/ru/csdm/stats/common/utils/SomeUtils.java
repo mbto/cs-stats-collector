@@ -34,6 +34,10 @@ public class SomeUtils {
                 Objects.nonNull(dateEnd) ? dateEnd : LocalDateTime.now());
 
         long millis = duration.toMillis();
+        return humanLifetime(millis);
+    }
+
+    public static String humanLifetime(long millis) {
         long hrs = TimeUnit.MILLISECONDS.toHours(millis);
         long mins = TimeUnit.MILLISECONDS.toMinutes(millis) - TimeUnit.HOURS.toMinutes(hrs);
         long secs = TimeUnit.MILLISECONDS.toSeconds(millis) - TimeUnit.MINUTES.toSeconds(TimeUnit.MILLISECONDS.toMinutes(millis));

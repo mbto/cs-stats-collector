@@ -11,7 +11,7 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.stereotype.Service;
 import ru.csdm.stats.common.dto.DatagramsQueue;
 import ru.csdm.stats.common.dto.Message;
-import ru.csdm.stats.common.dto.ServerSetting;
+import ru.csdm.stats.common.dto.ServerData;
 
 import javax.annotation.PreDestroy;
 import java.net.DatagramPacket;
@@ -32,21 +32,26 @@ public class Listener {
     private ApplicationContext applicationContext;
 
     @Autowired
-    private Map<String, ServerSetting> availableAddresses;
+    private ThreadPoolTaskExecutor consumerTaskExecutor;
+
     @Autowired
-    private DatagramsConsumer datagramsConsumer;
+    private Map<String, ServerData> availableAddresses;
+    @Autowired
+    private Map<String, Integer> registeredAddresses;
     @Autowired
     private Map<Integer, DatagramsQueue> datagramsInQueuesById;
+
     @Autowired
-    private ThreadPoolTaskExecutor consumerTaskExecutor;
+    private DatagramsConsumer datagramsConsumer;
 
     @Value("${stats.listener.port:8888}")
     private int listenerPort;
 
     private DatagramSocket datagramSocket;
     private int maxConsumers;
+    private int nextQueueIdCounter;
 
-    private volatile boolean deactivated;
+    private boolean deactivated;
 
     @PreDestroy
     public void destroy() {
@@ -109,22 +114,20 @@ public class Listener {
         log.info("Deactivated");
     }
 
-    @Autowired
-    private Map<String, Integer> registeredAddresses;
-
-    private int nextQueueIdCounter;
-
     public void onMessage(DatagramPacket packet) {
         String address = addressToString(packet.getSocketAddress());
-        ServerSetting serverSetting = availableAddresses.get(address);
+        ServerData serverData = availableAddresses.get(address);
 
-        if(Objects.isNull(serverSetting))
+        if(Objects.isNull(serverData) || !serverData.isListening())
             return;
 
         byte[] data = packet.getData(); // [-1, -1, -1, -1, 108, 111, 103, 32, 76, ...]
         if(!(data.length >= 9 && (data[4] == 'l' && data[5] == 'o' && data[6] == 'g' && data[7] == ' ' && data[8] == 'L'))) {
-            if(log.isDebugEnabled())
-                log.debug(address + ": Invalid data: '" + new String(data, 0, data.length, StandardCharsets.UTF_8) + "', raw: " + Arrays.toString(data));
+            if(log.isDebugEnabled()) {
+                log.debug(address + " Invalid data: '"
+                        + new String(data, 0, packet.getLength(), StandardCharsets.UTF_8) + "'"
+                        + ", raw: " + Arrays.toString(Arrays.copyOf(data, packet.getLength())));
+            }
 
             return;
         }
@@ -153,7 +156,7 @@ public class Listener {
         }
 
         Message message = new Message();
-        message.setServerSetting(serverSetting);
+        message.setServerData(serverData);
         message.setPayload(new String(data, 8, packet.getLength() -8, StandardCharsets.UTF_8).trim());
 
         if(log.isDebugEnabled())
@@ -166,6 +169,9 @@ public class Listener {
                 datagramsQueue.getDatagramsQueue().putLast(message);
                 break;
             } catch (InterruptedException e) {
+                if(deactivated)
+                    break;
+
                 log.info(address + " InterruptedException catched, due put message " + message + " in datagramsQueue, " + tryes + "/3");
 
                 if (tryes == 3) {

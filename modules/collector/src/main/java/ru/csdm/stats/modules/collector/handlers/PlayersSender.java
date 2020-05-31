@@ -8,7 +8,7 @@ import org.springframework.stereotype.Service;
 import ru.csdm.stats.common.dto.Player;
 import ru.csdm.stats.common.dto.PlayerStat;
 import ru.csdm.stats.common.dto.Session;
-import ru.csdm.stats.dao.AmxDao;
+import ru.csdm.stats.dao.CsStatsDao;
 
 import java.time.Duration;
 import java.util.List;
@@ -20,11 +20,11 @@ import java.util.stream.Collectors;
 @Slf4j
 public class PlayersSender {
     @Autowired
-    private AmxDao amxDao;
+    private CsStatsDao csStatsDao;
 
     @Async("playersSenderTaskExecutor")
     public void sendAsync(String address, List<Player> players) {
-        log.info(address + " Flushing " + players.size() + " player" + (players.size() > 1 ? "s" : ""));
+        log.info(address + " Calculating stats from " + players.size() + " player" + (players.size() > 1 ? "s" : ""));
 
         List<PlayerStat> playerStats = players
                 .stream()
@@ -64,14 +64,16 @@ public class PlayersSender {
             return;
         }
 
+        log.info(address + " Flushing " + playerStats.size() + " player" + (playerStats.size() > 1 ? "s" : "") + " stats");
+
         for (PlayerStat stat : playerStats) {
             log.info(address + " " + stat);
         }
 
         try {
-            amxDao.mergePlayersStats(playerStats);
+            csStatsDao.mergePlayersStats(playerStats);
 
-            log.info(address + " Successed merged " + playerStats.size() +
+            log.info(address + " Successfully merged " + playerStats.size() +
                     " player" + (playerStats.size() > 1 ? "s" : "") + " stats");
         } catch (Throwable e) {
             log.warn(address + " Failed merging " + playerStats.size() +

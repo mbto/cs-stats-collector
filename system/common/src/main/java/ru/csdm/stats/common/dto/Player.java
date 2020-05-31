@@ -3,7 +3,6 @@ package ru.csdm.stats.common.dto;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Getter;
 import lombok.Setter;
-import lombok.ToString;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -12,7 +11,6 @@ import java.util.Objects;
 
 @Getter
 @Setter
-@ToString
 public class Player {
     @JsonIgnore
     private String name;
@@ -59,7 +57,14 @@ public class Player {
     }
 
     public void prepareToFlushSessions(LocalDateTime finishedDateTime) {
-        sessions.forEach(session -> session.close(finishedDateTime));
+        for (Session session : sessions) {
+            session.close(finishedDateTime);
+        }
+    }
+
+    @Override
+    public String toString() {
+        return name;
     }
 
     @Override

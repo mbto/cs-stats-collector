@@ -6,11 +6,11 @@ import lombok.Setter;
 @Getter
 @Setter
 public class Message {
-    private ServerSetting serverSetting;
+    private ServerData serverData;
     private String payload;
 
     @Override
     public String toString() {
-        return (serverSetting != null ? serverSetting.getIpport() : "-") + ": " + payload;
+        return payload;
     }
 }

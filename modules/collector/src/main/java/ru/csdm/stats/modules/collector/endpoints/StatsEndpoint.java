@@ -7,14 +7,14 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.web.bind.annotation.*;
+import ru.csdm.stats.common.FlushEvent;
 import ru.csdm.stats.common.dto.DatagramsQueue;
 import ru.csdm.stats.common.dto.Message;
 import ru.csdm.stats.common.dto.Player;
-import ru.csdm.stats.common.dto.ServerSetting;
+import ru.csdm.stats.common.dto.ServerData;
 import ru.csdm.stats.modules.collector.handlers.DatagramsConsumer;
 import ru.csdm.stats.modules.collector.service.SettingsService;
 
-import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -26,15 +26,16 @@ import java.util.stream.Collectors;
 @Slf4j
 public class StatsEndpoint {
     @Autowired
-    private Map<String, ServerSetting> availableAddresses;
-    @Autowired
-    private Map<String, Integer> registeredAddresses;
-    @Autowired
     private ThreadPoolTaskExecutor applicationTaskExecutor;
     @Autowired
     private ThreadPoolTaskExecutor consumerTaskExecutor;
     @Autowired
     private ThreadPoolTaskExecutor playersSenderTaskExecutor;
+
+    @Autowired
+    private Map<String, ServerData> availableAddresses;
+    @Autowired
+    private Map<String, Integer> registeredAddresses;
     @Autowired
     private Map<Integer, DatagramsQueue> datagramsInQueuesById;
     @Autowired
@@ -43,27 +44,16 @@ public class StatsEndpoint {
     @Autowired
     private DatagramsConsumer datagramsConsumer;
 
-/* for tests */
-//    @Autowired
-//    private ApplicationContext applicationContext;
-//    @PostMapping(value = "/quit")
-//    @ResponseStatus(HttpStatus.NO_CONTENT)
-//    public void quit() {
-//        int code = SpringApplication.exit(applicationContext, () -> 0);
-//        System.exit(code);
-//    }
+    @Autowired
+    private SettingsService settingsService;
 
     @PostMapping(value = "/flush")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void flush() {
-        LocalDateTime now = LocalDateTime.now();
         for (String address : gameSessionByAddress.keySet()) {
-            datagramsConsumer.flushSessions(address, now, "/flush endpoint");
+            datagramsConsumer.flushSessions(address, null, FlushEvent.ENDPOINT);
         }
     }
-
-    @Autowired
-    private SettingsService settingsService;
 
     @PostMapping(value = "/updateSettings")
     @ResponseStatus(HttpStatus.NO_CONTENT)
@@ -78,7 +68,7 @@ public class StatsEndpoint {
                 Pair.of("available", availableAddresses
                         .values()
                         .stream()
-                        .collect(Collectors.groupingBy(ServerSetting::getIpport,
+                        .collect(Collectors.groupingBy(ss -> ss.getServerSetting().getIpport(),
                                 LinkedHashMap::new,
                                 Collectors.toList()))
                 ),
@@ -98,7 +88,7 @@ public class StatsEndpoint {
                     DatagramsQueue value = entry.getValue();
                     return value.getDatagramsQueue()
                             .stream()
-                            .collect(Collectors.groupingBy(msg -> msg.getServerSetting().getIpport(),
+                            .collect(Collectors.groupingBy(msg -> msg.getServerData().getServerSetting().getIpport(),
                                     LinkedHashMap::new,
                                     Collectors.mapping(Message::getPayload, Collectors.toList())));
                 }));
@@ -109,7 +99,7 @@ public class StatsEndpoint {
         return result;
     }
 
-    public Map<String, Integer> buildThreadPoolStats(ThreadPoolTaskExecutor threadPoolTaskExecutor) {
+    private Map<String, Integer> buildThreadPoolStats(ThreadPoolTaskExecutor threadPoolTaskExecutor) {
         Map<String, Integer> result = new LinkedHashMap<>();
         result.put("corePoolSize", threadPoolTaskExecutor.getCorePoolSize());
         result.put("maxPoolSize", threadPoolTaskExecutor.getMaxPoolSize());

@@ -11,7 +11,7 @@ import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import ru.csdm.stats.common.dto.DatagramsQueue;
 import ru.csdm.stats.common.dto.Player;
-import ru.csdm.stats.common.dto.ServerSetting;
+import ru.csdm.stats.common.dto.ServerData;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -29,10 +29,10 @@ public class Application {
 
     /**
      * Key: Server address (ip:port)
-     * Value: ServerInfo
+     * Value: ServerData
      */
     @Bean
-    public Map<String, ServerSetting> availableAddresses() {
+    public Map<String, ServerData> availableAddresses() {
         return new ConcurrentSkipListMap<>();
     }
     /**

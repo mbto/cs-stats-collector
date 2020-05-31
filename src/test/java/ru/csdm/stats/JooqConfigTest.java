@@ -12,10 +12,7 @@ import org.springframework.boot.autoconfigure.jooq.JooqExceptionTranslator;
 import org.springframework.boot.autoconfigure.jooq.SpringTransactionProvider;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.jdbc.DataSourceBuilder;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.DependsOn;
-import org.springframework.context.annotation.Lazy;
+import org.springframework.context.annotation.*;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.jdbc.datasource.TransactionAwareDataSourceProxy;
 
@@ -24,20 +21,21 @@ import javax.sql.DataSource;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.springframework.boot.autoconfigure.task.TaskExecutionAutoConfiguration.APPLICATION_TASK_EXECUTOR_BEAN_NAME;
 
-@Configuration
-public class JooqConfig {
+@Profile("test")
+@Configuration()
+public class JooqConfigTest {
 
     @Bean
     @Lazy(false)
-    @DependsOn("statsDataSource")
-    DSLContext statsDsl(HikariDataSource statsDataSource) {
-        return configJooqContext(statsDataSource, SQLDialect.MYSQL);
+    @DependsOn("adminDataSource")
+    DSLContext adminDsl(HikariDataSource adminDataSource) {
+        return configJooqContext(adminDataSource, SQLDialect.MYSQL);
     }
 
     @Bean
-    @ConfigurationProperties("stats.datasource")
+    @ConfigurationProperties("admin.datasource")
     @DependsOn(APPLICATION_TASK_EXECUTOR_BEAN_NAME)
-    public HikariDataSource statsDataSource(
+    public HikariDataSource adminDataSource(
             @Value("${stats.playersSender.pool.maxSize}") int poolMaxSize
     ) {
         HikariDataSource ds = DataSourceBuilder.create()
@@ -53,7 +51,7 @@ public class JooqConfig {
         ds.setMinimumIdle(1);
         ds.setIdleTimeout(MINUTES.toMillis(1));
 
-        ds.setPoolName("stats-pool");
+        ds.setPoolName("admin-pool");
         return ds;
     }
 

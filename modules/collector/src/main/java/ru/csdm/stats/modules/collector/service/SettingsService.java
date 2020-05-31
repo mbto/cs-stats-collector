@@ -5,47 +5,100 @@ import org.jooq.exception.DataAccessException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
+import ru.csdm.stats.common.dto.ServerData;
 import ru.csdm.stats.common.dto.ServerSetting;
-import ru.csdm.stats.dao.AmxDao;
+import ru.csdm.stats.dao.CsStatsDao;
 
+import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
 @Service
 @Lazy(false)
 @Slf4j
 public class SettingsService {
     @Autowired
-    private AmxDao amxDao;
+    private Map<String, ServerData> availableAddresses;
+
     @Autowired
-    private Map<String, ServerSetting> availableAddresses;
+    private CsStatsDao csStatsDao;
 
     public void updateSettings(boolean firstLoading) {
         log.info("Updating servers settings from database");
 
+        List<ServerSetting> serversSettings = null;
         try {
-            Map<String, ServerSetting> serverInfos = amxDao.fetchServersSettings();
-
-            if(!serverInfos.isEmpty()) {
-                if(!firstLoading) { // remove old elements when refreshing
-                    availableAddresses
-                            .entrySet()
-                            .removeIf(address -> !serverInfos.containsKey(address.getKey()));
-                }
-
-                availableAddresses.putAll(serverInfos); // replace all settings
-            }
+            serversSettings = csStatsDao.fetchServersSettings();
         } catch (DataAccessException e) {
             log.warn("Unable to fetch servers settings from database", e);
+        }
+
+        if(Objects.nonNull(serversSettings)) {
+            LocalDateTime now = LocalDateTime.now();
+            Map<String, ServerData> serversDatas = serversSettings.stream()
+                    .collect(Collectors.toMap(ServerSetting::getIpport, serverSetting -> {
+                        ServerData serverData = new ServerData();
+                        serverData.setServerSetting(serverSetting);
+                        serverData.setLastTouchDateTime(now);
+                        serverData.setListening(true);
+
+                        return serverData;
+                    }));
+
+            if(!firstLoading) { // deactive existed serversDatas on second and further loading
+                for (Map.Entry<String, ServerData> entry : availableAddresses.entrySet()) {
+                    ServerData serverData = entry.getValue();
+
+                    if(!serverData.isListening())
+                        continue;
+
+                    String address = entry.getKey();
+
+                    if(!serversDatas.containsKey(address)) {
+                        serverData.setListening(false);
+
+                        log.info(serverData.getServerSetting().getIpport() + " listening stopped");
+                    }
+                }
+            }
+
+            if(!serversDatas.isEmpty()) {
+                for (Map.Entry<String, ServerData> entry : serversDatas.entrySet()) { // create/update all serversDatas
+                    String newAddress = entry.getKey();
+                    ServerData existedServerData = availableAddresses.get(newAddress);
+                    ServerData newServerData = entry.getValue();
+
+                    if(Objects.isNull(existedServerData)) {
+                        availableAddresses.put(newAddress, newServerData);
+
+                        if(!firstLoading)
+                            log.info(newServerData.getServerSetting().getIpport() + " added to listening");
+                    } else {
+                        ServerSetting existedServerSetting = existedServerData.getServerSetting();
+                        ServerSetting newServerSetting = newServerData.getServerSetting();
+                        existedServerSetting.applyNewValues(newServerSetting);
+
+                        if(!existedServerData.isListening()) {
+                            existedServerData.setListening(true);
+
+                            log.info(existedServerData.getServerSetting().getIpport() + " listening started");
+                        }
+                    }
+                }
+            }
         }
 
         if(availableAddresses.isEmpty()) {
             log.info("No available servers with settings");
         } else {
-            log.info("Used " + availableAddresses.size() +
-                    " server" + (availableAddresses.size() > 1 ? "s" : "" ) +" with settings:");
+            log.info("Known " + availableAddresses.size() +
+                    " server" + (availableAddresses.size() > 1 ? "s" : "") +" with settings:");
 
-            for (ServerSetting serverSetting : availableAddresses.values()) {
-                log.info(serverSetting.toString());
+            for (ServerData serverData : availableAddresses.values()) {
+                log.info(String.format("%-15s", serverData.isListening() ? "[LISTENING]" : "[NOT LISTENING]")
+                        + " " + serverData.getServerSetting().toString());
             }
         }
     }

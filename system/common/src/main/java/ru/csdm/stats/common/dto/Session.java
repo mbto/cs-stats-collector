@@ -33,10 +33,6 @@ public class Session {
             finished = finishedDateTime;
     }
 
-    public boolean hasStats() {
-        return kills > 0 || deaths > 0;
-    }
-
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;

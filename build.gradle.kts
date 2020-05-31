@@ -67,7 +67,8 @@ dependencies {
     }
 
     /* test */
-    /*testCompile("org.springframework.boot:spring-boot-test:$springVersion")
+//    testCompile("org.apache.commons:commons-collections4:4.3")
+    testCompile("org.springframework.boot:spring-boot-test:$springVersion")
     testCompile("org.springframework.boot:spring-boot-test-autoconfigure:$springVersion")
     testCompile("junit:junit:+")
     testCompile("com.jayway.jsonpath:json-path:+")
@@ -77,5 +78,5 @@ dependencies {
     testCompile("org.junit.jupiter:junit-jupiter-api:5.2.0")
     testCompile("org.junit.jupiter:junit-jupiter-params:5.2.0")
     testCompile("org.springframework:spring-test:5.1.2.RELEASE")
-    testRuntime("org.junit.jupiter:junit-jupiter-engine:5.2.0")*/
+    testRuntime("org.junit.jupiter:junit-jupiter-engine:5.2.0")
 }
