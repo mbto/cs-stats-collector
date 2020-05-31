@@ -37,7 +37,7 @@ public class DatagramsConsumer {
 
     private CountDownLatch deactivationLatch;
 
-    private volatile boolean deactivated;
+    private boolean deactivated;
 
     @PreDestroy
     public void destroy() {
@@ -144,8 +144,13 @@ public class DatagramsConsumer {
                             String killerAuth = sourceMatcher.group("auth");
                             String victimAuth = targetMatcher.group("auth");
 
-                            if("BOT".equals(killerAuth) || "BOT".equals(victimAuth))
+                            if("BOT".equals(killerAuth) || "BOT".equals(victimAuth)) {
+                                if(debugEnabled) {
+                                    log.debug(address + " Skip BOT frag: " + sourceRaw + " & " + targetRaw);
+                                }
+
                                 continue;
+                            }
                         }
 
                         if(serverSetting.getFfa()) {

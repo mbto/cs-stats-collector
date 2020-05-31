@@ -17,9 +17,10 @@
 #### **Install & launch:**
 * https://github.com/mbto/cs-stats-collector/wiki/Install-&-launch
 
-#### **Compile:**
+#### **Compile & Build:**
 * **Requirements:**
     * `Gradle 5.4+`
-```
-gradle assemble
-```
+* **With tests:**
+    * `gradle build`
+* **Without tests:**
+    * `gradle build -x test`

@@ -1,7 +1,9 @@
 package ru.csdm.stats.dao;
 
 import lombok.extern.slf4j.Slf4j;
-import org.jooq.*;
+import org.jooq.DSLContext;
+import org.jooq.Record;
+import org.jooq.UpdateSetStep;
 import org.jooq.impl.DSL;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
@@ -11,17 +13,15 @@ import ru.csdm.stats.common.dto.ServerSetting;
 import java.util.List;
 import java.util.Objects;
 
+import static ru.csdm.stats.model.Csstats.*;
+import static ru.csdm.stats.model.CsstatsServers.active_field;
+import static ru.csdm.stats.model.CsstatsServers.csstats_servers_table;
+
 @Repository
 @Slf4j
 public class CsStatsDao {
     @Autowired
     private DSLContext statsDsl;
-
-    private static final Table<Record> csstats_servers_table = DSL.table("csstats_servers");
-//    private static final Field<String> ipport_field = DSL.field("ipport", String.class);
-    private static final Field<Boolean> active_field = DSL.field("active", Boolean.class);
-//    private static final Field<Boolean> ffa_field = DSL.field("ffa", Boolean.class);
-//    private static final Field<Boolean> ignore_bots_field = DSL.field("ignore_bots", Boolean.class);
 
     public List<ServerSetting> fetchServersSettings() {
         return statsDsl.select(DSL.asterisk())
@@ -29,13 +29,6 @@ public class CsStatsDao {
                 .where(active_field.eq(true))
                 .fetchInto(ServerSetting.class);
     }
-
-    private static final Table<Record> csstats_table = DSL.table("csstats");
-    private static final Field<Long> id_field = DSL.field("id", Long.class);
-    private static final Field<String> name_field = DSL.field("name", String.class);
-    private static final Field<Long> kills_field = DSL.field("kills", Long.class);
-    private static final Field<Long> deaths_field = DSL.field("deaths", Long.class);
-    private static final Field<Long> time_secs_field = DSL.field("time_secs", Long.class);
 
     public void mergePlayersStats(List<PlayerStat> playerStats) {
         if(log.isDebugEnabled())

@@ -11,6 +11,6 @@ import java.time.LocalDateTime;
 @ToString
 public class ServerData {
     private ServerSetting serverSetting;
-    private volatile boolean listening;
-    private volatile LocalDateTime lastTouchDateTime;
+    public boolean listening;
+    private LocalDateTime lastTouchDateTime;
 }

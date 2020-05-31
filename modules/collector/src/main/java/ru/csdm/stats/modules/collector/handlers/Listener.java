@@ -51,7 +51,7 @@ public class Listener {
     private int maxConsumers;
     private int nextQueueIdCounter;
 
-    private volatile boolean deactivated;
+    private boolean deactivated;
 
     @PreDestroy
     public void destroy() {
