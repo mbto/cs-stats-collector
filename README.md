@@ -14,6 +14,9 @@
 #### **Downloads:**
 * https://github.com/mbto/cs-stats-collector/releases
 
+#### **Examples:**
+* https://github.com/mbto/cs-stats-collector/wiki/Examples
+
 #### **Install & launch:**
 * https://github.com/mbto/cs-stats-collector/wiki/Install-&-launch
 
