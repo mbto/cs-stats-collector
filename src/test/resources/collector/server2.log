@@ -181,6 +181,7 @@ L 01/01/2020 - 20:50:06: Server cvar "pb_latencybot" = "2"
 L 01/01/2020 - 20:50:06: Server cvar "pb_radio" = "0"
 L 01/01/2020 - 20:50:06: Server cvar "pb_restrweapons" = "10000000000000000000000001"
 L 01/01/2020 - 20:50:06: Server cvar "amx_language" = "en"
+L 01/01/2020 - 20:50:06: Started map "de_dust2" (CRC "-123123")
 L 01/01/2020 - 20:50:06: Founded spawns @ T:20 CT:20
 L 01/01/2020 - 20:50:06: Server cvar "amx_nextmap" = "de_airstrip"
 L 01/01/2020 - 20:50:08: Server cvar "sv_accelerate" = "5"
@@ -323,6 +324,7 @@ L 01/01/2020 - 20:57:03: Server cvar "sv_waterfriction" = "1"
 L 01/01/2020 - 20:57:03: Server cvars end
 L 01/01/2020 - 20:57:03: Server cvar "sv_maxspeed" = "900"
 L 01/01/2020 - 20:57:04: Server cvar "sv_maxspeed" = "320"
+L 01/01/2020 - 20:57:04: Started map "de_dust2" (CRC "-123123")
 L 01/01/2020 - 20:57:04: "Admin<2><STEAM_ID_LAN><>" connected, address "loopback"
 L 01/01/2020 - 20:57:04: "Admin<2><STEAM_ID_LAN><>" entered the game
 L 01/01/2020 - 20:57:05: World triggered "Round_Start"
@@ -348,3 +350,4 @@ L 01/01/2020 - 20:58:38: "Admin<-1><><TERRORIST>" disconnected
 L 01/01/2020 - 20:58:38: World triggered "Round_Draw" (CT "0") (T "0")
 L 01/01/2020 - 20:58:38: World triggered "Round_End"
 L 01/01/2020 - 20:58:38: Log file closed
+L 01/01/2020 - 20:58:39: Server shutdown

@@ -3,6 +3,7 @@ package ru.csdm.stats.common.dto;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Getter;
 import lombok.Setter;
+import org.apache.commons.lang3.StringUtils;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -72,7 +73,7 @@ public class Player {
         if (this == o) return true;
         if (!(o instanceof Player)) return false;
         Player player = (Player) o;
-        return name.equals(player.name);
+        return StringUtils.equalsIgnoreCase(name, player.name);
     }
 
     @Override

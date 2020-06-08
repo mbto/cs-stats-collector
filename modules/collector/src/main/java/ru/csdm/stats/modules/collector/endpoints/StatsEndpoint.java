@@ -1,13 +1,13 @@
 package ru.csdm.stats.modules.collector.endpoints;
 
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.web.bind.annotation.*;
-import ru.csdm.stats.common.FlushEvent;
 import ru.csdm.stats.common.dto.DatagramsQueue;
 import ru.csdm.stats.common.dto.Message;
 import ru.csdm.stats.common.dto.Player;
@@ -15,11 +15,10 @@ import ru.csdm.stats.common.dto.ServerData;
 import ru.csdm.stats.modules.collector.handlers.DatagramsConsumer;
 import ru.csdm.stats.modules.collector.service.SettingsService;
 
-import java.util.Arrays;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
+
+import static ru.csdm.stats.common.SystemEvent.FLUSH_SESSIONS;
 
 @RestController
 @RequestMapping("/stats")
@@ -48,11 +47,37 @@ public class StatsEndpoint {
     private SettingsService settingsService;
 
     @PostMapping(value = "/flush")
-    @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void flush() {
-        for (String address : gameSessionByAddress.keySet()) {
-            datagramsConsumer.flushSessions(address, null, FlushEvent.ENDPOINT);
+    public Map<String, String> flush() {
+        Map<String, String> results = new LinkedHashMap<>();
+        for (Map.Entry<String, ServerData> entry : availableAddresses.entrySet()) {
+            String address = entry.getKey();
+            Integer queueId = registeredAddresses.get(address);
+            if(Objects.isNull(queueId)) {
+                results.put(address, "Skipped, due queueId not setted");
+                continue;
+            }
+
+            DatagramsQueue datagramsQueue = datagramsInQueuesById.get(queueId);
+            if(Objects.isNull(datagramsQueue)) {
+                results.put(address, "Skipped, due DatagramsQueue not exists");
+                continue;
+            }
+
+            /* Concurrency template "poison" */
+            Message message = new Message();
+            message.setServerData(entry.getValue());
+            message.setSystemEvent(FLUSH_SESSIONS);
+
+            try {
+                datagramsQueue.getDatagramsQueue().addLast(message);
+                results.put(address, "Flush registered");
+            } catch (Exception e) {
+                results.put(address, "Exception, while registration flush. "
+                        + ExceptionUtils.getStackTrace(e));
+            }
         }
+
+        return results;
     }
 
     @PostMapping(value = "/updateSettings")

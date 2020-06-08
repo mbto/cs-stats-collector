@@ -17,6 +17,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 import ru.csdm.stats.common.dto.PlayerStat;
 import ru.csdm.stats.model.Csstats;
 import ru.csdm.stats.model.CsstatsServers;
+import ru.csdm.stats.modules.collector.endpoints.StatsEndpoint;
 import ru.csdm.stats.modules.collector.service.SettingsService;
 
 import java.io.BufferedReader;
@@ -28,6 +29,7 @@ import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
@@ -45,6 +47,8 @@ import static org.springframework.boot.autoconfigure.task.TaskExecutionAutoConfi
 public class LogsTests {
     @Autowired
     private SettingsService settingsService;
+    @Autowired
+    private StatsEndpoint statsEndpoint;
     @Autowired
     private DSLContext adminDsl;
     @Value("${stats.listener.port:8888}")
@@ -71,13 +75,83 @@ public class LogsTests {
     }
 
     @Test
+    public void server1_27015_27016_start_session_on_action() throws Exception {
+        addServer(27015, 27016, true, true, false, true);
+        sendLogs("server1.log", 27015, 27016);
+
+        assertStats(new String[][] {
+                {"Name2", "0", "20", "132"},
+                {"Name1", "20", "0", "20"},
+        });
+    }
+
+    @Test
+    public void server1_27015_27016_dont_start_session_on_action() throws Exception {
+        addServer(27015, 27016, true, true, false, false);
+        sendLogs("server1.log", 27015, 27016);
+
+        assertStats(new String[][] {
+                {"Name2", "0", "20", "132"},
+                {"Name1", "20", "0", "24"},
+        });
+    }
+
+    @Test
+    public void server2_27015_27015_start_session_on_action() throws Exception {
+        addServer(27015, 27015, true, true, false, true);
+        sendLogs("server2.log", 27015, 27015);
+
+        assertStats(new String[][] {
+                {"Admin", "7", "4", "94"},
+                {"cusoma", "0", "8", "89"},
+                {"timoxatw", "5", "1", "76"},
+                {"no kill", "3", "2", "51"},
+        });
+    }
+
+    @Test
+    public void server2_27015_27015_dont_start_session_on_action() throws Exception {
+        addServer(27015, 27015, true, true, false, false);
+        sendLogs("server2.log", 27015, 27015);
+
+        assertStats(new String[][] {
+                {"Admin", "7", "4", "220"},
+                {"no kill", "3", "2", "113"},
+                {"timoxatw", "5", "1", "110"},
+                {"cusoma", "0", "8", "104"},
+        });
+    }
+
+    @Test
+    public void server3_27015_27015_start_session_on_action() throws Exception {
+        addServer(27015, 27015, true, true, false, true);
+        sendLogs("server3.log", 27015, 27015);
+
+        assertStats(new String[][] {
+                {"cusoma", "0", "1", "95"},
+                {"Admin", "1", "0", "94"},
+        });
+    }
+
+    @Test
+    public void server3_27015_27015_dont_start_session_on_action() throws Exception {
+        addServer(27015, 27015, true, true, false, false);
+        sendLogs("server3.log", 27015, 27015);
+
+        assertStats(new String[][] {
+                {"Admin", "1", "0", "126"},
+                {"no kill", "0", "0", "119"},
+                {"timoxatw", "0", "0", "116"},
+                {"cusoma", "0", "1", "110"},
+        });
+    }
+
+    @Test
     public void server4_27015_27015() throws Exception {
         addServer(27015, 27015, true, true, false, true);
         sendLogs("server4.log", 27015, 27015);
 
-        List<PlayerStat> playerStats = fetchPlayersStats();
-
-        String[][] expectedStats = {
+        assertStats(new String[][] {
                 {"Admin", "17", "11", "449"},
                 {"yeppi", "11", "20", "443"},
                 {"sonic", "10", "15", "443"},
@@ -93,18 +167,8 @@ public class LogsTests {
                 {"Currv", "20", "14", "417"},
                 {"aromaken1", "14", "15", "415"},
                 {"~kewAw0w~~", "13", "16", "400"},
-                {"castzOr", "14", "15", "395"}
-        };
-
-        List<PlayerStat> expectedPlayers = Stream.of(expectedStats)
-                .map(this::makePlayerStat)
-                .collect(Collectors.toList());
-
-        for (PlayerStat playerStat : playerStats) {
-            System.out.println(playerStat);
-        }
-
-        assertEquals(playerStats, expectedPlayers);
+                {"castzOr", "14", "15", "395"},
+        });
     }
 
     @Test
@@ -112,9 +176,7 @@ public class LogsTests {
         addServer(27015, 27025, true, true, false, true);
         sendLogs("server4.log", 27015, 27025);
 
-        List<PlayerStat> playerStats = fetchPlayersStats();
-
-        String[][] expectedStats = {
+        assertStats(new String[][] {
                 {"Admin", "187", "121", "4939"},
                 {"yeppi", "121", "220", "4873"},
                 {"sonic", "110", "165", "4873"},
@@ -131,14 +193,165 @@ public class LogsTests {
                 {"aromaken1", "154", "165", "4565"},
                 {"~kewAw0w~~", "143", "176", "4400"},
                 {"castzOr", "154", "165", "4345"},
-        };
+        });
+    }
+
+    @Test
+    public void ffa_27015_27015_start_session_on_action() throws Exception {
+        addServer(27015, 27015, true, true, false, true);
+        sendLogs("ffa.log", 27015, 27015);
+
+        assertStats(new String[][] {
+                {"Admin", "2", "0", "20"},
+                {"CeHb^Oaa", "0", "2", "20"},
+        });
+    }
+
+    @Test
+    public void ffa_27015_27015_dont_start_session_on_action() throws Exception {
+        addServer(27015, 27015, true, true, false, false);
+        sendLogs("ffa.log", 27015, 27015);
+
+        assertStats(new String[][] {
+                {"Admin", "2", "0", "76"},
+                {"CeHb^Oaa", "0", "2", "51"},
+                {"FENIX2H", "0", "0", "8"},
+                {"relish -w 800", "0", "0", "3"},
+        });
+    }
+
+    @Test
+    public void ffa_27015_27015_start_session_on_action_no_ffa() throws Exception {
+        addServer(27015, 27015, true, false, false, true);
+        sendLogs("ffa.log", 27015, 27015);
+
+        assertStats(new String[][] {
+        });
+    }
+
+    @Test
+    public void ffa_27015_27015_dont_start_session_on_action_no_ffa() throws Exception {
+        addServer(27015, 27015, true, false, false, false);
+        sendLogs("ffa.log", 27015, 27015);
+
+        assertStats(new String[][] {
+                {"Admin", "0", "0", "76"},
+                {"CeHb^Oaa", "0", "0", "51"},
+                {"FENIX2H", "0", "0", "8"},
+                {"relish -w 800", "0", "0", "3"},
+        });
+    }
+
+    @Test
+    public void no_ffa_27015_27015_start_session_on_action() throws Exception {
+        addServer(27015, 27015, true, true, false, true);
+        sendLogs("no_ffa.log", 27015, 27015);
+
+        assertStats(new String[][] {
+                {"Admin", "4", "0", "46"},
+                {"desch", "0", "4", "46"},
+        });
+    }
+
+    @Test
+    public void no_ffa_27015_27015_dont_start_session_on_action() throws Exception {
+        addServer(27015, 27015, true, true, false, false);
+        sendLogs("no_ffa.log", 27015, 27015);
+
+        assertStats(new String[][] {
+                {"Admin", "4", "0", "100"},
+                {"desch", "0", "4", "88"},
+        });
+    }
+
+    @Test
+    public void no_ffa_27015_27015_start_session_on_action_no_ffa() throws Exception {
+        addServer(27015, 27015, true, false, false, true);
+        sendLogs("no_ffa.log", 27015, 27015);
+
+        assertStats(new String[][] {
+        });
+    }
+
+    @Test
+    public void no_ffa_27015_27015_dont_start_session_on_action_no_ffa() throws Exception {
+        addServer(27015, 27015, true, false, false, false);
+        sendLogs("no_ffa.log", 27015, 27015);
+
+        assertStats(new String[][] {
+                {"Admin", "0", "0", "100"},
+                {"desch", "0", "0", "88"},
+        });
+    }
+
+    @Test
+    public void server4_27015_27017_start_session_on_action_ignore_bots() throws Exception {
+        addServer(27015, 27025, true, true, true, true);
+        sendLogs("server4.log", 27015, 27017);
+
+        assertStats(new String[][] {
+        });
+    }
+
+    @Test
+    public void server4_27015_27015_dont_start_session_on_action_ignore_bots() throws Exception {
+        addServer(27015, 27015, true, true, true, false);
+        sendLogs("server4.log", 27015, 27015);
+
+        assertStats(new String[][] {
+                {"Admin", "0", "0", "597"},
+        });
+    }
+
+    @Test
+    public void server4_27015_27017_dont_start_session_on_action_ignore_bots() throws Exception {
+        addServer(27015, 27025, true, true, true, false);
+        sendLogs("server4.log", 27015, 27017);
+
+        assertStats(new String[][] {
+                {"Admin", "0", "0", "1791"}
+        });
+    }
+
+    @Test
+    public void server4_manual_flush_27014_27018_dont_start_session_on_action() throws Exception {
+        addServer(27015, 27017, true, true, false, false);
+        sendLogs("server4_only_load.log", 27014, 27018);
+
+        Map<String, String> results = statsEndpoint.flush();
+        log.info("statsEndpoint results: " + results.toString());
+
+        Thread.sleep(1000);
+
+        assertStats(new String[][] {
+                {"Admin", "51", "33", "1764"},
+                {"pravwOw~", "24", "63", "1350"},
+                {"aromaken1", "42", "45", "1347"},
+                {"yeppi", "33", "60", "1347"},
+                {"sonic", "30", "45", "1344"},
+                {"castzOr", "42", "45", "1344"},
+                {"BatalOOl", "36", "27", "1341"},
+                {"wRa1 wRa1", "39", "48", "1341"},
+                {"showw", "63", "39", "1338"},
+                {"haaimbat", "42", "54", "1338"},
+                {"Currv", "60", "42", "1335"},
+                {"~kewAw0w~~", "39", "48", "1335"},
+                {"[52 xemaike2h blanil", "42", "48", "1332"},
+                {"KaRJlSoH", "60", "27", "1332"},
+                {"BoBka’)", "24", "30", "1329"},
+                {"nameasd", "54", "27", "1329"},
+        });
+    }
+
+    private void assertStats(String[][] expectedStats) {
+        List<PlayerStat> playerStats = fetchPlayersStats();
 
         List<PlayerStat> expectedPlayers = Stream.of(expectedStats)
                 .map(this::makePlayerStat)
                 .collect(Collectors.toList());
 
         for (PlayerStat playerStat : playerStats) {
-            System.out.println(playerStat);
+            log.info(playerStat.toString());
         }
 
         assertEquals(playerStats, expectedPlayers);
@@ -207,24 +420,24 @@ public class LogsTests {
                            boolean ffa,
                            boolean ignore_bots,
                            boolean start_session_on_action) {
+
+        List<InsertSetMoreStep<Record>> steps = new ArrayList<>(portEnd - portStart + 1);
+
+        for (int port = portStart; port <= portEnd; port++) {
+            log.info(port + " adding port " + port);
+
+            InsertSetMoreStep<Record> step = DSL.insertInto(CsstatsServers.csstats_servers_table)
+                    .set(CsstatsServers.ipport_field, "127.0.0.1:" + port)
+                    .set(CsstatsServers.active_field, active)
+                    .set(CsstatsServers.ffa_field, ffa)
+                    .set(CsstatsServers.ignore_bots_field, ignore_bots)
+                    .set(CsstatsServers.start_session_on_action, start_session_on_action);
+
+            steps.add(step);
+        }
+
         adminDsl.transaction(config -> {
             DSLContext transactionalDsl = DSL.using(config);
-
-            List<InsertSetMoreStep<Record>> steps = new ArrayList<>();
-
-            for (int port = portStart; port <= portEnd; port++) {
-                log.info(port + " adding port " + port);
-
-                InsertSetMoreStep<Record> step = DSL.insertInto(CsstatsServers.csstats_servers_table)
-                        .set(CsstatsServers.ipport_field, "127.0.0.1:" + port)
-                        .set(CsstatsServers.active_field, active)
-                        .set(CsstatsServers.ffa_field, ffa)
-                        .set(CsstatsServers.ignore_bots_field, ignore_bots)
-                        .set(CsstatsServers.start_session_on_action, start_session_on_action);
-
-                steps.add(step);
-            }
-
             transactionalDsl.batch(steps).execute();
         });
 

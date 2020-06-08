@@ -22,7 +22,7 @@ import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.springframework.boot.autoconfigure.task.TaskExecutionAutoConfiguration.APPLICATION_TASK_EXECUTOR_BEAN_NAME;
 
 @Profile("test")
-@Configuration()
+@Configuration
 public class JooqConfigTest {
 
     @Bean

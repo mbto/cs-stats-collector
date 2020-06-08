@@ -1,7 +1,7 @@
 import org.gradle.api.JavaVersion.VERSION_1_8
 
 group = "cs-stats-collector"
-version = "1.0"
+version = "1.3"
 
 val springVersion: String by extra
 
@@ -16,7 +16,7 @@ subprojects {
 
 tasks {
     // omit version in output jar name
-    bootJar { version = "" }
+    bootJar { archiveVersion.set("") }
     // ensure encoding for non-linux environment
     compileJava { options.encoding = "UTF-8" }
     compileTestJava { options.encoding = "UTF-8" }

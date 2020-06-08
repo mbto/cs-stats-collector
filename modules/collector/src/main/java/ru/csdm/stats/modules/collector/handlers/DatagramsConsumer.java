@@ -1,5 +1,7 @@
 package ru.csdm.stats.modules.collector.handlers;
 
+import lombok.Getter;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -8,6 +10,8 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.stereotype.Service;
 import ru.csdm.stats.common.FlushEvent;
+import ru.csdm.stats.common.GameSessionFetchMode;
+import ru.csdm.stats.common.SystemEvent;
 import ru.csdm.stats.common.dto.*;
 
 import javax.annotation.PreDestroy;
@@ -18,6 +22,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 
 import static ru.csdm.stats.common.Constants.MMDDYYYY_HHMMSS_PATTERN;
+import static ru.csdm.stats.common.FlushEvent.*;
+import static ru.csdm.stats.common.GameSessionFetchMode.*;
 import static ru.csdm.stats.modules.collector.settings.Patterns.*;
 
 @Service
@@ -37,6 +43,8 @@ public class DatagramsConsumer {
 
     private CountDownLatch deactivationLatch;
 
+    @Getter
+    @Setter /* Setter - allowing calling from another class/thread, with spring proxy, without volatile */
     private boolean deactivated;
 
     @PreDestroy
@@ -45,7 +53,7 @@ public class DatagramsConsumer {
         if(debugEnabled)
             log.debug("destroy() start");
 
-        deactivated = true;
+        setDeactivated(true);
 
         int poolSize = consumerTaskExecutor.getPoolSize();
         deactivationLatch = new CountDownLatch(poolSize);
@@ -69,7 +77,7 @@ public class DatagramsConsumer {
         } catch (InterruptedException ignored) {}
 
         for (String address : gameSessionByAddress.keySet()) {
-            flushSessions(address, null, FlushEvent.PRE_DESTROY_LIFECYCLE);
+            flushSessions(address, null, PRE_DESTROY_LIFECYCLE);
         }
 
         if(debugEnabled)
@@ -86,7 +94,7 @@ public class DatagramsConsumer {
             Message message;
 
             try {
-                if (deactivated) {
+                if (isDeactivated()) {
                     log.info("Deactivation detected");
                     break;
                 }
@@ -99,12 +107,24 @@ public class DatagramsConsumer {
                 if(debugEnabled)
                     log.debug(message.getServerData().getServerSetting().getIpport() + " Taked message: " + message);
             } catch (Throwable e) {
-                if (deactivated) {
+                if (isDeactivated()) {
                     log.info("Deactivation detected");
                     break;
                 }
 
                 log.warn("Exception while receiving message", e);
+                continue;
+            }
+
+            ServerData serverData = message.getServerData();
+            ServerSetting serverSetting = serverData.getServerSetting();
+            String address = serverSetting.getIpport();
+
+            if(Objects.nonNull(message.getSystemEvent())) {
+                if(message.getSystemEvent() == SystemEvent.FLUSH_SESSIONS) {
+                    flushSessions(address, null, ENDPOINT);
+                }
+
                 continue;
             }
 
@@ -114,12 +134,7 @@ public class DatagramsConsumer {
                 continue;
 
             LocalDateTime dateTime = LocalDateTime.parse(msgMatcher.group("date"), MMDDYYYY_HHMMSS_PATTERN);
-
-            ServerData serverData = message.getServerData();
             serverData.setLastTouchDateTime(dateTime);
-
-            ServerSetting serverSetting = serverData.getServerSetting();
-            String address = serverSetting.getIpport();
 
 /* L 01/01/2020 - 20:50:08: Started map "de_dust2" (CRC "1159425449") -> Started map "de_dust2" (CRC "1159425449") */
             String rawMsg = msgMatcher.group("msg");
@@ -196,7 +211,8 @@ public class DatagramsConsumer {
                         }
 
                         String sourceName = sourceMatcher.group("name");
-                        allocatePlayer(address, sourceName);
+                        allocatePlayer(address, sourceName)
+                                .getCurrentSession(dateTime); // activate session
 
                         //address "12.12.12.12:27005"
                         //address "loopback:27005"
@@ -216,13 +232,10 @@ public class DatagramsConsumer {
                     if (sourceMatcher.find()) {
                         String sourceName = sourceMatcher.group("name");
 
-                        Map<String, Player> gameSessions = allocateGameSession(address, false);
+                        Map<String, Player> gameSessions = allocateGameSession(address, DONT_CREATE);
 
                         if(Objects.nonNull(gameSessions)) {
-                            Player player;
-                            synchronized (gameSessions) {
-                                player = gameSessions.get(sourceName);
-                            }
+                            Player player = gameSessions.get(sourceName);
 
                             if (Objects.nonNull(player)) {
                                 player.onDisconnected(dateTime);
@@ -242,7 +255,7 @@ public class DatagramsConsumer {
 
 /* L 01/01/2020 - 20:50:08: Started map "de_dust2" (CRC "1159425449") */
                 if (eventName.equals("Started map")) {
-                    flushSessions(address, dateTime, FlushEvent.NEW_GAME_MAP);
+                    flushSessions(address, dateTime, NEW_GAME_MAP);
                     continue;
                 }
 
@@ -251,7 +264,7 @@ public class DatagramsConsumer {
 
 /* L 01/01/2020 - 20:52:15: Server shutdown */
             if(rawMsg.equals("Server shutdown")) {
-                flushSessions(address, dateTime, FlushEvent.SHUTDOWN_GAME_SERVER);
+                flushSessions(address, dateTime, SHUTDOWN_GAME_SERVER);
                 continue;
             }
         }
@@ -270,49 +283,63 @@ public class DatagramsConsumer {
         victim.upDeaths(dateTime);
     }
 
-    private Map<String, Player> allocateGameSession(String address, boolean createIfNotExists) {
-        Map<String, Player> gameSessions = gameSessionByAddress.get(address);
-        if(Objects.isNull(gameSessions) && createIfNotExists) {
-            gameSessions = new LinkedHashMap<>();
-            gameSessionByAddress.put(address, gameSessions);
+    private Map<String, Player> allocateGameSession(String address, GameSessionFetchMode gsFetchMode) {
+        if(gsFetchMode == DONT_CREATE) {
+            return gameSessionByAddress.get(address);
+        }
+        else if(gsFetchMode == CREATE_IF_NULL) {
+            Map<String, Player> gameSessions = gameSessionByAddress.get(address);
 
-            log.info(address + " Created gameSessions container");
+            if (Objects.isNull(gameSessions)) {
+                gameSessions = new LinkedHashMap<>();
+                gameSessionByAddress.put(address, gameSessions);
+
+                log.info(address + " Created gameSessions container");
+            }
+
+            return gameSessions;
+        }
+        else if(gsFetchMode == REPLACE_IF_EXISTS) {
+            Map<String, Player> oldGameSessions = gameSessionByAddress
+                    .replace(address, new LinkedHashMap<>());
+
+            if(Objects.nonNull(oldGameSessions))
+                log.info(address + " Recreated gameSessions container");
+
+            return oldGameSessions; /* return old container, for flush */
+        }
+        else if(gsFetchMode == REMOVE) {
+            return gameSessionByAddress.remove(address); /* return old container, for flush */
         }
 
-        return gameSessions;
+        throw new IllegalStateException("Allocation mode '" + gsFetchMode + "' not chosen");
     }
 
     private Player allocatePlayer(String address, String name) {
-        Map<String, Player> gameSessions = allocateGameSession(address, true);
+        Map<String, Player> gameSessions = allocateGameSession(address, CREATE_IF_NULL);
 
-        Player player;
-        synchronized (gameSessions) {
-            player = gameSessions.get(name);
+        Player player = gameSessions.get(name);
 
-            if (Objects.isNull(player)) {
-                player = new Player(name);
-                gameSessions.put(name, player);
+        if (Objects.isNull(player)) {
+            player = new Player(name);
+            gameSessions.put(name, player);
 
-                log.info(address + " Founded player: " + player);
-            }
+            log.info(address + " Founded player: " + player);
         }
 
         return player;
     }
 
-    public void flushSessions(String address, LocalDateTime dateTime, FlushEvent fromEvent) {
-        Map<String, Player> gameSessions = gameSessionByAddress.get(address);
+    private void flushSessions(String address, LocalDateTime dateTime, FlushEvent fromEvent) {
+        Map<String, Player> gameSessions = allocateGameSession(address,
+                fromEvent != PRE_DESTROY_LIFECYCLE ? REPLACE_IF_EXISTS : REMOVE);
 
         if(Objects.isNull(gameSessions)) {
             log.info(address + " Skip flushing players, due gameSessions container not exists. " + fromEvent);
             return;
         }
 
-        List<Player> players;
-        synchronized (gameSessions) { // synchronizing, due flushSession can invoked from /flush endpoint
-            players = new ArrayList<>(gameSessions.values());
-            gameSessions.clear();
-        }
+        List<Player> players = new ArrayList<>(gameSessions.values());
 
         int playersSize = players.size();
         if (playersSize == 0) {

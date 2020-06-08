@@ -1,5 +1,7 @@
 package ru.csdm.stats.modules.collector.handlers;
 
+import lombok.Getter;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -51,6 +53,8 @@ public class Listener {
     private int maxConsumers;
     private int nextQueueIdCounter;
 
+    @Getter
+    @Setter /* Setter - allowing calling from another class/thread, with spring proxy, without volatile */
     private boolean deactivated;
 
     @PreDestroy
@@ -58,7 +62,7 @@ public class Listener {
         if(log.isDebugEnabled())
             log.debug("destroy() start");
 
-        deactivated = true;
+        setDeactivated(true);
 
         if(Objects.nonNull(datagramSocket)) {
             try {
@@ -88,20 +92,21 @@ public class Listener {
 
         log.info("Listener started at " + addressToString(datagramSocket.getLocalSocketAddress()));
 
+        byte[] buffer = new byte[1024];
+        DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
+
         while (true) {
-            if (deactivated) {
+            if (isDeactivated()) {
                 log.info("Deactivation detected");
                 break;
             }
 
             try {
-                byte[] buffer = new byte[1024];
-                DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
                 datagramSocket.receive(packet);
 
                 onMessage(packet);
             } catch (Throwable e) {
-                if (deactivated) {
+                if (isDeactivated()) {
                     log.info("Deactivation detected");
                     break;
                 }
@@ -169,7 +174,7 @@ public class Listener {
                 datagramsQueue.getDatagramsQueue().putLast(message);
                 break;
             } catch (InterruptedException e) {
-                if(deactivated)
+                if(isDeactivated())
                     break;
 
                 log.info(address + " InterruptedException catched, due put message " + message + " in datagramsQueue, " + tryes + "/3");
