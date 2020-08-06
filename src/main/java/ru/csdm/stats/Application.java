@@ -9,8 +9,8 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.DependsOn;
 import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
+import ru.csdm.stats.common.dto.CollectedPlayer;
 import ru.csdm.stats.common.dto.DatagramsQueue;
-import ru.csdm.stats.common.dto.Player;
 import ru.csdm.stats.common.dto.ServerData;
 
 import java.util.LinkedHashMap;
@@ -57,7 +57,7 @@ public class Application {
      * Value: Map<Player nick, Player>
      */
     @Bean
-    public Map<String, Map<String, Player>> gameSessionByAddress() {
+    public Map<String, Map<String, CollectedPlayer>> gameSessionByAddress() {
         return new ConcurrentSkipListMap<>();
     }
 

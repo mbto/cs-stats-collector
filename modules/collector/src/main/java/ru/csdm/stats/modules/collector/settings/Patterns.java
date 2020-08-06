@@ -111,11 +111,7 @@ public enum Patterns {
 
     //"time-the-kill.freeeemaN.<15064><STEAM_ID_LAN><TERRORIST>"
     //"time-the-kill.freeeemaN.<-1><STEAM_ID_LAN><TERRORIST>"
-    PLAYER("(?<name>.+)<(?<id>.*)><(?<auth>.*)><(?<team>.*)>"),
-
-    //address "12.12.12.12:27005"
-    //address "loopback:27005"
-    PLAYER_IP("\"(.*):\\d+\"");
+    PLAYER("(?<name>.+)<(?<id>.*)><(?<auth>.*)><(?<team>.*)>");
 
     public final Pattern pattern;
 

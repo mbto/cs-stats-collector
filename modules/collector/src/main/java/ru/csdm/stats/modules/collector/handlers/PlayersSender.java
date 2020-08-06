@@ -1,19 +1,23 @@
 package ru.csdm.stats.modules.collector.handlers;
 
 import lombok.extern.slf4j.Slf4j;
+import org.jooq.types.UInteger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
-import ru.csdm.stats.common.dto.Player;
-import ru.csdm.stats.common.dto.PlayerStat;
+import ru.csdm.stats.common.dto.CollectedPlayer;
 import ru.csdm.stats.common.dto.Session;
+import ru.csdm.stats.common.model.tables.records.PlayerIpRecord;
+import ru.csdm.stats.common.model.tables.records.PlayerSteamidRecord;
 import ru.csdm.stats.dao.CsStatsDao;
+import ru.csdm.stats.common.model.tables.records.PlayerRecord;
 
 import java.time.Duration;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 import java.util.stream.Collectors;
+
+import static ru.csdm.stats.common.utils.SomeUtils.playerRecordToString;
 
 @Service
 @Lazy(false)
@@ -23,19 +27,20 @@ public class PlayersSender {
     private CsStatsDao csStatsDao;
 
     @Async("playersSenderTaskExecutor")
-    public void sendAsync(String address, List<Player> players) {
-        log.info(address + " Calculating stats from " + players.size() + " player" + (players.size() > 1 ? "s" : ""));
+    public void sendAsync(String address, List<CollectedPlayer> collectedPlayers) {
+        log.info(address + " Calculating stats from " + collectedPlayers.size() + " player" + (collectedPlayers.size() > 1 ? "s" : ""));
 
-        List<PlayerStat> playerStats = players
+        Map<String, List<PlayerIpRecord>> ips = new HashMap<>();
+        Map<String, List<PlayerSteamidRecord>> steamIds = new HashMap<>();
+
+        List<PlayerRecord> playerRecords = collectedPlayers
                 .stream()
-                .map(player -> {
-                    String name = player.getName();
-
+                .map(collectedPlayer -> {
                     long totalKills = 0;
                     long totalDeaths = 0;
                     long totalTimeInSecs = 0;
 
-                    for (Session session : player.getSessions()) {
+                    for (Session session : collectedPlayer.getSessions()) {
                         totalKills += session.getKills();
                         totalDeaths += session.getDeaths();
 
@@ -48,36 +53,54 @@ public class PlayersSender {
                     if(totalKills == 0 && totalDeaths == 0 && totalTimeInSecs == 0)
                         return null;
 
-                    PlayerStat stat = new PlayerStat();
-                    stat.setName(name);
-                    stat.setTotalKills(totalKills);
-                    stat.setTotalDeaths(totalDeaths);
-                    stat.setTotalTimeInSecs(totalTimeInSecs);
+                    PlayerRecord playerRecord = new PlayerRecord();
+                    playerRecord.setName(collectedPlayer.getName());
+                    playerRecord.setKills(UInteger.valueOf(totalKills));
+                    playerRecord.setDeaths(UInteger.valueOf(totalDeaths));
+                    playerRecord.setTimeSecs(UInteger.valueOf(totalTimeInSecs));
+                    playerRecord.setLastServerId(collectedPlayer.getLastServerId());
+                    playerRecord.setLastseenDatetime(collectedPlayer.getLastseenDatetime());
 
-                    return stat;
+                    ips.put(collectedPlayer.getName(), collectedPlayer.getIpAddresses().stream()
+                            .map(ip -> {
+                                PlayerIpRecord playerIpRecord = new PlayerIpRecord();
+                                playerIpRecord.setIp(ip);
+                                playerIpRecord.setRegDatetime(collectedPlayer.getLastseenDatetime());
+                                return playerIpRecord;
+                            }).collect(Collectors.toList()));
+
+                    steamIds.put(collectedPlayer.getName(), collectedPlayer.getIpAddresses().stream()
+                            .map(steamId -> {
+                                PlayerSteamidRecord playerSteamIdRecord = new PlayerSteamidRecord();
+                                playerSteamIdRecord.setSteamid(steamId);
+                                playerSteamIdRecord.setRegDatetime(collectedPlayer.getLastseenDatetime());
+                                return playerSteamIdRecord;
+                            }).collect(Collectors.toList()));
+
+                    return playerRecord;
                 })
                 .filter(Objects::nonNull)
                 .collect(Collectors.toList());
 
-        if(playerStats.isEmpty()) {
-            log.info(address + " Skip flushing players stats, due empty playerStats");
+        if(playerRecords.isEmpty()) {
+            log.info(address + " Skip flushing players stats, due empty playerRecords");
             return;
         }
 
-        log.info(address + " Flushing " + playerStats.size() + " player" + (playerStats.size() > 1 ? "s" : "") + " stats");
+        log.info(address + " Flushing " + playerRecords.size() + " player" + (playerRecords.size() > 1 ? "s" : "") + " stats");
 
-        for (PlayerStat stat : playerStats) {
-            log.info(address + " " + stat);
+        for (PlayerRecord playerRecord : playerRecords) {
+            log.info(address + " " + playerRecordToString(playerRecord));
         }
 
         try {
-            csStatsDao.mergePlayersStats(playerStats);
+            csStatsDao.mergePlayersStats(playerRecords, ips, steamIds);
 
-            log.info(address + " Successfully merged " + playerStats.size() +
-                    " player" + (playerStats.size() > 1 ? "s" : "") + " stats");
+            log.info(address + " Successfully merged " + playerRecords.size() +
+                    " player" + (playerRecords.size() > 1 ? "s" : "") + " stats");
         } catch (Throwable e) {
-            log.warn(address + " Failed merging " + playerStats.size() +
-                    " player" + (playerStats.size() > 1 ? "s" : "") + " stats", e);
+            log.warn(address + " Failed merging " + playerRecords.size() +
+                    " player" + (playerRecords.size() > 1 ? "s" : "") + " stats", e);
         }
     }
 }

@@ -8,9 +8,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.web.bind.annotation.*;
+import ru.csdm.stats.common.dto.CollectedPlayer;
 import ru.csdm.stats.common.dto.DatagramsQueue;
 import ru.csdm.stats.common.dto.Message;
-import ru.csdm.stats.common.dto.Player;
 import ru.csdm.stats.common.dto.ServerData;
 import ru.csdm.stats.modules.collector.handlers.DatagramsConsumer;
 import ru.csdm.stats.modules.collector.service.SettingsService;
@@ -38,7 +38,7 @@ public class StatsEndpoint {
     @Autowired
     private Map<Integer, DatagramsQueue> datagramsInQueuesById;
     @Autowired
-    private Map<String, Map<String, Player>> gameSessionByAddress;
+    private Map<String, Map<String, CollectedPlayer>> gameSessionByAddress;
 
     @Autowired
     private DatagramsConsumer datagramsConsumer;
@@ -93,7 +93,7 @@ public class StatsEndpoint {
                 Pair.of("available", availableAddresses
                         .values()
                         .stream()
-                        .collect(Collectors.groupingBy(ss -> ss.getServerSetting().getIpport(),
+                        .collect(Collectors.groupingBy(ss -> ss.getKnownServer().getIpport(),
                                 LinkedHashMap::new,
                                 Collectors.toList()))
                 ),
@@ -113,7 +113,7 @@ public class StatsEndpoint {
                     DatagramsQueue value = entry.getValue();
                     return value.getDatagramsQueue()
                             .stream()
-                            .collect(Collectors.groupingBy(msg -> msg.getServerData().getServerSetting().getIpport(),
+                            .collect(Collectors.groupingBy(msg -> msg.getServerData().getKnownServer().getIpport(),
                                     LinkedHashMap::new,
                                     Collectors.mapping(Message::getPayload, Collectors.toList())));
                 }));

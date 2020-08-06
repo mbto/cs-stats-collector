@@ -4,21 +4,41 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Getter;
 import lombok.Setter;
 import org.apache.commons.lang3.StringUtils;
+import org.jooq.types.UInteger;
+import ru.csdm.stats.common.utils.SomeUtils;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 
 @Getter
-@Setter
-public class Player {
+public class CollectedPlayer { // todo: rename to PlayerWrapper with Player field
+    @Setter
     @JsonIgnore
     private String name;
-    private List<Session> sessions = new ArrayList<>();
+    private final List<Session> sessions = new ArrayList<>();
+    private final Set<String> ipAddresses = new HashSet<>();
+    private final Set<String> steamIds = new HashSet<>();
+    @Setter
+    private LocalDateTime lastseenDatetime;
+    private final UInteger lastServerId;
 
-    public Player(String name) {
+    public CollectedPlayer(String name, UInteger lastServerId) {
         this.name = name;
+        this.lastServerId = lastServerId;
+    }
+
+    public void addIpAddress(String ipAddress) {
+        ipAddress = SomeUtils.extractIp(ipAddress);
+        if(Objects.nonNull(ipAddress)) {
+            ipAddresses.add(ipAddress);
+        }
+    }
+
+    public void addSteamId(String steamId) {
+        steamId = SomeUtils.extractSteamId(steamId);
+        if(Objects.nonNull(steamId)) {
+            steamIds.add(steamId);
+        }
     }
 
     @JsonIgnore
@@ -71,9 +91,9 @@ public class Player {
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
-        if (!(o instanceof Player)) return false;
-        Player player = (Player) o;
-        return StringUtils.equalsIgnoreCase(name, player.name);
+        if (!(o instanceof CollectedPlayer)) return false;
+        CollectedPlayer collectedPlayer = (CollectedPlayer) o;
+        return StringUtils.equalsIgnoreCase(name, collectedPlayer.name);
     }
 
     @Override

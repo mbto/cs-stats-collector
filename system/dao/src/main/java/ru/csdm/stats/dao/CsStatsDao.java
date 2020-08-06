@@ -3,19 +3,29 @@ package ru.csdm.stats.dao;
 import lombok.extern.slf4j.Slf4j;
 import org.jooq.DSLContext;
 import org.jooq.Record;
+import org.jooq.UpdateSetFirstStep;
 import org.jooq.UpdateSetStep;
 import org.jooq.impl.DSL;
+import org.jooq.types.UByte;
+import org.jooq.types.UInteger;
+import org.jooq.types.ULong;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
-import ru.csdm.stats.common.dto.PlayerStat;
-import ru.csdm.stats.common.dto.ServerSetting;
 
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
+import java.util.stream.Collectors;
 
-import static ru.csdm.stats.model.Csstats.*;
-import static ru.csdm.stats.model.CsstatsServers.active_field;
-import static ru.csdm.stats.model.CsstatsServers.csstats_servers_table;
+import static ru.csdm.stats.common.model.tables.KnownServer.KNOWN_SERVER;
+import static ru.csdm.stats.common.model.tables.Player.PLAYER;
+import static ru.csdm.stats.common.model.tables.PlayerIp.PLAYER_IP;
+import static ru.csdm.stats.common.model.tables.PlayerSteamid.PLAYER_STEAMID;
+
+import org.springframework.util.CollectionUtils;
+import ru.csdm.stats.common.model.tables.*;
+import ru.csdm.stats.common.model.tables.pojos.KnownServer;
+import ru.csdm.stats.common.model.tables.records.PlayerIpRecord;
+import ru.csdm.stats.common.model.tables.records.PlayerRecord;
+import ru.csdm.stats.common.model.tables.records.PlayerSteamidRecord;
 
 @Repository
 @Slf4j
@@ -23,14 +33,15 @@ public class CsStatsDao {
     @Autowired
     private DSLContext statsDsl;
 
-    public List<ServerSetting> fetchServersSettings() {
-        return statsDsl.select(DSL.asterisk())
-                .from(csstats_servers_table)
-                .where(active_field.eq(true))
-                .fetchInto(ServerSetting.class);
+    public List<KnownServer> fetchKnownServers() {
+        return statsDsl.selectFrom(KNOWN_SERVER)
+                .where(KNOWN_SERVER.ACTIVE.eq(true))
+                .fetchInto(KnownServer.class);
     }
 
-    public void mergePlayersStats(List<PlayerStat> playerStats) {
+    public void mergePlayersStats(List<PlayerRecord> playerRecords,
+                                  Map<String, List<PlayerIpRecord>> ips,
+                                  Map<String, List<PlayerSteamidRecord>> steamIds) {
         if(log.isDebugEnabled())
             log.debug("mergePlayersStats() start");
 
@@ -38,39 +49,83 @@ public class CsStatsDao {
             DSLContext transactionalDsl = DSL.using(config);
 
             try {
-                transactionalDsl.execute("LOCK TABLES " + csstats_table.getName() + " WRITE");
+                transactionalDsl.execute("LOCK TABLES " +
+                        String.join(" WRITE,",
+                                PLAYER.getName(),
+                                PLAYER_IP.getName(),
+                                PLAYER_STEAMID.getName()
+                        ) + " WRITE");
 
-                for (PlayerStat stat : playerStats) {
-                    Long id = transactionalDsl.select(id_field)
-                            .from(csstats_table)
-                            .where(name_field.equalIgnoreCase(stat.getName()))
+                for (PlayerRecord playerRecord : playerRecords) {
+                    UInteger playerId = transactionalDsl.select(PLAYER.ID)
+                            .from(PLAYER)
+                            // equals, not equalIgnoreCase, because `player`.`name` is CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL
+                            .where(PLAYER.NAME.eq(playerRecord.getName()))
                             .forUpdate()
-                            .fetchOneInto(id_field.getType());
+                            .fetchOneInto(PLAYER.ID.getType());
 
-                    if (Objects.isNull(id)) {
-                        transactionalDsl.insertInto(csstats_table)
-                                .columns(name_field,
-                                        kills_field,
-                                        deaths_field,
-                                        time_secs_field
-                                ).values(stat.getName(),
-                                stat.getTotalKills(),
-                                stat.getTotalDeaths(),
-                                stat.getTotalTimeInSecs()
-                        ).execute();
+                    if (Objects.isNull(playerId)) {
+                        playerId = transactionalDsl.insertInto(PLAYER)
+                                .set(playerRecord)
+                                .returning(PLAYER.ID)
+                                .fetchOne().getId();
                     } else {
-                        UpdateSetStep<Record> updateStep = transactionalDsl.update(csstats_table);
+                        UpdateSetFirstStep<PlayerRecord> updateStep = transactionalDsl.update(PLAYER);
 
-                        if (stat.getTotalKills() != 0) {
-                            updateStep.set(kills_field, kills_field.plus(stat.getTotalKills()));
+                        if (playerRecord.getKills().longValue() != 0) {
+                            updateStep.set(PLAYER.KILLS, PLAYER.KILLS.plus(playerRecord.getKills()));
                         }
 
-                        if (stat.getTotalDeaths() != 0) {
-                            updateStep.set(deaths_field, deaths_field.plus(stat.getTotalDeaths()));
+                        if (playerRecord.getDeaths().longValue() != 0) {
+                            updateStep.set(PLAYER.DEATHS, PLAYER.DEATHS.plus(playerRecord.getDeaths()));
                         }
 
-                        updateStep.set(time_secs_field, time_secs_field.plus(stat.getTotalTimeInSecs()))
-                                .where(id_field.eq(id))
+                        updateStep.set(PLAYER.TIME_SECS, PLAYER.TIME_SECS.plus(playerRecord.getTimeSecs()))
+                                .where(PLAYER.ID.eq(playerId))
+                                .execute();
+                    }
+
+                    List<PlayerIpRecord> playerIpRecords = ips.get(playerRecord.getName());
+                    if(!playerIpRecords.isEmpty()) {
+                        List<String> existedIps = transactionalDsl.select(PLAYER_IP.IP)
+                                .from(PLAYER_IP)
+                                .where(PLAYER_IP.PLAYER_ID.eq(playerId),
+                                        PLAYER_IP.IP.in(
+                                                playerIpRecords.stream()
+                                                        .map(PlayerIpRecord::getIp)
+                                                        .collect(Collectors.toList())
+                                        )).fetch(PLAYER_IP.IP);
+
+                        playerIpRecords.removeIf(existedIps::contains);
+                    }
+
+                    for (PlayerIpRecord playerIpRecord : playerIpRecords) {
+                        playerIpRecord.setPlayerId(playerId);
+
+                        transactionalDsl.insertInto(PLAYER_IP)
+                            .set(playerIpRecord)
+                            .execute();
+                    }
+
+                    List<PlayerSteamidRecord> playerSteamIdRecords = steamIds.get(playerRecord.getName());
+                    if(!playerSteamIdRecords.isEmpty()) {
+                        List<String> existedSteamIds = transactionalDsl.select(PLAYER_STEAMID.STEAMID)
+                                .from(PLAYER_STEAMID)
+                                .where(PLAYER_STEAMID.PLAYER_ID.eq(playerId),
+                                        PLAYER_STEAMID.STEAMID.in(
+                                                playerSteamIdRecords.stream()
+                                                        .map(PlayerSteamidRecord::getSteamid)
+                                                        .collect(Collectors.toList())
+                                        )).fetch(PLAYER_STEAMID.STEAMID);
+
+                        playerSteamIdRecords.removeIf(existedSteamIds::contains);
+                    }
+
+                    for (PlayerSteamidRecord playerSteamIdRecord : playerSteamIdRecords) {
+                        playerSteamIdRecord.setPlayerId(playerId);
+
+                        transactionalDsl.insertInto(PLAYER_STEAMID)
+                                .set(playerSteamIdRecord)
                                 .execute();
                     }
                 }

@@ -4,8 +4,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.jooq.DSLContext;
 import org.jooq.InsertSetMoreStep;
-import org.jooq.Record;
 import org.jooq.impl.DSL;
+import org.jooq.types.UInteger;
 import org.junit.*;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,9 +14,15 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.DependsOn;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
-import ru.csdm.stats.common.dto.PlayerStat;
-import ru.csdm.stats.model.Csstats;
-import ru.csdm.stats.model.CsstatsServers;
+
+import static ru.csdm.stats.common.model.tables.History.HISTORY;
+import static ru.csdm.stats.common.model.tables.KnownServer.KNOWN_SERVER;
+import static ru.csdm.stats.common.model.tables.Player.PLAYER;
+
+import ru.csdm.stats.common.model.tables.History;
+import ru.csdm.stats.common.model.tables.pojos.Player;
+import ru.csdm.stats.common.model.tables.records.KnownServerRecord;
+import ru.csdm.stats.common.utils.SomeUtils;
 import ru.csdm.stats.modules.collector.endpoints.StatsEndpoint;
 import ru.csdm.stats.modules.collector.service.SettingsService;
 
@@ -38,6 +44,8 @@ import java.util.stream.Stream;
 
 import static org.junit.Assert.assertEquals;
 import static org.springframework.boot.autoconfigure.task.TaskExecutionAutoConfiguration.APPLICATION_TASK_EXECUTOR_BEAN_NAME;
+import static ru.csdm.stats.common.model.tables.PlayerIp.PLAYER_IP;
+import static ru.csdm.stats.common.model.tables.PlayerSteamid.PLAYER_STEAMID;
 
 @SpringBootTest
 @RunWith(SpringRunner.class)
@@ -72,6 +80,18 @@ public class LogsTests {
     @After
     public void afterTest() {
 //        truncateTables();
+    }
+
+    @Test
+    public void server1_27015_27015() throws Exception {
+        addServer(27015, 27015, true, true, false, true);
+        sendLogs("server1.log", 27015, 27015);
+    }
+
+    @Test
+    public void server4_27016_27016() throws Exception {
+        addServer(27016, 27016, true, true, false, true);
+        sendLogs("server4.log", 27016, 27016);
     }
 
     @Test
@@ -344,17 +364,17 @@ public class LogsTests {
     }
 
     private void assertStats(String[][] expectedStats) {
-        List<PlayerStat> playerStats = fetchPlayersStats();
+        List<Player> players = fetchPlayers();
 
-        List<PlayerStat> expectedPlayers = Stream.of(expectedStats)
-                .map(this::makePlayerStat)
+        List<Player> expectedPlayers = Stream.of(expectedStats)
+                .map(this::makePlayerFromRawStats)
                 .collect(Collectors.toList());
 
-        for (PlayerStat playerStat : playerStats) {
-            log.info(playerStat.toString());
+        for (Player player : players) {
+            log.info(SomeUtils.playerRecordToString(player));
         }
 
-        assertEquals(playerStats, expectedPlayers);
+        assertEquals(players, expectedPlayers);
     }
 
     private void sendLogs(String fileName, int portStart, int portEnd) throws Exception {
@@ -404,14 +424,15 @@ public class LogsTests {
         Thread.sleep(1000);
     }
 
-    private List<PlayerStat> fetchPlayersStats() {
-        return adminDsl.select(Csstats.name_field.as("name"),
-                Csstats.kills_field.as("totalKills"),
-                Csstats.deaths_field.as("totalDeaths"),
-                Csstats.time_secs_field.as("totalTimeInSecs")
-        ).from(Csstats.csstats_table)
-                .orderBy(Csstats.time_secs_field.desc())
-                .fetchInto(PlayerStat.class);
+    private List<Player> fetchPlayers() {
+        return adminDsl.select(
+                PLAYER.NAME,
+                PLAYER.KILLS,
+                PLAYER.DEATHS,
+                PLAYER.TIME_SECS
+        ).from(PLAYER)
+                .orderBy(PLAYER.TIME_SECS.desc())
+                .fetchInto(Player.class); //todo: check functionality
     }
 
     private void addServer(int portStart,
@@ -421,17 +442,17 @@ public class LogsTests {
                            boolean ignore_bots,
                            boolean start_session_on_action) {
 
-        List<InsertSetMoreStep<Record>> steps = new ArrayList<>(portEnd - portStart + 1);
+        List<InsertSetMoreStep<KnownServerRecord>> steps = new ArrayList<>(portEnd - portStart + 1);
 
         for (int port = portStart; port <= portEnd; port++) {
             log.info(port + " adding port " + port);
 
-            InsertSetMoreStep<Record> step = DSL.insertInto(CsstatsServers.csstats_servers_table)
-                    .set(CsstatsServers.ipport_field, "127.0.0.1:" + port)
-                    .set(CsstatsServers.active_field, active)
-                    .set(CsstatsServers.ffa_field, ffa)
-                    .set(CsstatsServers.ignore_bots_field, ignore_bots)
-                    .set(CsstatsServers.start_session_on_action, start_session_on_action);
+            InsertSetMoreStep<KnownServerRecord> step = DSL.insertInto(KNOWN_SERVER)
+                    .set(KNOWN_SERVER.IPPORT, "127.0.0.1:" + port)
+                    .set(KNOWN_SERVER.ACTIVE, active)
+                    .set(KNOWN_SERVER.FFA, ffa)
+                    .set(KNOWN_SERVER.IGNORE_BOTS, ignore_bots)
+                    .set(KNOWN_SERVER.START_SESSION_ON_ACTION, start_session_on_action);
 
             steps.add(step);
         }
@@ -447,17 +468,25 @@ public class LogsTests {
     private void truncateTables() {
         adminDsl.transaction(config -> {
             DSLContext transactionalDsl = DSL.using(config);
-            transactionalDsl.truncate(Csstats.csstats_table).execute();
-            transactionalDsl.truncate(CsstatsServers.csstats_servers_table).execute();
+            try {
+                transactionalDsl.execute("SET FOREIGN_KEY_CHECKS = 0;");
+                transactionalDsl.truncate(HISTORY).execute();
+                transactionalDsl.truncate(PLAYER_IP).execute();
+                transactionalDsl.truncate(PLAYER_STEAMID).execute();
+                transactionalDsl.truncate(PLAYER).execute();
+                transactionalDsl.truncate(KNOWN_SERVER).execute();
+            } finally {
+                transactionalDsl.execute("SET FOREIGN_KEY_CHECKS = 1;");
+            }
         });
     }
 
-    private PlayerStat makePlayerStat(String[] sourceRaw) {
-        PlayerStat stat = new PlayerStat();
+    private Player makePlayerFromRawStats(String[] sourceRaw) {
+        Player stat = new Player();
         stat.setName(sourceRaw[0]);
-        stat.setTotalKills(Long.parseLong(sourceRaw[1]));
-        stat.setTotalDeaths(Long.parseLong(sourceRaw[2]));
-        stat.setTotalTimeInSecs(Long.parseLong(sourceRaw[3]));
+        stat.setKills(UInteger.valueOf(sourceRaw[1]));
+        stat.setDeaths(UInteger.valueOf(sourceRaw[2]));
+        stat.setTimeSecs(UInteger.valueOf(sourceRaw[3]));
         return stat;
     }
 }
