@@ -23,7 +23,7 @@ import ru.csdm.stats.common.model.tables.KnownServer;
 @SuppressWarnings({ "all", "unchecked", "rawtypes" })
 public class KnownServerRecord extends UpdatableRecordImpl<KnownServerRecord> implements Record6<UInteger, String, Boolean, Boolean, Boolean, Boolean> {
 
-    private static final long serialVersionUID = 1190067247;
+    private static final long serialVersionUID = -1027508625;
 
     /**
      * Setter for <code>csstats.known_server.id</code>.
@@ -98,14 +98,14 @@ public class KnownServerRecord extends UpdatableRecordImpl<KnownServerRecord> im
     }
 
     /**
-     * Setter for <code>csstats.known_server.start_session_on_action</code>. 1-start player's session on event "... killed ... with ..." (not for kreedz servers); 0-start player's session on event "... entered the game"
+     * Setter for <code>csstats.known_server.start_session_on_action</code>. 1-start player's session on event "... killed ... with ..." (not for kreedz servers); 0-start player's session on event "... connected, address ..." or "... entered the game"
      */
     public void setStartSessionOnAction(Boolean value) {
         set(5, value);
     }
 
     /**
-     * Getter for <code>csstats.known_server.start_session_on_action</code>. 1-start player's session on event "... killed ... with ..." (not for kreedz servers); 0-start player's session on event "... entered the game"
+     * Getter for <code>csstats.known_server.start_session_on_action</code>. 1-start player's session on event "... killed ... with ..." (not for kreedz servers); 0-start player's session on event "... connected, address ..." or "... entered the game"
      */
     public Boolean getStartSessionOnAction() {
         return (Boolean) get(5);

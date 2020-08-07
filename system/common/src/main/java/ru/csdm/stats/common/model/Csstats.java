@@ -4,20 +4,14 @@
 package ru.csdm.stats.common.model;
 
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-
 import org.jooq.Catalog;
 import org.jooq.Table;
 import org.jooq.impl.SchemaImpl;
+import ru.csdm.stats.common.model.tables.*;
 
-import ru.csdm.stats.common.model.tables.History;
-import ru.csdm.stats.common.model.tables.KnownServer;
-import ru.csdm.stats.common.model.tables.Player;
-import ru.csdm.stats.common.model.tables.PlayerIp;
-import ru.csdm.stats.common.model.tables.PlayerSteamid;
-import ru.csdm.stats.common.model.tables.Rank;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 
 /**
@@ -26,7 +20,7 @@ import ru.csdm.stats.common.model.tables.Rank;
 @SuppressWarnings({ "all", "unchecked", "rawtypes" })
 public class Csstats extends SchemaImpl {
 
-    private static final long serialVersionUID = 699313646;
+    private static final long serialVersionUID = 738391222;
 
     /**
      * The reference instance of <code>csstats</code>
@@ -42,6 +36,11 @@ public class Csstats extends SchemaImpl {
      * The table <code>csstats.known_server</code>.
      */
     public final KnownServer KNOWN_SERVER = ru.csdm.stats.common.model.tables.KnownServer.KNOWN_SERVER;
+
+    /**
+     * The table <code>csstats.manager</code>.
+     */
+    public final Manager MANAGER = ru.csdm.stats.common.model.tables.Manager.MANAGER;
 
     /**
      * The table <code>csstats.player</code>.
@@ -90,6 +89,7 @@ public class Csstats extends SchemaImpl {
         return Arrays.<Table<?>>asList(
             History.HISTORY,
             KnownServer.KNOWN_SERVER,
+            Manager.MANAGER,
             Player.PLAYER,
             PlayerIp.PLAYER_IP,
             PlayerSteamid.PLAYER_STEAMID,

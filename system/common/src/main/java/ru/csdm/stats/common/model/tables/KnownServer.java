@@ -33,7 +33,7 @@ import ru.csdm.stats.common.model.tables.records.KnownServerRecord;
 @SuppressWarnings({ "all", "unchecked", "rawtypes" })
 public class KnownServer extends TableImpl<KnownServerRecord> {
 
-    private static final long serialVersionUID = -1366436413;
+    private static final long serialVersionUID = 1269993129;
 
     /**
      * The reference instance of <code>csstats.known_server</code>
@@ -74,9 +74,9 @@ public class KnownServer extends TableImpl<KnownServerRecord> {
     public final TableField<KnownServerRecord, Boolean> IGNORE_BOTS = createField("ignore_bots", org.jooq.impl.SQLDataType.BOOLEAN.nullable(false).defaultValue(org.jooq.impl.DSL.inline("0", org.jooq.impl.SQLDataType.BOOLEAN)), this, "1-ignore statistics, when killer or victim is BOT; 0-don't ignore (include all player's)");
 
     /**
-     * The column <code>csstats.known_server.start_session_on_action</code>. 1-start player's session on event "... killed ... with ..." (not for kreedz servers); 0-start player's session on event "... entered the game"
+     * The column <code>csstats.known_server.start_session_on_action</code>. 1-start player's session on event "... killed ... with ..." (not for kreedz servers); 0-start player's session on event "... connected, address ..." or "... entered the game"
      */
-    public final TableField<KnownServerRecord, Boolean> START_SESSION_ON_ACTION = createField("start_session_on_action", org.jooq.impl.SQLDataType.BOOLEAN.nullable(false).defaultValue(org.jooq.impl.DSL.inline("0", org.jooq.impl.SQLDataType.BOOLEAN)), this, "1-start player's session on event \"... killed ... with ...\" (not for kreedz servers); 0-start player's session on event \"... entered the game\"");
+    public final TableField<KnownServerRecord, Boolean> START_SESSION_ON_ACTION = createField("start_session_on_action", org.jooq.impl.SQLDataType.BOOLEAN.nullable(false).defaultValue(org.jooq.impl.DSL.inline("0", org.jooq.impl.SQLDataType.BOOLEAN)), this, "1-start player's session on event \"... killed ... with ...\" (not for kreedz servers); 0-start player's session on event \"... connected, address ...\" or \"... entered the game\"");
 
     /**
      * Create a <code>csstats.known_server</code> table reference

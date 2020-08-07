@@ -6,6 +6,7 @@ package ru.csdm.stats.common.model;
 
 import ru.csdm.stats.common.model.tables.History;
 import ru.csdm.stats.common.model.tables.KnownServer;
+import ru.csdm.stats.common.model.tables.Manager;
 import ru.csdm.stats.common.model.tables.Player;
 import ru.csdm.stats.common.model.tables.PlayerIp;
 import ru.csdm.stats.common.model.tables.PlayerSteamid;
@@ -27,6 +28,11 @@ public class Tables {
      * The table <code>csstats.known_server</code>.
      */
     public static final KnownServer KNOWN_SERVER = ru.csdm.stats.common.model.tables.KnownServer.KNOWN_SERVER;
+
+    /**
+     * The table <code>csstats.manager</code>.
+     */
+    public static final Manager MANAGER = ru.csdm.stats.common.model.tables.Manager.MANAGER;
 
     /**
      * The table <code>csstats.player</code>.

@@ -6,8 +6,12 @@ import org.jooq.UpdateSetFirstStep;
 import org.jooq.impl.DSL;
 import org.jooq.types.UInteger;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.userdetails.User;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Repository;
 import ru.csdm.stats.common.model.tables.pojos.KnownServer;
+import ru.csdm.stats.common.model.tables.pojos.Manager;
 import ru.csdm.stats.common.model.tables.records.PlayerIpRecord;
 import ru.csdm.stats.common.model.tables.records.PlayerRecord;
 import ru.csdm.stats.common.model.tables.records.PlayerSteamidRecord;
@@ -18,6 +22,7 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 
 import static ru.csdm.stats.common.model.tables.KnownServer.KNOWN_SERVER;
+import static ru.csdm.stats.common.model.tables.Manager.MANAGER;
 import static ru.csdm.stats.common.model.tables.Player.PLAYER;
 import static ru.csdm.stats.common.model.tables.PlayerIp.PLAYER_IP;
 import static ru.csdm.stats.common.model.tables.PlayerSteamid.PLAYER_STEAMID;
@@ -157,5 +162,24 @@ public class CsStatsDao {
 
         if(log.isDebugEnabled())
             log.debug("mergePlayersStats() end");
+    }
+
+    public UserDetails findManagerByUsername(String username) throws UsernameNotFoundException {
+        Manager manager = statsDsl.selectFrom(MANAGER)
+                .where(MANAGER.USERNAME.eq(username))
+                .fetchOneInto(Manager.class);
+
+        if(Objects.isNull(manager))
+            throw new UsernameNotFoundException("Username '" + username + "' not founded");
+
+        return User.builder()
+                .username(manager.getUsername())
+                .password(manager.getPassword()) // https://www.browserling.com/tools/bcrypt
+                .roles("manager")
+                .accountExpired(false)
+                .accountLocked(false)
+                .credentialsExpired(false)
+                .disabled(!manager.getActive())
+                .build();
     }
 }

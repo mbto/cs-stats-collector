@@ -472,7 +472,7 @@ public class DatagramsConsumer {
 
         int playersSize = collectedPlayers.size();
         if (playersSize == 0) {
-            log.info(address + " Skip flushing players, due empty players container. " + fromEvent);
+            log.info(address + " Skip flushing players, due empty collectedPlayers container. " + fromEvent);
             return;
         }
 

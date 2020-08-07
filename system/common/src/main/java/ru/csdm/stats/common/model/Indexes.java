@@ -10,6 +10,7 @@ import org.jooq.impl.Internal;
 
 import ru.csdm.stats.common.model.tables.History;
 import ru.csdm.stats.common.model.tables.KnownServer;
+import ru.csdm.stats.common.model.tables.Manager;
 import ru.csdm.stats.common.model.tables.Player;
 import ru.csdm.stats.common.model.tables.PlayerIp;
 import ru.csdm.stats.common.model.tables.PlayerSteamid;
@@ -34,6 +35,9 @@ public class Indexes {
     public static final Index KNOWN_SERVER_ID_UNIQUE = Indexes0.KNOWN_SERVER_ID_UNIQUE;
     public static final Index KNOWN_SERVER_IPPORT_UNIQUE = Indexes0.KNOWN_SERVER_IPPORT_UNIQUE;
     public static final Index KNOWN_SERVER_PRIMARY = Indexes0.KNOWN_SERVER_PRIMARY;
+    public static final Index MANAGER_ID_UNIQUE = Indexes0.MANAGER_ID_UNIQUE;
+    public static final Index MANAGER_PRIMARY = Indexes0.MANAGER_PRIMARY;
+    public static final Index MANAGER_USERNAME_UNIQUE = Indexes0.MANAGER_USERNAME_UNIQUE;
     public static final Index PLAYER_ID_UNIQUE = Indexes0.PLAYER_ID_UNIQUE;
     public static final Index PLAYER_NAME_UNIQUE = Indexes0.PLAYER_NAME_UNIQUE;
     public static final Index PLAYER_PLAYER_LAST_SERVER_ID_IDX = Indexes0.PLAYER_PLAYER_LAST_SERVER_ID_IDX;
@@ -63,6 +67,9 @@ public class Indexes {
         public static Index KNOWN_SERVER_ID_UNIQUE = Internal.createIndex("id_UNIQUE", KnownServer.KNOWN_SERVER, new OrderField[] { KnownServer.KNOWN_SERVER.ID }, true);
         public static Index KNOWN_SERVER_IPPORT_UNIQUE = Internal.createIndex("ipport_UNIQUE", KnownServer.KNOWN_SERVER, new OrderField[] { KnownServer.KNOWN_SERVER.IPPORT }, true);
         public static Index KNOWN_SERVER_PRIMARY = Internal.createIndex("PRIMARY", KnownServer.KNOWN_SERVER, new OrderField[] { KnownServer.KNOWN_SERVER.ID }, true);
+        public static Index MANAGER_ID_UNIQUE = Internal.createIndex("id_UNIQUE", Manager.MANAGER, new OrderField[] { Manager.MANAGER.ID }, true);
+        public static Index MANAGER_PRIMARY = Internal.createIndex("PRIMARY", Manager.MANAGER, new OrderField[] { Manager.MANAGER.ID }, true);
+        public static Index MANAGER_USERNAME_UNIQUE = Internal.createIndex("username_UNIQUE", Manager.MANAGER, new OrderField[] { Manager.MANAGER.USERNAME }, true);
         public static Index PLAYER_ID_UNIQUE = Internal.createIndex("id_UNIQUE", Player.PLAYER, new OrderField[] { Player.PLAYER.ID }, true);
         public static Index PLAYER_NAME_UNIQUE = Internal.createIndex("name_UNIQUE", Player.PLAYER, new OrderField[] { Player.PLAYER.NAME }, true);
         public static Index PLAYER_PLAYER_LAST_SERVER_ID_IDX = Internal.createIndex("player_last_server_id_idx", Player.PLAYER, new OrderField[] { Player.PLAYER.LAST_SERVER_ID }, false);

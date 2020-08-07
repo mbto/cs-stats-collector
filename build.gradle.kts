@@ -45,6 +45,7 @@ allprojects {
 //        compile("commons-io:commons-io:2.6")
 
 //        compile("org.springframework.boot:spring-boot-actuator:$springVersion")
+        compile("org.springframework.boot:spring-boot-starter-security:$springVersion")
         compile("org.springframework.boot:spring-boot-starter-jooq:$springVersion")
         compile("mysql:mysql-connector-java:8.0.15")
 

@@ -729,12 +729,12 @@ public class LogsTests {
      * {"2", "1", "STEAM_0:0:456456456", "2020-01-01 13:20:10"}
      */
     private PlayerSteamid makePlayersSteamIdsFromRaw(String[] sourceRaw) {
-        PlayerSteamid playerIp = new PlayerSteamid();
-        playerIp.setId(UInteger.valueOf(sourceRaw[0]));
-        playerIp.setPlayerId(UInteger.valueOf(sourceRaw[1]));
-        playerIp.setSteamid(sourceRaw[2]);
-        playerIp.setRegDatetime(LocalDateTime.parse(sourceRaw[3], YYYYMMDD_HHMMSS_PATTERN));
+        PlayerSteamid playerSteamid = new PlayerSteamid();
+        playerSteamid.setId(UInteger.valueOf(sourceRaw[0]));
+        playerSteamid.setPlayerId(UInteger.valueOf(sourceRaw[1]));
+        playerSteamid.setSteamid(sourceRaw[2]);
+        playerSteamid.setRegDatetime(LocalDateTime.parse(sourceRaw[3], YYYYMMDD_HHMMSS_PATTERN));
 
-        return playerIp;
+        return playerSteamid;
     }
 }

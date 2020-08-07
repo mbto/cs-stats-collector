@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import ru.csdm.stats.common.dto.CollectedPlayer;
 import ru.csdm.stats.common.dto.DatagramsQueue;
@@ -47,6 +48,7 @@ public class StatsEndpoint {
     private SettingsService settingsService;
 
     @PostMapping(value = "/flush")
+    @PreAuthorize("hasRole('manager')")
     public Map<String, String> flush() {
         Map<String, String> results = new LinkedHashMap<>();
         for (Map.Entry<String, ServerData> entry : availableAddresses.entrySet()) {
@@ -82,11 +84,13 @@ public class StatsEndpoint {
 
     @PostMapping(value = "/updateSettings")
     @ResponseStatus(HttpStatus.NO_CONTENT)
+    @PreAuthorize("hasRole('manager')")
     public void updateSettings() {
         settingsService.updateSettings(false);
     }
 
     @GetMapping(value = "", produces = MediaType.APPLICATION_JSON_UTF8_VALUE)
+    @PreAuthorize("hasRole('manager')")
     public Map<String, Object> stats() {
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("addresses", Arrays.asList(
