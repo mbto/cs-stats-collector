@@ -1,0 +1,24 @@
+L 01/01/2020 - 13:15:00: "Name1<5><STEAM_0:0:123123123123><>" connected, address "12.12.12.12:27005"
+L 01/01/2020 - 13:15:01: "Name1<5><STEAM_0:0:123123123123><>" entered the game
+L 01/01/2020 - 13:15:02: "Name1<5><STEAM_0:0:123123123123><CT>" killed "Name2<6><STEAM_0:1:987654><T>" with "m4a1"
+L 01/01/2020 - 13:15:03: "Name1<5><STEAM_0:0:123123123123><CT>" killed "Name2<6><STEAM_0:1:987654><T>" with "m4a1"
+L 01/01/2020 - 13:15:04: "Name1<5><STEAM_0:0:123123123123><CT>" changed name to "Name5"
+L 01/01/2020 - 13:15:05: "Name5<5><STEAM_0:0:123123123123><CT>" killed "Name2<6><STEAM_0:1:987654><T>" with "m4a1"
+L 01/01/2020 - 13:15:06: "Name5<5><STEAM_0:0:123123123123><CT>" committed suicide with "grenade"
+L 01/01/2020 - 13:15:07: "Name5<5><STEAM_0:0:123123123123><CT>" killed "Name2<6><STEAM_0:1:987654><T>" with "m4a1"
+L 01/01/2020 - 13:15:08: "Name5<5><STEAM_0:0:123123123123><CT>" changed name to "Name9"
+L 01/01/2020 - 13:15:09: "Name9<5><STEAM_0:0:123123123123><CT>" killed "Name2<6><STEAM_0:1:987654><T>" with "m4a1"
+L 01/01/2020 - 13:15:10: "Name9<5><STEAM_0:0:123123123123><CT>" disconnected
+L 01/01/2020 - 13:16:00: "Name1<7><STEAM_0:0:999999999999><>" connected, address "24.24.24.24:27005"
+L 01/01/2020 - 13:16:01: "Name1<7><STEAM_0:0:999999999999><>" entered the game
+L 01/01/2020 - 13:16:02: "Name1<7><STEAM_0:0:999999999999><CT>" killed "Name2<6><STEAM_0:1:987654><T>" with "m4a1"
+L 01/01/2020 - 13:16:03: "Name1<7><STEAM_0:0:999999999999><CT>" killed "Name2<6><STEAM_0:1:987654><T>" with "m4a1"
+L 01/01/2020 - 13:16:04: "Name1<7><STEAM_0:0:999999999999><CT>" changed name to "Name9"
+L 01/01/2020 - 13:16:05: "Name9<7><STEAM_0:0:999999999999><CT>" killed "Name2<6><STEAM_0:1:987654><T>" with "m4a1"
+L 01/01/2020 - 13:16:06: "Name2<6><STEAM_0:1:987654><T>" committed suicide with "grenade"
+L 01/01/2020 - 13:16:07: "Name9<7><STEAM_0:0:999999999999><CT>" killed "Name2<6><STEAM_0:1:987654><T>" with "m4a1"
+L 01/01/2020 - 13:16:08: "Name9<7><STEAM_0:0:999999999999><CT>" changed name to "Name1"
+L 01/01/2020 - 13:16:09: "Name1<7><STEAM_0:0:999999999999><CT>" killed "Name2<6><STEAM_0:1:987654><T>" with "m4a1"
+L 01/01/2020 - 13:16:10: "Name1<7><STEAM_0:0:999999999999><CT>" disconnected
+L 01/01/2020 - 13:16:11: "Name2<6><STEAM_0:1:987654><CT>" disconnected
+L 01/01/2020 - 13:16:12: Server shutdown

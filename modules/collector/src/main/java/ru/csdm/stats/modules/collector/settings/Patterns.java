@@ -2,6 +2,10 @@ package ru.csdm.stats.modules.collector.settings;
 
 import java.util.regex.Pattern;
 
+/**
+ * HL Log Standard Examples
+ * https://developer.valvesoftware.com/wiki/HL_Log_Standard_Examples#Example_1:_Perl:_Log_parsing_routines.
+ */
 public enum Patterns {
     // L 01/01/2020 - 13:15:00: "Name1<STEAM_ID_LAN><5><>" connected, address "12.12.12.12:27005"
     LOG("L (?<date>\\d{2}/\\d{2}/\\d{4} - \\d{2}:\\d{2}:\\d{2}): (?<msg>.*)"),

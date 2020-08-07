@@ -9,12 +9,15 @@ import org.springframework.stereotype.Service;
 import ru.csdm.stats.common.dto.CollectedPlayer;
 import ru.csdm.stats.common.dto.Session;
 import ru.csdm.stats.common.model.tables.records.PlayerIpRecord;
+import ru.csdm.stats.common.model.tables.records.PlayerRecord;
 import ru.csdm.stats.common.model.tables.records.PlayerSteamidRecord;
 import ru.csdm.stats.dao.CsStatsDao;
-import ru.csdm.stats.common.model.tables.records.PlayerRecord;
 
 import java.time.Duration;
-import java.util.*;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 import static ru.csdm.stats.common.utils.SomeUtils.playerRecordToString;
@@ -69,7 +72,7 @@ public class PlayersSender {
                                 return playerIpRecord;
                             }).collect(Collectors.toList()));
 
-                    steamIds.put(collectedPlayer.getName(), collectedPlayer.getIpAddresses().stream()
+                    steamIds.put(collectedPlayer.getName(), collectedPlayer.getSteamIds().stream()
                             .map(steamId -> {
                                 PlayerSteamidRecord playerSteamIdRecord = new PlayerSteamidRecord();
                                 playerSteamIdRecord.setSteamid(steamId);
@@ -94,7 +97,7 @@ public class PlayersSender {
         }
 
         try {
-            csStatsDao.mergePlayersStats(playerRecords, ips, steamIds);
+            csStatsDao.mergePlayersStats(address, playerRecords, ips, steamIds);
 
             log.info(address + " Successfully merged " + playerRecords.size() +
                     " player" + (playerRecords.size() > 1 ? "s" : "") + " stats");

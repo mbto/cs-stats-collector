@@ -2,11 +2,11 @@ L 01/01/2020 - 21:15:09: Log file started (file "logs\L0101001.log") (game "cstr
 L 01/01/2020 - 21:15:09: Founded spawns @ T:20 CT:20
 L 01/01/2020 - 21:15:09: Server cvar "amx_nextmap" = "de_chateau"
 L 01/01/2020 - 21:15:09: Started map "de_dust2" (CRC "1159425449")
-L 01/01/2020 - 21:15:09: "Admin<19><STEAM_ID_LAN><>" connected, address "loopback"
-L 01/01/2020 - 21:15:10: "Admin<19><STEAM_ID_LAN><>" entered the game
+L 01/01/2020 - 21:15:09: "Admin<19><STEAM_0:0:555000><>" connected, address "127.0.1.1"
+L 01/01/2020 - 21:15:10: "Admin<19><STEAM_0:0:555000><>" entered the game
 L 01/01/2020 - 21:15:10: World triggered "Round_Start"
-L 01/01/2020 - 21:15:10: "Admin<19><STEAM_ID_LAN><>" STEAM USERID validated
-L 01/01/2020 - 21:15:12: "Admin<19><STEAM_ID_LAN><>" joined team "CT"
+L 01/01/2020 - 21:15:10: "Admin<19><STEAM_0:0:555000><>" STEAM USERID validated
+L 01/01/2020 - 21:15:12: "Admin<19><STEAM_0:0:555000><>" joined team "CT"
 L 01/01/2020 - 21:15:24: Server cvar "sv_password" = "***PROTECTED***"
 L 01/01/2020 - 21:17:28: "pravwOw~<20><BOT><>" entered the game
 L 01/01/2020 - 21:17:28: "pravwOw~<20><BOT><>" joined team "TERRORIST"

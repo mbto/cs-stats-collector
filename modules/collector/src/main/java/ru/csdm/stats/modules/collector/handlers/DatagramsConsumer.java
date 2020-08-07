@@ -12,7 +12,10 @@ import org.springframework.stereotype.Service;
 import ru.csdm.stats.common.FlushEvent;
 import ru.csdm.stats.common.GameSessionFetchMode;
 import ru.csdm.stats.common.SystemEvent;
-import ru.csdm.stats.common.dto.*;
+import ru.csdm.stats.common.dto.CollectedPlayer;
+import ru.csdm.stats.common.dto.DatagramsQueue;
+import ru.csdm.stats.common.dto.Message;
+import ru.csdm.stats.common.dto.ServerData;
 import ru.csdm.stats.common.model.tables.pojos.KnownServer;
 
 import javax.annotation.PreDestroy;
@@ -162,7 +165,7 @@ public class DatagramsConsumer {
                         if(knownServer.getIgnoreBots()) {
                             if("BOT".equals(killerAuth) || "BOT".equals(victimAuth)) {
                                 if(debugEnabled) {
-                                    log.debug(address + " Skip BOT frag: " + sourceRaw + " & " + targetRaw);
+                                    log.debug(address + " Skip BOT frag: " + sourceRaw + " or " + targetRaw);
                                 }
 
                                 continue;
@@ -207,7 +210,7 @@ public class DatagramsConsumer {
                         String sourceAuth = sourceMatcher.group("auth");
 
                         if (knownServer.getIgnoreBots()) {
-                            // some bots generate event "connected, address"
+                            // some bots generates event "connected, address"
                             if ("BOT".equals(sourceAuth)) {
                                 continue;
                             }
@@ -216,9 +219,8 @@ public class DatagramsConsumer {
                         String sourceName = sourceMatcher.group("name");
                         String sourceIp = eventMatcher.group(3); // Possible values: "loopback:27005", "12.12.12.12:27005", "none"
 
-                        CollectedPlayer collectedPlayer = allocatePlayer(knownServer, sourceName, sourceAuth);
+                        CollectedPlayer collectedPlayer = allocatePlayer(knownServer, sourceName, sourceAuth, dateTime);
                         collectedPlayer.addIpAddress(sourceIp);
-                        collectedPlayer.setLastseenDatetime(dateTime);
 
                         if(knownServer.getStartSessionOnAction()) {
                             continue;
@@ -232,7 +234,70 @@ public class DatagramsConsumer {
                 }
 
                 if(eventName.equals("committed suicide with")) {
-                    System.out.println(""); // todo:
+                    String sourceRaw = eventMatcher.group(1);
+                    Matcher sourceMatcher = PLAYER.pattern.matcher(sourceRaw);
+                    if (sourceMatcher.matches()) {
+                        String sourceAuth = sourceMatcher.group("auth");
+
+                        if (knownServer.getIgnoreBots()) {
+                            if ("BOT".equals(sourceAuth)) {
+                                if(debugEnabled) {
+                                    log.debug(address + " Skip BOT suicide: " + sourceRaw);
+                                }
+
+                                continue;
+                            }
+                        }
+
+                        String sourceName = sourceMatcher.group("name");
+
+                        CollectedPlayer collectedPlayer = allocatePlayer(knownServer, sourceName, sourceAuth, dateTime);
+                        collectedPlayer.upDeaths(dateTime);
+
+                        continue;
+                    }
+
+                    continue;
+                }
+
+                if(eventName.equals("changed name to")) {
+                    String sourceRaw = eventMatcher.group(1);
+                    Matcher sourceMatcher = PLAYER.pattern.matcher(sourceRaw);
+                    if (sourceMatcher.matches()) {
+                        String sourceAuth = sourceMatcher.group("auth");
+
+                        if (knownServer.getIgnoreBots()) {
+                            if ("BOT".equals(sourceAuth)) {
+                                if(debugEnabled) {
+                                    log.debug(address + " Skip BOT changed name: " + sourceRaw);
+                                }
+
+                                continue;
+                            }
+                        }
+
+                        String sourceName = sourceMatcher.group("name");
+                        String sourceNewName = eventMatcher.group(3);
+
+                        CollectedPlayer collectedPlayer = allocatePlayer(knownServer, sourceName, sourceAuth, dateTime);
+                        collectedPlayer.onDisconnected(dateTime);
+
+                        Set<String> ipAddresses = collectedPlayer.getIpAddresses();
+
+                        collectedPlayer = allocatePlayer(knownServer, sourceNewName, sourceAuth, dateTime);
+                        for (String ipAddress : ipAddresses) {
+                            collectedPlayer.addIpAddress(ipAddress);
+                        }
+
+                        if(knownServer.getStartSessionOnAction()) {
+                            continue;
+                        }
+
+                        collectedPlayer.getCurrentSession(dateTime); // activate session
+                        continue;
+                    }
+
+                    continue;
                 }
 
                 continue;
@@ -256,8 +321,7 @@ public class DatagramsConsumer {
                         }
 
                         String sourceName = sourceMatcher.group("name");
-                        CollectedPlayer collectedPlayer = allocatePlayer(knownServer, sourceName, sourceAuth);
-                        collectedPlayer.setLastseenDatetime(dateTime);
+                        CollectedPlayer collectedPlayer = allocatePlayer(knownServer, sourceName, sourceAuth, dateTime);
 
                         if(knownServer.getStartSessionOnAction()) {
                             continue;
@@ -327,13 +391,11 @@ public class DatagramsConsumer {
                            LocalDateTime dateTime,
                            String killerName, String killerAuth,
                            String victimName, String victimAuth) {
-        CollectedPlayer killer = allocatePlayer(knownServer, killerName, killerAuth);
+        CollectedPlayer killer = allocatePlayer(knownServer, killerName, killerAuth, dateTime);
         killer.upKills(dateTime);
-        killer.setLastseenDatetime(dateTime);
 
-        CollectedPlayer victim = allocatePlayer(knownServer, victimName, victimAuth);
+        CollectedPlayer victim = allocatePlayer(knownServer, victimName, victimAuth, dateTime);
         victim.upDeaths(dateTime);
-        victim.setLastseenDatetime(dateTime);
     }
 
     private Map<String, CollectedPlayer> allocateGameSession(String address, GameSessionFetchMode gsFetchMode) {
@@ -369,14 +431,14 @@ public class DatagramsConsumer {
     }
 
     private CollectedPlayer allocatePlayer(KnownServer knownServer, String name,
-                                           String steamId) {
+                                           String steamId, LocalDateTime dateTime) {
         String address = knownServer.getIpport();
         Map<String, CollectedPlayer> gameSessions = allocateGameSession(address, CREATE_IF_NULL);
 
         CollectedPlayer collectedPlayer = gameSessions.get(name);
 
         if (Objects.isNull(collectedPlayer)) {
-            collectedPlayer = new CollectedPlayer(name, knownServer.getId());
+            collectedPlayer = new CollectedPlayer(name);
             gameSessions.put(name, collectedPlayer);
 
             log.info(address + " Founded player: " + collectedPlayer);
@@ -386,6 +448,13 @@ public class DatagramsConsumer {
         // started later, after the players have joined. If this happens, the players' IPs will remain
         // unknown, but at least steamId will remain.
         collectedPlayer.addSteamId(steamId);
+
+        // Set on every call, if the known server ID suddenly changes (for example, when
+        // calling POST /updateSettings and changing the known server ID, but it is unlikely
+        // that you want to change the known server ID at runtime)
+        collectedPlayer.setLastServerId(knownServer.getId());
+
+        collectedPlayer.setLastseenDatetime(dateTime);
 
         return collectedPlayer;
     }

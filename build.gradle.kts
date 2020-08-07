@@ -1,7 +1,7 @@
 import org.gradle.api.JavaVersion.VERSION_1_8
 
 group = "cs-stats-collector"
-version = "1.3"
+version = "1.4"
 
 val springVersion: String by extra
 

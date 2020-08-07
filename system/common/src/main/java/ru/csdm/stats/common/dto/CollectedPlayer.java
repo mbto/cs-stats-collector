@@ -11,7 +11,7 @@ import java.time.LocalDateTime;
 import java.util.*;
 
 @Getter
-public class CollectedPlayer { // todo: rename to PlayerWrapper with Player field
+public class CollectedPlayer {
     @Setter
     @JsonIgnore
     private String name;
@@ -20,11 +20,11 @@ public class CollectedPlayer { // todo: rename to PlayerWrapper with Player fiel
     private final Set<String> steamIds = new HashSet<>();
     @Setter
     private LocalDateTime lastseenDatetime;
-    private final UInteger lastServerId;
+    @Setter
+    private UInteger lastServerId;
 
-    public CollectedPlayer(String name, UInteger lastServerId) {
+    public CollectedPlayer(String name) {
         this.name = name;
-        this.lastServerId = lastServerId;
     }
 
     public void addIpAddress(String ipAddress) {

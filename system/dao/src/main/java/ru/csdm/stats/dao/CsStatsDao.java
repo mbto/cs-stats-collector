@@ -2,30 +2,25 @@ package ru.csdm.stats.dao;
 
 import lombok.extern.slf4j.Slf4j;
 import org.jooq.DSLContext;
-import org.jooq.Record;
 import org.jooq.UpdateSetFirstStep;
-import org.jooq.UpdateSetStep;
 import org.jooq.impl.DSL;
-import org.jooq.types.UByte;
 import org.jooq.types.UInteger;
-import org.jooq.types.ULong;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
+import ru.csdm.stats.common.model.tables.pojos.KnownServer;
+import ru.csdm.stats.common.model.tables.records.PlayerIpRecord;
+import ru.csdm.stats.common.model.tables.records.PlayerRecord;
+import ru.csdm.stats.common.model.tables.records.PlayerSteamidRecord;
 
-import java.util.*;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 import static ru.csdm.stats.common.model.tables.KnownServer.KNOWN_SERVER;
 import static ru.csdm.stats.common.model.tables.Player.PLAYER;
 import static ru.csdm.stats.common.model.tables.PlayerIp.PLAYER_IP;
 import static ru.csdm.stats.common.model.tables.PlayerSteamid.PLAYER_STEAMID;
-
-import org.springframework.util.CollectionUtils;
-import ru.csdm.stats.common.model.tables.*;
-import ru.csdm.stats.common.model.tables.pojos.KnownServer;
-import ru.csdm.stats.common.model.tables.records.PlayerIpRecord;
-import ru.csdm.stats.common.model.tables.records.PlayerRecord;
-import ru.csdm.stats.common.model.tables.records.PlayerSteamidRecord;
 
 @Repository
 @Slf4j
@@ -39,7 +34,7 @@ public class CsStatsDao {
                 .fetchInto(KnownServer.class);
     }
 
-    public void mergePlayersStats(List<PlayerRecord> playerRecords,
+    public void mergePlayersStats(String address, List<PlayerRecord> playerRecords,
                                   Map<String, List<PlayerIpRecord>> ips,
                                   Map<String, List<PlayerSteamidRecord>> steamIds) {
         if(log.isDebugEnabled())
@@ -50,11 +45,22 @@ public class CsStatsDao {
 
             try {
                 transactionalDsl.execute("LOCK TABLES " +
-                        String.join(" WRITE,",
-                                PLAYER.getName(),
-                                PLAYER_IP.getName(),
-                                PLAYER_STEAMID.getName()
-                        ) + " WRITE");
+                        String.join(", ",
+                                PLAYER.getName() + " WRITE",
+                                PLAYER_IP.getName() + " WRITE",
+                                PLAYER_STEAMID.getName() + " WRITE",
+                                KNOWN_SERVER.getName() + " READ"
+                        )
+                );
+
+                Map<UInteger, KnownServer> knownServerById = transactionalDsl
+                        .select(KNOWN_SERVER.ID, KNOWN_SERVER.IPPORT)
+                        .from(KNOWN_SERVER)
+                        .fetchMap(KNOWN_SERVER.ID, KnownServer.class);
+
+                Map<String, KnownServer> knownServerByAddress = knownServerById.values()
+                        .stream()
+                        .collect(Collectors.toMap(KnownServer::getIpport, knownServer -> knownServer));
 
                 for (PlayerRecord playerRecord : playerRecords) {
                     UInteger playerId = transactionalDsl.select(PLAYER.ID)
@@ -63,6 +69,19 @@ public class CsStatsDao {
                             .where(PLAYER.NAME.eq(playerRecord.getName()))
                             .forUpdate()
                             .fetchOneInto(PLAYER.ID.getType());
+
+                    // If at the time of saving - the known server ID changed or deleted,
+                    // the data of which was saved in the cache, so that there are no errors
+                    // on table constrains
+                    if(!knownServerById.containsKey(playerRecord.getLastServerId())) {
+                        // Attempt to search known server with a changed ID
+                        KnownServer knownServer = knownServerByAddress.get(address);
+
+                        if(Objects.nonNull(knownServer))
+                            playerRecord.setLastServerId(knownServer.getId());
+                        else
+                            playerRecord.setLastServerId(null);
+                    }
 
                     if (Objects.isNull(playerId)) {
                         playerId = transactionalDsl.insertInto(PLAYER)
@@ -81,6 +100,8 @@ public class CsStatsDao {
                         }
 
                         updateStep.set(PLAYER.TIME_SECS, PLAYER.TIME_SECS.plus(playerRecord.getTimeSecs()))
+                                .set(PLAYER.LASTSEEN_DATETIME, playerRecord.getLastseenDatetime())
+                                .set(PLAYER.LAST_SERVER_ID, playerRecord.getLastServerId())
                                 .where(PLAYER.ID.eq(playerId))
                                 .execute();
                     }
@@ -96,7 +117,7 @@ public class CsStatsDao {
                                                         .collect(Collectors.toList())
                                         )).fetch(PLAYER_IP.IP);
 
-                        playerIpRecords.removeIf(existedIps::contains);
+                        playerIpRecords.removeIf(pir -> existedIps.contains(pir.getIp()));
                     }
 
                     for (PlayerIpRecord playerIpRecord : playerIpRecords) {
@@ -118,7 +139,7 @@ public class CsStatsDao {
                                                         .collect(Collectors.toList())
                                         )).fetch(PLAYER_STEAMID.STEAMID);
 
-                        playerSteamIdRecords.removeIf(existedSteamIds::contains);
+                        playerSteamIdRecords.removeIf(psir -> existedSteamIds.contains(psir.getSteamid()));
                     }
 
                     for (PlayerSteamidRecord playerSteamIdRecord : playerSteamIdRecords) {
