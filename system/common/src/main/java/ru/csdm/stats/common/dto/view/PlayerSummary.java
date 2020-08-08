@@ -11,7 +11,7 @@ public class PlayerSummary {
     private String name;
     private UInteger kills;
     private UInteger deaths;
-    private String human_time;
+    private String gaming_time;
     private String rank_name;
     private String stars;
 }

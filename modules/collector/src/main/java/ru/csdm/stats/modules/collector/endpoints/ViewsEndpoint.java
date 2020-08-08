@@ -25,7 +25,7 @@ public class ViewsEndpoint {
     "name": "::[@A@]::***::Mr.[H]oLm[S]::",
     "kills": 324000,
     "deaths": 583201,
-    "human_time": "5мес",
+    "gaming_time": "5мес",
     "rank_name": "Ст.охранник",
     "stars": "★★★☆☆☆"
 } */

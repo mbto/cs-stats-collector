@@ -20,7 +20,7 @@ public class ViewsDao {
                 PLAYER.NAME,
                 PLAYER.KILLS,
                 PLAYER.DEATHS,
-                buildHumanTime(PLAYER.TIME_SECS).as("total_time"),
+                buildHumanTime(PLAYER.TIME_SECS).as("gaming_time"),
                 RANK.NAME.as("rank_name"),
                 buildStars(RANK.LEVEL, statsDsl.selectCount().from(RANK).asField()).as("stars")
         ).from(PLAYER).leftJoin(RANK).on(PLAYER.RANK_ID.eq(RANK.ID))
