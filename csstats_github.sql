@@ -16,6 +16,37 @@
 /*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
 
 --
+-- Table structure for table `api_user`
+--
+
+DROP TABLE IF EXISTS `api_user`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `api_user` (
+  `id` int unsigned NOT NULL AUTO_INCREMENT,
+  `active` tinyint unsigned NOT NULL DEFAULT '1',
+  `username` varchar(31) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `password` char(60) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL COMMENT 'https://www.browserling.com/tools/bcrypt',
+  `manage` tinyint unsigned NOT NULL DEFAULT '1' COMMENT '1-can invoke ''managers'' endpoints (/stats/updateSettings, /stats/flush, /stats/, etc...);0-can''t invoke ''managers'' endpoints',
+  `view` tinyint unsigned NOT NULL DEFAULT '1' COMMENT '1-can invoke ''views'' endpoints (/stats/player, etc...);0-can''t invoke ''views'' endpoints',
+  `reg_datetime` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `id_UNIQUE` (`id`),
+  UNIQUE KEY `username_UNIQUE` (`username`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Who to share API access to endpoints /stats/*';
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `api_user`
+--
+
+LOCK TABLES `api_user` WRITE;
+/*!40000 ALTER TABLE `api_user` DISABLE KEYS */;
+INSERT INTO `api_user` VALUES (1,1,'admin','$2a$10$H92uR9r46g85blB3GTY2veEAtsSQjJulSMN3PvrJD73ZsiE8RES3K',1,1,'2020-01-01 00:00:00'),(2,1,'viewer','$2a$10$DLrXdR4LwJmZIjo9BrUBtuQJVtxX2TGvGb.qFigBydYvAhxTlPeDu',0,1,'2020-01-01 00:00:00');
+/*!40000 ALTER TABLE `api_user` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
 -- Table structure for table `history`
 --
 
@@ -122,35 +153,6 @@ DELIMITER ;
 /*!50003 SET character_set_client  = @saved_cs_client */ ;
 /*!50003 SET character_set_results = @saved_cs_results */ ;
 /*!50003 SET collation_connection  = @saved_col_connection */ ;
-
---
--- Table structure for table `manager`
---
-
-DROP TABLE IF EXISTS `manager`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `manager` (
-  `id` int unsigned NOT NULL AUTO_INCREMENT,
-  `active` tinyint unsigned NOT NULL DEFAULT '1',
-  `username` varchar(31) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
-  `password` char(60) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL COMMENT 'https://www.browserling.com/tools/bcrypt',
-  `reg_datetime` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `id_UNIQUE` (`id`),
-  UNIQUE KEY `username_UNIQUE` (`username`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Dumping data for table `manager`
---
-
-LOCK TABLES `manager` WRITE;
-/*!40000 ALTER TABLE `manager` DISABLE KEYS */;
-INSERT INTO `manager` VALUES (1,1,'stats','$2a$10$sE7hgQ8crpIxQk33J4hQAudOrnwDu0DG9n3T.c4x85YDzWwLHsKde','2020-01-01 00:00:00');
-/*!40000 ALTER TABLE `manager` ENABLE KEYS */;
-UNLOCK TABLES;
 
 --
 -- Table structure for table `player`
@@ -461,7 +463,7 @@ UNLOCK TABLES;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`root`@`%` FUNCTION `build_human_time`(time_secs int) RETURNS varchar(31) CHARSET utf8mb4 COLLATE utf8mb4_unicode_ci
+CREATE DEFINER=`root`@`%` FUNCTION `build_human_time`(time_secs int unsigned) RETURNS varchar(31) CHARSET utf8mb4 COLLATE utf8mb4_unicode_ci
     DETERMINISTIC
 BEGIN
 	declare y int unsigned default (time_secs DIV (60 * 60 * 24 * 30 * 12));
@@ -471,7 +473,7 @@ BEGIN
 	declare m int unsigned default (time_secs DIV 60) % 60;
 	declare s int unsigned default time_secs % 60;
     
-    declare human_time varchar(31) default ''; -- 9999года 11мес 29дн 23ч 59м 59с = 31 len
+    declare human_time varchar(31) default ''; -- 9999года 11мес 29дн 23ч 59м 59с @ len=31
     
     if(y > 0) then set human_time = concat(human_time,y,declension(y,'год','года','лет')); end if;
     if(mn > 0) then set human_time = concat(human_time,if(y > 0, ' ', ''),mn,'мес'); end if;
@@ -667,4 +669,4 @@ DELIMITER ;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2020-08-08  1:31:44
+-- Dump completed on 2020-08-09  2:02:46

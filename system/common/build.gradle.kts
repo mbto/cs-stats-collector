@@ -36,7 +36,7 @@ jooq {
         }
         generate {
             isDaos = false
-            isRoutines = false
+            isRoutines = true
             isPojos = true
             isPojosEqualsAndHashCode = true
             isValidationAnnotations = true

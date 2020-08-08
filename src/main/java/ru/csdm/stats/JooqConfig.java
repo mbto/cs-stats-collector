@@ -26,7 +26,6 @@ import static org.springframework.boot.autoconfigure.task.TaskExecutionAutoConfi
 
 @Configuration
 public class JooqConfig {
-
     @Bean
     @Lazy(false)
     @DependsOn("statsDataSource")

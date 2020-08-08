@@ -4,13 +4,7 @@
 package ru.csdm.stats.common.model;
 
 
-import ru.csdm.stats.common.model.tables.History;
-import ru.csdm.stats.common.model.tables.KnownServer;
-import ru.csdm.stats.common.model.tables.Manager;
-import ru.csdm.stats.common.model.tables.Player;
-import ru.csdm.stats.common.model.tables.PlayerIp;
-import ru.csdm.stats.common.model.tables.PlayerSteamid;
-import ru.csdm.stats.common.model.tables.Rank;
+import ru.csdm.stats.common.model.tables.*;
 
 
 /**
@@ -18,6 +12,11 @@ import ru.csdm.stats.common.model.tables.Rank;
  */
 @SuppressWarnings({ "all", "unchecked", "rawtypes" })
 public class Tables {
+
+    /**
+     * Who to share API access to endpoints /stats/ *
+     */
+    public static final ApiUser API_USER = ru.csdm.stats.common.model.tables.ApiUser.API_USER;
 
     /**
      * The table <code>csstats.history</code>.
@@ -28,11 +27,6 @@ public class Tables {
      * The table <code>csstats.known_server</code>.
      */
     public static final KnownServer KNOWN_SERVER = ru.csdm.stats.common.model.tables.KnownServer.KNOWN_SERVER;
-
-    /**
-     * The table <code>csstats.manager</code>.
-     */
-    public static final Manager MANAGER = ru.csdm.stats.common.model.tables.Manager.MANAGER;
 
     /**
      * The table <code>csstats.player</code>.

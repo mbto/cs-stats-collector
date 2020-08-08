@@ -9,21 +9,8 @@ import org.jooq.Identity;
 import org.jooq.UniqueKey;
 import org.jooq.impl.Internal;
 import org.jooq.types.UInteger;
-
-import ru.csdm.stats.common.model.tables.History;
-import ru.csdm.stats.common.model.tables.KnownServer;
-import ru.csdm.stats.common.model.tables.Manager;
-import ru.csdm.stats.common.model.tables.Player;
-import ru.csdm.stats.common.model.tables.PlayerIp;
-import ru.csdm.stats.common.model.tables.PlayerSteamid;
-import ru.csdm.stats.common.model.tables.Rank;
-import ru.csdm.stats.common.model.tables.records.HistoryRecord;
-import ru.csdm.stats.common.model.tables.records.KnownServerRecord;
-import ru.csdm.stats.common.model.tables.records.ManagerRecord;
-import ru.csdm.stats.common.model.tables.records.PlayerIpRecord;
-import ru.csdm.stats.common.model.tables.records.PlayerRecord;
-import ru.csdm.stats.common.model.tables.records.PlayerSteamidRecord;
-import ru.csdm.stats.common.model.tables.records.RankRecord;
+import ru.csdm.stats.common.model.tables.*;
+import ru.csdm.stats.common.model.tables.records.*;
 
 
 /**
@@ -37,9 +24,9 @@ public class Keys {
     // IDENTITY definitions
     // -------------------------------------------------------------------------
 
+    public static final Identity<ApiUserRecord, UInteger> IDENTITY_API_USER = Identities0.IDENTITY_API_USER;
     public static final Identity<HistoryRecord, UInteger> IDENTITY_HISTORY = Identities0.IDENTITY_HISTORY;
     public static final Identity<KnownServerRecord, UInteger> IDENTITY_KNOWN_SERVER = Identities0.IDENTITY_KNOWN_SERVER;
-    public static final Identity<ManagerRecord, UInteger> IDENTITY_MANAGER = Identities0.IDENTITY_MANAGER;
     public static final Identity<PlayerRecord, UInteger> IDENTITY_PLAYER = Identities0.IDENTITY_PLAYER;
     public static final Identity<PlayerIpRecord, UInteger> IDENTITY_PLAYER_IP = Identities0.IDENTITY_PLAYER_IP;
     public static final Identity<PlayerSteamidRecord, UInteger> IDENTITY_PLAYER_STEAMID = Identities0.IDENTITY_PLAYER_STEAMID;
@@ -49,14 +36,14 @@ public class Keys {
     // UNIQUE and PRIMARY KEY definitions
     // -------------------------------------------------------------------------
 
+    public static final UniqueKey<ApiUserRecord> KEY_API_USER_PRIMARY = UniqueKeys0.KEY_API_USER_PRIMARY;
+    public static final UniqueKey<ApiUserRecord> KEY_API_USER_ID_UNIQUE = UniqueKeys0.KEY_API_USER_ID_UNIQUE;
+    public static final UniqueKey<ApiUserRecord> KEY_API_USER_USERNAME_UNIQUE = UniqueKeys0.KEY_API_USER_USERNAME_UNIQUE;
     public static final UniqueKey<HistoryRecord> KEY_HISTORY_PRIMARY = UniqueKeys0.KEY_HISTORY_PRIMARY;
     public static final UniqueKey<HistoryRecord> KEY_HISTORY_ID_UNIQUE = UniqueKeys0.KEY_HISTORY_ID_UNIQUE;
     public static final UniqueKey<KnownServerRecord> KEY_KNOWN_SERVER_PRIMARY = UniqueKeys0.KEY_KNOWN_SERVER_PRIMARY;
     public static final UniqueKey<KnownServerRecord> KEY_KNOWN_SERVER_ID_UNIQUE = UniqueKeys0.KEY_KNOWN_SERVER_ID_UNIQUE;
     public static final UniqueKey<KnownServerRecord> KEY_KNOWN_SERVER_IPPORT_UNIQUE = UniqueKeys0.KEY_KNOWN_SERVER_IPPORT_UNIQUE;
-    public static final UniqueKey<ManagerRecord> KEY_MANAGER_PRIMARY = UniqueKeys0.KEY_MANAGER_PRIMARY;
-    public static final UniqueKey<ManagerRecord> KEY_MANAGER_ID_UNIQUE = UniqueKeys0.KEY_MANAGER_ID_UNIQUE;
-    public static final UniqueKey<ManagerRecord> KEY_MANAGER_USERNAME_UNIQUE = UniqueKeys0.KEY_MANAGER_USERNAME_UNIQUE;
     public static final UniqueKey<PlayerRecord> KEY_PLAYER_PRIMARY = UniqueKeys0.KEY_PLAYER_PRIMARY;
     public static final UniqueKey<PlayerRecord> KEY_PLAYER_ID_UNIQUE = UniqueKeys0.KEY_PLAYER_ID_UNIQUE;
     public static final UniqueKey<PlayerRecord> KEY_PLAYER_NAME_UNIQUE = UniqueKeys0.KEY_PLAYER_NAME_UNIQUE;
@@ -86,9 +73,9 @@ public class Keys {
     // -------------------------------------------------------------------------
 
     private static class Identities0 {
+        public static Identity<ApiUserRecord, UInteger> IDENTITY_API_USER = Internal.createIdentity(ApiUser.API_USER, ApiUser.API_USER.ID);
         public static Identity<HistoryRecord, UInteger> IDENTITY_HISTORY = Internal.createIdentity(History.HISTORY, History.HISTORY.ID);
         public static Identity<KnownServerRecord, UInteger> IDENTITY_KNOWN_SERVER = Internal.createIdentity(KnownServer.KNOWN_SERVER, KnownServer.KNOWN_SERVER.ID);
-        public static Identity<ManagerRecord, UInteger> IDENTITY_MANAGER = Internal.createIdentity(Manager.MANAGER, Manager.MANAGER.ID);
         public static Identity<PlayerRecord, UInteger> IDENTITY_PLAYER = Internal.createIdentity(Player.PLAYER, Player.PLAYER.ID);
         public static Identity<PlayerIpRecord, UInteger> IDENTITY_PLAYER_IP = Internal.createIdentity(PlayerIp.PLAYER_IP, PlayerIp.PLAYER_IP.ID);
         public static Identity<PlayerSteamidRecord, UInteger> IDENTITY_PLAYER_STEAMID = Internal.createIdentity(PlayerSteamid.PLAYER_STEAMID, PlayerSteamid.PLAYER_STEAMID.ID);
@@ -96,14 +83,14 @@ public class Keys {
     }
 
     private static class UniqueKeys0 {
+        public static final UniqueKey<ApiUserRecord> KEY_API_USER_PRIMARY = Internal.createUniqueKey(ApiUser.API_USER, "KEY_api_user_PRIMARY", ApiUser.API_USER.ID);
+        public static final UniqueKey<ApiUserRecord> KEY_API_USER_ID_UNIQUE = Internal.createUniqueKey(ApiUser.API_USER, "KEY_api_user_id_UNIQUE", ApiUser.API_USER.ID);
+        public static final UniqueKey<ApiUserRecord> KEY_API_USER_USERNAME_UNIQUE = Internal.createUniqueKey(ApiUser.API_USER, "KEY_api_user_username_UNIQUE", ApiUser.API_USER.USERNAME);
         public static final UniqueKey<HistoryRecord> KEY_HISTORY_PRIMARY = Internal.createUniqueKey(History.HISTORY, "KEY_history_PRIMARY", History.HISTORY.ID);
         public static final UniqueKey<HistoryRecord> KEY_HISTORY_ID_UNIQUE = Internal.createUniqueKey(History.HISTORY, "KEY_history_id_UNIQUE", History.HISTORY.ID);
         public static final UniqueKey<KnownServerRecord> KEY_KNOWN_SERVER_PRIMARY = Internal.createUniqueKey(KnownServer.KNOWN_SERVER, "KEY_known_server_PRIMARY", KnownServer.KNOWN_SERVER.ID);
         public static final UniqueKey<KnownServerRecord> KEY_KNOWN_SERVER_ID_UNIQUE = Internal.createUniqueKey(KnownServer.KNOWN_SERVER, "KEY_known_server_id_UNIQUE", KnownServer.KNOWN_SERVER.ID);
         public static final UniqueKey<KnownServerRecord> KEY_KNOWN_SERVER_IPPORT_UNIQUE = Internal.createUniqueKey(KnownServer.KNOWN_SERVER, "KEY_known_server_ipport_UNIQUE", KnownServer.KNOWN_SERVER.IPPORT);
-        public static final UniqueKey<ManagerRecord> KEY_MANAGER_PRIMARY = Internal.createUniqueKey(Manager.MANAGER, "KEY_manager_PRIMARY", Manager.MANAGER.ID);
-        public static final UniqueKey<ManagerRecord> KEY_MANAGER_ID_UNIQUE = Internal.createUniqueKey(Manager.MANAGER, "KEY_manager_id_UNIQUE", Manager.MANAGER.ID);
-        public static final UniqueKey<ManagerRecord> KEY_MANAGER_USERNAME_UNIQUE = Internal.createUniqueKey(Manager.MANAGER, "KEY_manager_username_UNIQUE", Manager.MANAGER.USERNAME);
         public static final UniqueKey<PlayerRecord> KEY_PLAYER_PRIMARY = Internal.createUniqueKey(Player.PLAYER, "KEY_player_PRIMARY", Player.PLAYER.ID);
         public static final UniqueKey<PlayerRecord> KEY_PLAYER_ID_UNIQUE = Internal.createUniqueKey(Player.PLAYER, "KEY_player_id_UNIQUE", Player.PLAYER.ID);
         public static final UniqueKey<PlayerRecord> KEY_PLAYER_NAME_UNIQUE = Internal.createUniqueKey(Player.PLAYER, "KEY_player_name_UNIQUE", Player.PLAYER.NAME);

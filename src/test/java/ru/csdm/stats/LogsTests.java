@@ -1,5 +1,6 @@
 package ru.csdm.stats;
 
+import com.sun.security.auth.UserPrincipal;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.jooq.DSLContext;
@@ -525,8 +526,8 @@ public class LogsTests {
     public void server4_manual_flush_27014_27018_dont_start_session_on_action() throws Exception {
         addKnownServer(27015, 27017, true, true, false, false);
         sendLogs("server4_only_load.log", 27014, 27018);
-        
-        Map<String, String> results = statsEndpoint.flush();
+
+        Map<String, String> results = statsEndpoint.flush(new UserPrincipal("tester"));
         log.info("statsEndpoint results: " + results.toString());
 
         Thread.sleep(1000);

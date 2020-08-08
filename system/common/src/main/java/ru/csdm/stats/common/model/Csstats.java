@@ -20,12 +20,17 @@ import java.util.List;
 @SuppressWarnings({ "all", "unchecked", "rawtypes" })
 public class Csstats extends SchemaImpl {
 
-    private static final long serialVersionUID = 738391222;
+    private static final long serialVersionUID = -1345084755;
 
     /**
      * The reference instance of <code>csstats</code>
      */
     public static final Csstats CSSTATS = new Csstats();
+
+    /**
+     * Who to share API access to endpoints /stats/ *
+     */
+    public final ApiUser API_USER = ru.csdm.stats.common.model.tables.ApiUser.API_USER;
 
     /**
      * The table <code>csstats.history</code>.
@@ -36,11 +41,6 @@ public class Csstats extends SchemaImpl {
      * The table <code>csstats.known_server</code>.
      */
     public final KnownServer KNOWN_SERVER = ru.csdm.stats.common.model.tables.KnownServer.KNOWN_SERVER;
-
-    /**
-     * The table <code>csstats.manager</code>.
-     */
-    public final Manager MANAGER = ru.csdm.stats.common.model.tables.Manager.MANAGER;
 
     /**
      * The table <code>csstats.player</code>.
@@ -87,9 +87,9 @@ public class Csstats extends SchemaImpl {
 
     private final List<Table<?>> getTables0() {
         return Arrays.<Table<?>>asList(
+            ApiUser.API_USER,
             History.HISTORY,
             KnownServer.KNOWN_SERVER,
-            Manager.MANAGER,
             Player.PLAYER,
             PlayerIp.PLAYER_IP,
             PlayerSteamid.PLAYER_STEAMID,

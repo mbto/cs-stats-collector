@@ -4,6 +4,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.Cache;
+import org.springframework.cache.CacheManager;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
@@ -16,6 +18,7 @@ import ru.csdm.stats.common.dto.ServerData;
 import ru.csdm.stats.modules.collector.handlers.DatagramsConsumer;
 import ru.csdm.stats.modules.collector.service.SettingsService;
 
+import java.security.Principal;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -47,9 +50,16 @@ public class StatsEndpoint {
     @Autowired
     private SettingsService settingsService;
 
+    @Autowired
+    private CacheManager cacheManager;
+
     @PostMapping(value = "/flush")
     @PreAuthorize("hasRole('manager')")
-    public Map<String, String> flush() {
+    public Map<String, String> flush(Principal principal) {
+        log.info("User '" + Optional.ofNullable(principal)
+                .map(Principal::getName)
+                .orElse("") + "' requested /stats/flush endpoint");
+
         Map<String, String> results = new LinkedHashMap<>();
         for (Map.Entry<String, ServerData> entry : availableAddresses.entrySet()) {
             String address = entry.getKey();
@@ -85,13 +95,24 @@ public class StatsEndpoint {
     @PostMapping(value = "/updateSettings")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @PreAuthorize("hasRole('manager')")
-    public void updateSettings() {
+    public void updateSettings(Principal principal) {
+        log.info("User '" + Optional.ofNullable(principal)
+                .map(Principal::getName)
+                .orElse("") + "' requested /stats/updateSettings endpoint");
+
+        Optional.ofNullable(cacheManager.getCache("apiUsers")) /* Cache "apiUsers" existed only in "default" profile */
+                .ifPresent(Cache::clear);
+
         settingsService.updateSettings(false);
     }
 
     @GetMapping(value = "", produces = MediaType.APPLICATION_JSON_UTF8_VALUE)
     @PreAuthorize("hasRole('manager')")
-    public Map<String, Object> stats() {
+    public Map<String, Object> stats(Principal principal) {
+        log.info("User '" + Optional.ofNullable(principal)
+                .map(Principal::getName)
+                .orElse("") + "' requested /stats/ endpoint");
+
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("addresses", Arrays.asList(
                 Pair.of("available", availableAddresses
