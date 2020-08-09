@@ -52,7 +52,7 @@ public class SomeUtils {
                 + ", start_session_on_action=" + knownServer.getStartSessionOnAction();
     }
 
-    public static String playerRecordToString(Player player) {
+    public static String playerToString(Player player) {
         return player.getName() + ": kills=" + player.getKills() +
                 ", deaths=" + player.getDeaths() +
                 ", time=" + player.getTimeSecs() + "s" +
@@ -60,7 +60,7 @@ public class SomeUtils {
     }
 
     public static String playerRecordToString(PlayerRecord playerRecord) {
-        return playerRecordToString(playerRecord.into(Player.class));
+        return playerToString(playerRecord.into(Player.class));
     }
 
     public static String addressToString(SocketAddress sa) {

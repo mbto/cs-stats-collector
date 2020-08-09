@@ -15,6 +15,7 @@ import ru.csdm.stats.common.model.tables.records.PlayerSteamidRecord;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static ru.csdm.stats.common.model.tables.KnownServer.KNOWN_SERVER;
@@ -60,7 +61,7 @@ public class CsStatsDao {
 
                 Map<String, KnownServer> knownServerByAddress = knownServerById.values()
                         .stream()
-                        .collect(Collectors.toMap(KnownServer::getIpport, knownServer -> knownServer));
+                        .collect(Collectors.toMap(KnownServer::getIpport, Function.identity()));
 
                 for (PlayerRecord playerRecord : playerRecords) {
                     UInteger playerId = transactionalDsl.select(PLAYER.ID)

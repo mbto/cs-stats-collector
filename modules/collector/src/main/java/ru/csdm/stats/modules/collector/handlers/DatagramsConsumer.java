@@ -285,9 +285,7 @@ public class DatagramsConsumer {
                         Set<String> ipAddresses = collectedPlayer.getIpAddresses();
 
                         collectedPlayer = allocatePlayer(knownServer, sourceNewName, sourceAuth, dateTime);
-                        for (String ipAddress : ipAddresses) {
-                            collectedPlayer.addIpAddress(ipAddress);
-                        }
+                        collectedPlayer.getIpAddresses().addAll(ipAddresses); // without collectedPlayer.addIpAddress(), due already extracted
 
                         if(knownServer.getStartSessionOnAction()) {
                             continue;

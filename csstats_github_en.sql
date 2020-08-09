@@ -1,6 +1,6 @@
 -- MySQL dump 10.13  Distrib 8.0.20, for Win64 (x86_64)
 --
--- Host: localhost    Database: csstats_github
+-- Host: localhost    Database: csstats_github_en
 -- ------------------------------------------------------
 -- Server version	8.0.20
 
@@ -120,7 +120,7 @@ DELIMITER ;;
 	declare error_msg VARCHAR(36);
     
 	if( !is_valid_ip(NEW.ipport, false, true)) then
-		/* Invalid ipport=255.255.255.255:12345 @ len=36*/
+		/* Invalid ipport=255.255.255.255:12345 @ len=36 */
 		set error_msg = concat('Invalid ipport=', NEW.ipport);
 		SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = error_msg;
     end if;
@@ -143,7 +143,7 @@ DELIMITER ;;
 	declare error_msg VARCHAR(36);
     
     if( !is_valid_ip(NEW.ipport, false, true)) then
-		/* Invalid ipport=255.255.255.255:12345 @ len=36*/
+		/* Invalid ipport=255.255.255.255:12345 @ len=36 */
 		set error_msg = concat('Invalid ipport=', NEW.ipport);
 		SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = error_msg;
     end if;
@@ -446,12 +446,12 @@ CREATE TABLE `rank` (
 
 LOCK TABLES `rank` WRITE;
 /*!40000 ALTER TABLE `rank` DISABLE KEYS */;
-INSERT INTO `rank` VALUES (1,1,'Сынок'),(2,2,'Тюфяк'),(3,3,'Овощ'),(4,4,'Кабан'),(5,5,'Силач'),(6,6,'Шароеб'),(7,7,'Пацан'),(8,8,'Смертник'),(9,9,'Везунчик'),(10,10,'Жульбан'),(11,11,'Гопник'),(12,12,'Кэмпер'),(13,13,'Помощник'),(14,14,'Вуйко'),(15,15,'Донышко'),(16,16,'Профан'),(17,17,'Титушка'),(18,18,'Боцман'),(19,19,'Школьник'),(20,20,'Мусор'),(21,21,'Отбой'),(22,22,'ПТУ-шник'),(23,23,'Зек'),(24,24,'Бывалый'),(25,25,'Прораб'),(26,26,'Жестянщик'),(27,27,'Пахан'),(28,28,'Директор'),(29,29,'Гастролер'),(30,30,'Мордоворот'),(31,31,'Геймер'),(32,32,'Отважный'),(33,33,'Убийца'),(34,34,'Халявщик'),(35,35,'Псих'),(36,36,'Йовбак'),(37,37,'Громила'),(38,38,'Мужик'),(39,39,'Дезертир'),(40,40,'Боец'),(41,41,'Софт'),(42,42,'Громила-здоровяк'),(43,43,'Партизан'),(44,44,'Сенсей'),(45,45,'Рыцарь'),(46,46,'Спецназовец'),(47,47,'Тащит всю команду'),(48,48,'Олдфаг'),(49,49,'Каратель'),(50,50,'Здоровяк'),(51,51,'Аим'),(52,52,'Фраер'),(53,53,'Штурмовой'),(54,54,'Boss'),(55,55,'Super Old School'),(56,56,'Непобедимый');
+INSERT INTO `rank` VALUES (1,1,'Son'),(2,2,'Mattress'),(3,3,'Vegetable'),(4,4,'Boar'),(5,5,'Strongman'),(6,6,'Sharoeb'),(7,7,'Kid'),(8,8,'Bomber'),(9,9,'Lucky'),(10,10,'Zhulban'),(11,11,'Chav'),(12,12,'Camper'),(13,13,'Assistant'),(14,14,'Vuiko'),(15,15,'Bottom'),(16,16,'Profane'),(17,17,'Titushka'),(18,18,'Boatswain'),(19,19,'Schoolboy'),(20,20,'Rubbish'),(21,21,'Hang up'),(22,22,'Vocational school-shnik'),(23,23,'Snakes'),(24,24,'Experienced'),(25,25,'Foreman'),(26,26,'Tinsmith'),(27,27,'Pahan'),(28,28,'Director'),(29,29,'Guest performer'),(30,30,'Mordovorot'),(31,31,'Gamer'),(32,32,'Brave'),(33,33,'Killer'),(34,34,'Freeloader'),(35,35,'Crazy'),(36,36,'Yowback'),(37,37,'Brute'),(38,38,'Man'),(39,39,'Deserter'),(40,40,'Fighter'),(41,41,'Cheater'),(42,42,'Big brute'),(43,43,'Partisan'),(44,44,'Sensei'),(45,45,'Knight'),(46,46,'Spetsnaz'),(47,47,'Drags the whole team'),(48,48,'Oldfag'),(49,49,'The Punisher'),(50,50,'Big man'),(51,51,'Aim'),(52,52,'Fraer'),(53,53,'Assault'),(54,54,'Boss'),(55,55,'Super old school'),(56,56,'Invincible');
 /*!40000 ALTER TABLE `rank` ENABLE KEYS */;
 UNLOCK TABLES;
 
 --
--- Dumping routines for database 'csstats_github'
+-- Dumping routines for database 'csstats_github_en'
 --
 /*!50003 DROP FUNCTION IF EXISTS `build_human_time` */;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
@@ -463,7 +463,7 @@ UNLOCK TABLES;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`root`@`%` FUNCTION `build_human_time`(time_secs int unsigned) RETURNS varchar(31) CHARSET utf8mb4 COLLATE utf8mb4_unicode_ci
+CREATE DEFINER=`root`@`%` FUNCTION `build_human_time`(time_secs int unsigned) RETURNS varchar(30) CHARSET utf8mb4 COLLATE utf8mb4_unicode_ci
     DETERMINISTIC
 BEGIN
 	declare y int unsigned default (time_secs DIV (60 * 60 * 24 * 30 * 12));
@@ -473,15 +473,15 @@ BEGIN
 	declare m int unsigned default (time_secs DIV 60) % 60;
 	declare s int unsigned default time_secs % 60;
     
-    declare human_time varchar(31) default ''; -- 9999года 11мес 29дн 23ч 59м 59с @ len=31
+    declare human_time varchar(30) default ''; -- 9999years 11mo 29d 23h 59m 59s @ len=30
     
-    if(y > 0) then set human_time = concat(human_time,y,declension(y,'год','года','лет')); end if;
-    if(mn > 0) then set human_time = concat(human_time,if(y > 0, ' ', ''),mn,'мес'); end if;
-    if(d > 0) then set human_time = concat(human_time,if(y > 0 or mn > 0, ' ', ''),d,'дн'); end if;
-    if(h > 0) then set human_time = concat(human_time,if(y > 0 or mn > 0 or d > 0, ' ', ''),h,'ч'); end if;
-    if(m > 0) then set human_time = concat(human_time,if(y > 0 or mn > 0 or d > 0 or h > 0, ' ', ''),m,'м'); end if;
+    if(y > 0) then set human_time = concat(human_time,y,declension(y,'year','years','years')); end if;
+    if(mn > 0) then set human_time = concat(human_time,if(y > 0, ' ', ''),mn,'mo'); end if;
+    if(d > 0) then set human_time = concat(human_time,if(y > 0 or mn > 0, ' ', ''),d,'d'); end if;
+    if(h > 0) then set human_time = concat(human_time,if(y > 0 or mn > 0 or d > 0, ' ', ''),h,'h'); end if;
+    if(m > 0) then set human_time = concat(human_time,if(y > 0 or mn > 0 or d > 0 or h > 0, ' ', ''),m,'m'); end if;
     if(!(y > 0 or mn > 0 or d > 0) and (((s > 0 and (h > 0 or m > 0))) or (h = 0 and m = 0))) then
-		set human_time = concat(human_time,if(y > 0 or mn > 0 or d > 0 or h > 0 or m > 0, ' ', ''),s,'с'); 
+		set human_time = concat(human_time,if(y > 0 or mn > 0 or d > 0 or h > 0 or m > 0, ' ', ''),s,'s'); 
     end if;
     
 	RETURN human_time;
@@ -532,8 +532,8 @@ BEGIN
     
     declare hero_days int unsigned default 30;
     declare hero_kills int unsigned default 133/*frags per day*/ * hero_days;
-    declare hero_skill int unsigned default calculate_skill(hero_kills, hero_kills * 0.4/* 40% */);
-    declare hero_time int unsigned default (hero_days/*days*/ * 24/*hours*/ * 60/*mins*/ * 60/*secs*/);
+    declare hero_skill int unsigned default calculate_skill(hero_kills, hero_kills * 0.4/* 40% */ );
+    declare hero_time int unsigned default (hero_days/*days*/ * 24/*hours*/ * 60/*mins*/ * 60/*secs*/ );
     
     declare skill double default calculate_skill(kills, deaths);
     
@@ -669,4 +669,4 @@ DELIMITER ;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2020-08-09  2:02:46
+-- Dump completed on 2020-08-09 16:59:31

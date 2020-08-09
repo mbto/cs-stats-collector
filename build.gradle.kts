@@ -16,7 +16,11 @@ subprojects {
 
 tasks {
     // omit version in output jar name
-    bootJar { archiveVersion.set("") }
+    bootJar {
+        archiveVersion.set("")
+        exclude("application.properties")
+        exclude("application-dev.properties")
+    }
     // ensure encoding for non-linux environment
     compileJava { options.encoding = "UTF-8" }
     compileTestJava { options.encoding = "UTF-8" }
