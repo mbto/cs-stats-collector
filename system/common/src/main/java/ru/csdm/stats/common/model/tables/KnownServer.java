@@ -4,27 +4,17 @@
 package ru.csdm.stats.common.model.tables;
 
 
-import java.util.Arrays;
-import java.util.List;
-
-import org.jooq.Field;
-import org.jooq.ForeignKey;
-import org.jooq.Identity;
-import org.jooq.Index;
-import org.jooq.Name;
-import org.jooq.Record;
-import org.jooq.Schema;
-import org.jooq.Table;
-import org.jooq.TableField;
-import org.jooq.UniqueKey;
+import org.jooq.*;
 import org.jooq.impl.DSL;
 import org.jooq.impl.TableImpl;
 import org.jooq.types.UInteger;
-
 import ru.csdm.stats.common.model.Csstats;
 import ru.csdm.stats.common.model.Indexes;
 import ru.csdm.stats.common.model.Keys;
 import ru.csdm.stats.common.model.tables.records.KnownServerRecord;
+
+import java.util.Arrays;
+import java.util.List;
 
 
 /**
@@ -33,7 +23,7 @@ import ru.csdm.stats.common.model.tables.records.KnownServerRecord;
 @SuppressWarnings({ "all", "unchecked", "rawtypes" })
 public class KnownServer extends TableImpl<KnownServerRecord> {
 
-    private static final long serialVersionUID = 1269993129;
+    private static final long serialVersionUID = -590713618;
 
     /**
      * The reference instance of <code>csstats.known_server</code>
@@ -57,6 +47,11 @@ public class KnownServer extends TableImpl<KnownServerRecord> {
      * The column <code>csstats.known_server.ipport</code>. ip:port of the server from which the logs will be expected
      */
     public final TableField<KnownServerRecord, String> IPPORT = createField("ipport", org.jooq.impl.SQLDataType.VARCHAR(21).nullable(false), this, "ip:port of the server from which the logs will be expected");
+
+    /**
+     * The column <code>csstats.known_server.name</code>.
+     */
+    public final TableField<KnownServerRecord, String> NAME = createField("name", org.jooq.impl.SQLDataType.VARCHAR(31).nullable(false), this, "");
 
     /**
      * The column <code>csstats.known_server.active</code>. Are ip:port allowed?: 1-allowed; 0-not allowed (logs/stats from this ip:port will be ignored)

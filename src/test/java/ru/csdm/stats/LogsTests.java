@@ -109,9 +109,9 @@ public class LogsTests {
         ActualDB actualDB = new ActualDB(adminDsl);
 
         assertPlayers(actualDB, new String[][] {
-                {"2", "Name2", "0", "11", "69", "1", "2020-01-01 13:16:11", "1"}, // 1m 9s
+                {"2", "Name2", "0", "12", "69", "1", "2020-01-01 13:16:11", "1"}, // 1m 9s
                 {"1", "Name1", "5", "0", "10", "1", "2020-01-01 13:16:10", "1"}, // 10s
-                {"4", "Name9", "3", "0", "6", "1", "2020-01-01 13:16:08", "1"}, // 6s
+                {"4", "Name9", "4", "0", "6", "1", "2020-01-01 13:16:08", "1"}, // 6s
                 {"3", "Name5", "2", "1", "4", "1", "2020-01-01 13:15:08", "1"} // 4s
         });
         assertPlayersIps(actualDB, new String[][] {
@@ -655,6 +655,7 @@ public class LogsTests {
 
             InsertSetMoreStep<KnownServerRecord> step = DSL.insertInto(KNOWN_SERVER)
                     .set(KNOWN_SERVER.IPPORT, "127.0.0.1:" + port)
+                    .set(KNOWN_SERVER.NAME, "Test Server #1")
                     .set(KNOWN_SERVER.ACTIVE, active)
                     .set(KNOWN_SERVER.FFA, ffa)
                     .set(KNOWN_SERVER.IGNORE_BOTS, ignore_bots)

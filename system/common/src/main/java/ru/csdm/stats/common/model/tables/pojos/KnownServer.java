@@ -4,12 +4,11 @@
 package ru.csdm.stats.common.model.tables.pojos;
 
 
-import java.io.Serializable;
+import org.jooq.types.UInteger;
 
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Size;
-
-import org.jooq.types.UInteger;
+import java.io.Serializable;
 
 
 /**
@@ -18,10 +17,11 @@ import org.jooq.types.UInteger;
 @SuppressWarnings({ "all", "unchecked", "rawtypes" })
 public class KnownServer implements Serializable {
 
-    private static final long serialVersionUID = 1684982358;
+    private static final long serialVersionUID = 1578553988;
 
     private UInteger id;
     private String   ipport;
+    private String   name;
     private Boolean  active;
     private Boolean  ffa;
     private Boolean  ignoreBots;
@@ -32,6 +32,7 @@ public class KnownServer implements Serializable {
     public KnownServer(KnownServer value) {
         this.id = value.id;
         this.ipport = value.ipport;
+        this.name = value.name;
         this.active = value.active;
         this.ffa = value.ffa;
         this.ignoreBots = value.ignoreBots;
@@ -41,6 +42,7 @@ public class KnownServer implements Serializable {
     public KnownServer(
         UInteger id,
         String   ipport,
+        String   name,
         Boolean  active,
         Boolean  ffa,
         Boolean  ignoreBots,
@@ -48,6 +50,7 @@ public class KnownServer implements Serializable {
     ) {
         this.id = id;
         this.ipport = ipport;
+        this.name = name;
         this.active = active;
         this.ffa = ffa;
         this.ignoreBots = ignoreBots;
@@ -70,6 +73,16 @@ public class KnownServer implements Serializable {
 
     public void setIpport(String ipport) {
         this.ipport = ipport;
+    }
+
+    @NotNull
+    @Size(max = 31)
+    public String getName() {
+        return this.name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
     }
 
     public Boolean getActive() {
@@ -125,6 +138,12 @@ public class KnownServer implements Serializable {
         }
         else if (!ipport.equals(other.ipport))
             return false;
+        if (name == null) {
+            if (other.name != null)
+                return false;
+        }
+        else if (!name.equals(other.name))
+            return false;
         if (active == null) {
             if (other.active != null)
                 return false;
@@ -158,6 +177,7 @@ public class KnownServer implements Serializable {
         int result = 1;
         result = prime * result + ((this.id == null) ? 0 : this.id.hashCode());
         result = prime * result + ((this.ipport == null) ? 0 : this.ipport.hashCode());
+        result = prime * result + ((this.name == null) ? 0 : this.name.hashCode());
         result = prime * result + ((this.active == null) ? 0 : this.active.hashCode());
         result = prime * result + ((this.ffa == null) ? 0 : this.ffa.hashCode());
         result = prime * result + ((this.ignoreBots == null) ? 0 : this.ignoreBots.hashCode());
@@ -171,6 +191,7 @@ public class KnownServer implements Serializable {
 
         sb.append(id);
         sb.append(", ").append(ipport);
+        sb.append(", ").append(name);
         sb.append(", ").append(active);
         sb.append(", ").append(ffa);
         sb.append(", ").append(ignoreBots);

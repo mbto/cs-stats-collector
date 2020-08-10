@@ -4,13 +4,12 @@
 package ru.csdm.stats.common.model.tables.pojos;
 
 
-import java.io.Serializable;
-import java.time.LocalDateTime;
+import org.jooq.types.UInteger;
 
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Size;
-
-import org.jooq.types.UInteger;
+import java.io.Serializable;
+import java.time.LocalDateTime;
 
 
 /**
@@ -19,7 +18,7 @@ import org.jooq.types.UInteger;
 @SuppressWarnings({ "all", "unchecked", "rawtypes" })
 public class PlayerIp implements Serializable {
 
-    private static final long serialVersionUID = 515188632;
+    private static final long serialVersionUID = -1665423696;
 
     private UInteger      id;
     private UInteger      playerId;
@@ -74,7 +73,6 @@ public class PlayerIp implements Serializable {
         this.ip = ip;
     }
 
-    @NotNull
     public LocalDateTime getRegDatetime() {
         return this.regDatetime;
     }

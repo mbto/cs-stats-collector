@@ -42,9 +42,12 @@ CREATE TABLE `api_user` (
 
 LOCK TABLES `api_user` WRITE;
 /*!40000 ALTER TABLE `api_user` DISABLE KEYS */;
-INSERT INTO `api_user` VALUES (1,1,'admin','$2a$10$H92uR9r46g85blB3GTY2veEAtsSQjJulSMN3PvrJD73ZsiE8RES3K',1,1,'2020-01-01 00:00:00'),(2,1,'viewer','$2a$10$DLrXdR4LwJmZIjo9BrUBtuQJVtxX2TGvGb.qFigBydYvAhxTlPeDu',0,1,'2020-01-01 00:00:00');
+set autocommit=0;
+INSERT INTO `api_user` VALUES (1,1,'admin','$2a$10$H92uR9r46g85blB3GTY2veEAtsSQjJulSMN3PvrJD73ZsiE8RES3K',1,1,'2020-01-01 00:00:00');
+INSERT INTO `api_user` VALUES (2,1,'viewer','$2a$10$DLrXdR4LwJmZIjo9BrUBtuQJVtxX2TGvGb.qFigBydYvAhxTlPeDu',0,1,'2020-01-01 00:00:00');
 /*!40000 ALTER TABLE `api_user` ENABLE KEYS */;
 UNLOCK TABLES;
+commit;
 
 --
 -- Table structure for table `history`
@@ -76,8 +79,10 @@ CREATE TABLE `history` (
 
 LOCK TABLES `history` WRITE;
 /*!40000 ALTER TABLE `history` DISABLE KEYS */;
+set autocommit=0;
 /*!40000 ALTER TABLE `history` ENABLE KEYS */;
 UNLOCK TABLES;
+commit;
 
 --
 -- Table structure for table `known_server`
@@ -89,6 +94,7 @@ DROP TABLE IF EXISTS `known_server`;
 CREATE TABLE `known_server` (
   `id` int unsigned NOT NULL AUTO_INCREMENT,
   `ipport` varchar(21) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'ip:port of the server from which the logs will be expected',
+  `name` varchar(31) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
   `active` tinyint unsigned NOT NULL DEFAULT '0' COMMENT 'Are ip:port allowed?: 1-allowed; 0-not allowed (logs/stats from this ip:port will be ignored)',
   `ffa` tinyint unsigned NOT NULL DEFAULT '0' COMMENT 'game server is FREE-FOR-ALL mode (Example: CS-DeathMatch): 1-true; 0-false',
   `ignore_bots` tinyint unsigned NOT NULL DEFAULT '0' COMMENT '1-ignore statistics, when killer or victim is BOT; 0-don''t ignore (include all player''s)',
@@ -105,8 +111,10 @@ CREATE TABLE `known_server` (
 
 LOCK TABLES `known_server` WRITE;
 /*!40000 ALTER TABLE `known_server` DISABLE KEYS */;
+set autocommit=0;
 /*!40000 ALTER TABLE `known_server` ENABLE KEYS */;
 UNLOCK TABLES;
+commit;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
 /*!50003 SET @saved_cs_results     = @@character_set_results */ ;
 /*!50003 SET @saved_col_connection = @@collation_connection */ ;
@@ -186,8 +194,10 @@ CREATE TABLE `player` (
 
 LOCK TABLES `player` WRITE;
 /*!40000 ALTER TABLE `player` DISABLE KEYS */;
+set autocommit=0;
 /*!40000 ALTER TABLE `player` ENABLE KEYS */;
 UNLOCK TABLES;
+commit;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
 /*!50003 SET @saved_cs_results     = @@character_set_results */ ;
 /*!50003 SET @saved_col_connection = @@collation_connection */ ;
@@ -243,7 +253,7 @@ CREATE TABLE `player_ip` (
   `id` int unsigned NOT NULL AUTO_INCREMENT,
   `player_id` int unsigned NOT NULL,
   `ip` varchar(15) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
-  `reg_datetime` datetime NOT NULL,
+  `reg_datetime` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   UNIQUE KEY `id_UNIQUE` (`id`),
   KEY `player_ip_player_id_idx` (`player_id`),
@@ -257,8 +267,10 @@ CREATE TABLE `player_ip` (
 
 LOCK TABLES `player_ip` WRITE;
 /*!40000 ALTER TABLE `player_ip` DISABLE KEYS */;
+set autocommit=0;
 /*!40000 ALTER TABLE `player_ip` ENABLE KEYS */;
 UNLOCK TABLES;
+commit;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
 /*!50003 SET @saved_cs_results     = @@character_set_results */ ;
 /*!50003 SET @saved_col_connection = @@collation_connection */ ;
@@ -338,7 +350,7 @@ CREATE TABLE `player_steamid` (
   `id` int unsigned NOT NULL AUTO_INCREMENT,
   `player_id` int unsigned NOT NULL,
   `steamid` varchar(22) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
-  `reg_datetime` datetime NOT NULL,
+  `reg_datetime` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   UNIQUE KEY `id_UNIQUE` (`id`),
   KEY `player_steamid_player_id_idx` (`player_id`),
@@ -352,8 +364,10 @@ CREATE TABLE `player_steamid` (
 
 LOCK TABLES `player_steamid` WRITE;
 /*!40000 ALTER TABLE `player_steamid` DISABLE KEYS */;
+set autocommit=0;
 /*!40000 ALTER TABLE `player_steamid` ENABLE KEYS */;
 UNLOCK TABLES;
+commit;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
 /*!50003 SET @saved_cs_results     = @@character_set_results */ ;
 /*!50003 SET @saved_col_connection = @@collation_connection */ ;
@@ -446,9 +460,66 @@ CREATE TABLE `rank` (
 
 LOCK TABLES `rank` WRITE;
 /*!40000 ALTER TABLE `rank` DISABLE KEYS */;
-INSERT INTO `rank` VALUES (1,1,'Son'),(2,2,'Mattress'),(3,3,'Vegetable'),(4,4,'Boar'),(5,5,'Strongman'),(6,6,'Sharoeb'),(7,7,'Kid'),(8,8,'Bomber'),(9,9,'Lucky'),(10,10,'Zhulban'),(11,11,'Chav'),(12,12,'Camper'),(13,13,'Assistant'),(14,14,'Vuiko'),(15,15,'Bottom'),(16,16,'Profane'),(17,17,'Titushka'),(18,18,'Boatswain'),(19,19,'Schoolboy'),(20,20,'Rubbish'),(21,21,'Hang up'),(22,22,'Vocational school-shnik'),(23,23,'Snakes'),(24,24,'Experienced'),(25,25,'Foreman'),(26,26,'Tinsmith'),(27,27,'Pahan'),(28,28,'Director'),(29,29,'Guest performer'),(30,30,'Mordovorot'),(31,31,'Gamer'),(32,32,'Brave'),(33,33,'Killer'),(34,34,'Freeloader'),(35,35,'Crazy'),(36,36,'Yowback'),(37,37,'Brute'),(38,38,'Man'),(39,39,'Deserter'),(40,40,'Fighter'),(41,41,'Cheater'),(42,42,'Big brute'),(43,43,'Partisan'),(44,44,'Sensei'),(45,45,'Knight'),(46,46,'Spetsnaz'),(47,47,'Drags the whole team'),(48,48,'Oldfag'),(49,49,'The Punisher'),(50,50,'Big man'),(51,51,'Aim'),(52,52,'Fraer'),(53,53,'Assault'),(54,54,'Boss'),(55,55,'Super old school'),(56,56,'Invincible');
+set autocommit=0;
+INSERT INTO `rank` VALUES (1,1,'Son');
+INSERT INTO `rank` VALUES (2,2,'Mattress');
+INSERT INTO `rank` VALUES (3,3,'Vegetable');
+INSERT INTO `rank` VALUES (4,4,'Boar');
+INSERT INTO `rank` VALUES (5,5,'Strongman');
+INSERT INTO `rank` VALUES (6,6,'Sharoeb');
+INSERT INTO `rank` VALUES (7,7,'Kid');
+INSERT INTO `rank` VALUES (8,8,'Bomber');
+INSERT INTO `rank` VALUES (9,9,'Lucky');
+INSERT INTO `rank` VALUES (10,10,'Zhulban');
+INSERT INTO `rank` VALUES (11,11,'Chav');
+INSERT INTO `rank` VALUES (12,12,'Camper');
+INSERT INTO `rank` VALUES (13,13,'Assistant');
+INSERT INTO `rank` VALUES (14,14,'Vuiko');
+INSERT INTO `rank` VALUES (15,15,'Bottom');
+INSERT INTO `rank` VALUES (16,16,'Profane');
+INSERT INTO `rank` VALUES (17,17,'Titushka');
+INSERT INTO `rank` VALUES (18,18,'Boatswain');
+INSERT INTO `rank` VALUES (19,19,'Schoolboy');
+INSERT INTO `rank` VALUES (20,20,'Rubbish');
+INSERT INTO `rank` VALUES (21,21,'Hang up');
+INSERT INTO `rank` VALUES (22,22,'Vocational school-shnik');
+INSERT INTO `rank` VALUES (23,23,'Snakes');
+INSERT INTO `rank` VALUES (24,24,'Experienced');
+INSERT INTO `rank` VALUES (25,25,'Foreman');
+INSERT INTO `rank` VALUES (26,26,'Tinsmith');
+INSERT INTO `rank` VALUES (27,27,'Pahan');
+INSERT INTO `rank` VALUES (28,28,'Director');
+INSERT INTO `rank` VALUES (29,29,'Guest performer');
+INSERT INTO `rank` VALUES (30,30,'Mordovorot');
+INSERT INTO `rank` VALUES (31,31,'Gamer');
+INSERT INTO `rank` VALUES (32,32,'Brave');
+INSERT INTO `rank` VALUES (33,33,'Killer');
+INSERT INTO `rank` VALUES (34,34,'Freeloader');
+INSERT INTO `rank` VALUES (35,35,'Crazy');
+INSERT INTO `rank` VALUES (36,36,'Yowback');
+INSERT INTO `rank` VALUES (37,37,'Brute');
+INSERT INTO `rank` VALUES (38,38,'Man');
+INSERT INTO `rank` VALUES (39,39,'Deserter');
+INSERT INTO `rank` VALUES (40,40,'Fighter');
+INSERT INTO `rank` VALUES (41,41,'Cheater');
+INSERT INTO `rank` VALUES (42,42,'Big brute');
+INSERT INTO `rank` VALUES (43,43,'Partisan');
+INSERT INTO `rank` VALUES (44,44,'Sensei');
+INSERT INTO `rank` VALUES (45,45,'Knight');
+INSERT INTO `rank` VALUES (46,46,'Spetsnaz');
+INSERT INTO `rank` VALUES (47,47,'Drags the whole team');
+INSERT INTO `rank` VALUES (48,48,'Oldfag');
+INSERT INTO `rank` VALUES (49,49,'The Punisher');
+INSERT INTO `rank` VALUES (50,50,'Big man');
+INSERT INTO `rank` VALUES (51,51,'Aim');
+INSERT INTO `rank` VALUES (52,52,'Fraer');
+INSERT INTO `rank` VALUES (53,53,'Assault');
+INSERT INTO `rank` VALUES (54,54,'Boss');
+INSERT INTO `rank` VALUES (55,55,'Super old school');
+INSERT INTO `rank` VALUES (56,56,'Invincible');
 /*!40000 ALTER TABLE `rank` ENABLE KEYS */;
 UNLOCK TABLES;
+commit;
 
 --
 -- Dumping routines for database 'csstats_github_en'
@@ -659,6 +730,324 @@ DELIMITER ;
 /*!50003 SET character_set_client  = @saved_cs_client */ ;
 /*!50003 SET character_set_results = @saved_cs_results */ ;
 /*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `player_detail` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_0900_ai_ci */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,NO_ENGINE_SUBSTITUTION' */ ;
+DELIMITER ;;
+CREATE DEFINER=`root`@`%` PROCEDURE `player_detail`(id int unsigned, name varchar(31), ip varchar(15), steamid varchar(22))
+BEGIN
+select `player`.`id`,
+       `player`.`name`,
+       `player`.`kills`,
+       `player`.`deaths`,
+       `build_human_time`(`player`.`time_secs`) as `gaming_time`,
+       `rank`.`name` as `rank_name`,
+       `build_stars`(`rank`.`level`, (select count(*) from `rank`)) as `stars`
+from `player`
+         left outer join `rank` on `player`.`rank_id` = `rank`.`id`
+         left outer join `player_ip` on `player`.`id` = `player_ip`.`player_id`
+         left outer join `player_steamid` on `player`.`id` = `player_steamid`.`player_id`
+where (id is null or `player`.`id` = id)
+and ((name is null or `player`.`name` = name)
+and (ip is null or `player_ip`.`ip` = ip)
+and (steamid is null or `player_steamid`.`steamid` = steamid))
+group by `player`.`id`
+;
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `player_detail_json` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_0900_ai_ci */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,NO_ENGINE_SUBSTITUTION' */ ;
+DELIMITER ;;
+CREATE DEFINER=`root`@`%` PROCEDURE `player_detail_json`(id int unsigned, name varchar(31), ip varchar(15), steamid varchar(22))
+BEGIN
+select json_object('id', `player`.`id`,
+       'name', `player`.`name`,
+       'kills', `player`.`kills`,
+       'deaths', `player`.`deaths`,
+       'gaming_time', `build_human_time`(`player`.`time_secs`),
+       'rank_name', `rank`.`name`,
+       'stars', `build_stars`(`rank`.`level`, (select count(*) from `rank`))) as json_results
+from `player`
+         left outer join `rank` on `player`.`rank_id` = `rank`.`id`
+         left outer join `player_ip` on `player`.`id` = `player_ip`.`player_id`
+         left outer join `player_steamid` on `player`.`id` = `player_steamid`.`player_id`
+where (id is null or `player`.`id` = id)
+and ((name is null or `player`.`name` = name)
+and (ip is null or `player_ip`.`ip` = ip)
+and (steamid is null or `player_steamid`.`steamid` = steamid))
+group by `player`.`id`
+;
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `player_full` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_0900_ai_ci */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,NO_ENGINE_SUBSTITUTION' */ ;
+DELIMITER ;;
+CREATE DEFINER=`root`@`%` PROCEDURE `player_full`(id int unsigned, name varchar(31), ip varchar(15), steamid varchar(22))
+BEGIN
+select `player`.`id`,
+       `player`.`name`,
+       `player`.`kills`,
+       `player`.`deaths`,
+       `build_human_time`(`player`.`time_secs`) as `gaming_time`,
+       `rank`.`name` as `rank_name`,
+       `build_stars`(`rank`.`level`, (select count(*) from `rank`)) as `stars`,
+       `known_server`.`name` as `last_server_name`,
+       `player`.`lastseen_datetime` as `lastseen_datetime`,
+       `ips`.`grouped` as `ips`,
+       `steamids`.`grouped` as `steamids`
+from `player`
+         left outer join `rank` on `player`.`rank_id` = `rank`.`id`
+		 left outer join `known_server` on `player`.`last_server_id` = `known_server`.`id`
+         left outer join `player_ip` on `player`.`id` = `player_ip`.`player_id`
+         left outer join `player_steamid` on `player`.`id` = `player_steamid`.`player_id`,
+         lateral (select substring_index(group_concat(distinct `player_ip`.`ip` 
+			order by `player_ip`.`reg_datetime` desc SEPARATOR ','), ',', 15) as `grouped`
+				from `player_ip` where `player`.`id` = `player_ip`.`player_id`) as `ips`, 
+         lateral (select substring_index(group_concat(distinct `player_steamid`.`steamid` 
+			order by `player_steamid`.`reg_datetime` desc SEPARATOR ','), ',', 15) as `grouped`
+				from `player_steamid` where `player`.`id` = `player_steamid`.`player_id`) as `steamids`
+where (id is null or `player`.`id` = id)
+and ((name is null or `player`.`name` = name)
+and (ip is null or `player_ip`.`ip` = ip)
+and (steamid is null or `player_steamid`.`steamid` = steamid))
+group by `player`.`id`
+;
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `player_full2` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_0900_ai_ci */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,NO_ENGINE_SUBSTITUTION' */ ;
+DELIMITER ;;
+CREATE DEFINER=`root`@`%` PROCEDURE `player_full2`(id int unsigned, name varchar(31), ip varchar(15), steamid varchar(22))
+BEGIN
+select `player`.`id`,
+       `player`.`name`,
+       `player`.`kills`,
+       `player`.`deaths`,
+       `build_human_time`(`player`.`time_secs`) as `gaming_time`,
+       `rank`.`name` as `rank_name`,
+       `build_stars`(`rank`.`level`, (select count(*) from `rank`)) as `stars`,
+       `known_server`.`name` as `last_server_name`,
+       `player`.`lastseen_datetime` as `lastseen_datetime`,
+       `ips`.`grouped` as `ips`,
+       `steamids`.`grouped` as `steamids`
+from `player`
+         left outer join `rank` on `player`.`rank_id` = `rank`.`id`
+		 left outer join `known_server` on `player`.`last_server_id` = `known_server`.`id`
+         left outer join `player_ip` on `player`.`id` = `player_ip`.`player_id`
+         left outer join `player_steamid` on `player`.`id` = `player_steamid`.`player_id`,
+         lateral (select cast(concat('[', substring_index(group_concat(distinct concat('"', `player_ip`.`ip`, '"')
+			order by `player_ip`.`reg_datetime` desc SEPARATOR ','), ',', 15), ']') as json) as `grouped`
+				from `player_ip` where `player`.`id` = `player_ip`.`player_id`) as `ips`,
+         lateral (select cast(concat('[', substring_index(group_concat(distinct concat('"', `player_steamid`.`steamid`, '"')
+			order by `player_steamid`.`reg_datetime` desc SEPARATOR ','), ',', 15), ']') as json) as `grouped`
+				from `player_steamid` where `player`.`id` = `player_steamid`.`player_id`) as `steamids`
+where (id is null or `player`.`id` = id)
+and ((name is null or `player`.`name` = name)
+and (ip is null or `player_ip`.`ip` = ip)
+and (steamid is null or `player_steamid`.`steamid` = steamid))
+group by `player`.`id`
+;
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `player_full2_json` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_0900_ai_ci */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,NO_ENGINE_SUBSTITUTION' */ ;
+DELIMITER ;;
+CREATE DEFINER=`root`@`%` PROCEDURE `player_full2_json`(id int unsigned, name varchar(31), ip varchar(15), steamid varchar(22))
+BEGIN
+select json_object('id', `player`.`id`,
+       'name', `player`.`name`,
+       'kills', `player`.`kills`,
+       'deaths', `player`.`deaths`,
+       'gaming_time', `build_human_time`(`player`.`time_secs`),
+       'rank_name', `rank`.`name`,
+       'stars', `build_stars`(`rank`.`level`, (select count(*) from `rank`)),
+       'last_server_name', `known_server`.`name`,
+       'lastseen_datetime', DATE_FORMAT(`player`.`lastseen_datetime`, '%Y-%m-%d %H:%i:%s'),
+       'ips', ips.grouped,
+       'steamids', steamids.grouped) as json_results
+from `player`
+         left outer join `rank` on `player`.`rank_id` = `rank`.`id`
+		 left outer join `known_server` on `player`.`last_server_id` = `known_server`.`id`
+         left outer join `player_ip` on `player`.`id` = `player_ip`.`player_id`
+         left outer join `player_steamid` on `player`.`id` = `player_steamid`.`player_id`,
+         lateral (select cast(concat('[', substring_index(group_concat(distinct concat('"', `player_ip`.`ip`, '"')
+			order by `player_ip`.`reg_datetime` desc SEPARATOR ','), ',', 15), ']') as json) as `grouped`
+				from `player_ip` where `player`.`id` = `player_ip`.`player_id`) as `ips`,
+         lateral (select cast(concat('[', substring_index(group_concat(distinct concat('"', `player_steamid`.`steamid`, '"')
+			order by `player_steamid`.`reg_datetime` desc SEPARATOR ','), ',', 15), ']') as json) as `grouped`
+				from `player_steamid` where `player`.`id` = `player_steamid`.`player_id`) as `steamids`
+where (id is null or `player`.`id` = id)
+and ((name is null or `player`.`name` = name)
+and (ip is null or `player_ip`.`ip` = ip)
+and (steamid is null or `player_steamid`.`steamid` = steamid))
+group by `player`.`id`
+;
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `player_full_json` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_0900_ai_ci */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,NO_ENGINE_SUBSTITUTION' */ ;
+DELIMITER ;;
+CREATE DEFINER=`root`@`%` PROCEDURE `player_full_json`(id int unsigned, name varchar(31), ip varchar(15), steamid varchar(22))
+BEGIN
+select json_object('id', `player`.`id`,
+       'name', `player`.`name`,
+       'kills', `player`.`kills`,
+       'deaths', `player`.`deaths`,
+       'gaming_time', `build_human_time`(`player`.`time_secs`),
+       'rank_name', `rank`.`name`,
+       'stars', `build_stars`(`rank`.`level`, (select count(*) from `rank`)),
+       'last_server_name', `known_server`.`name`,
+       'lastseen_datetime', DATE_FORMAT(`player`.`lastseen_datetime`, '%Y-%m-%d %H:%i:%s'),
+       'ips', ips.grouped,
+       'steamids', steamids.grouped) as json_results
+from `player`
+         left outer join `rank` on `player`.`rank_id` = `rank`.`id`
+		 left outer join `known_server` on `player`.`last_server_id` = `known_server`.`id`
+         left outer join `player_ip` on `player`.`id` = `player_ip`.`player_id`
+         left outer join `player_steamid` on `player`.`id` = `player_steamid`.`player_id`,
+         lateral (select substring_index(group_concat(distinct `player_ip`.`ip` 
+			order by `player_ip`.`reg_datetime` desc SEPARATOR ','), ',', 15) as `grouped`
+				from `player_ip` where `player`.`id` = `player_ip`.`player_id`) as `ips`, 
+         lateral (select substring_index(group_concat(distinct `player_steamid`.`steamid` 
+			order by `player_steamid`.`reg_datetime` desc SEPARATOR ','), ',', 15) as `grouped`
+				from `player_steamid` where `player`.`id` = `player_steamid`.`player_id`) as `steamids`
+where (id is null or `player`.`id` = id)
+and ((name is null or `player`.`name` = name)
+and (ip is null or `player_ip`.`ip` = ip)
+and (steamid is null or `player_steamid`.`steamid` = steamid))
+group by `player`.`id`
+;
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `player_summary` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_0900_ai_ci */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,NO_ENGINE_SUBSTITUTION' */ ;
+DELIMITER ;;
+CREATE DEFINER=`root`@`%` PROCEDURE `player_summary`(id int unsigned, name varchar(31), ip varchar(15), steamid varchar(22))
+BEGIN
+select `player`.`id`,
+       `player`.`name`,
+       `rank`.`name` as `rank_name`,
+       `build_stars`(`rank`.`level`, (select count(*) from `rank`)) as `stars`
+from `player`
+         left outer join `rank` on `player`.`rank_id` = `rank`.`id`
+         left outer join `player_ip` on `player`.`id` = `player_ip`.`player_id`
+         left outer join `player_steamid` on `player`.`id` = `player_steamid`.`player_id`
+where (id is null or `player`.`id` = id)
+and ((name is null or `player`.`name` = name)
+and (ip is null or `player_ip`.`ip` = ip)
+and (steamid is null or `player_steamid`.`steamid` = steamid))
+group by `player`.`id`
+;
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `player_summary_json` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_0900_ai_ci */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,NO_ENGINE_SUBSTITUTION' */ ;
+DELIMITER ;;
+CREATE DEFINER=`root`@`%` PROCEDURE `player_summary_json`(id int unsigned, name varchar(31), ip varchar(15), steamid varchar(22))
+BEGIN
+select json_object('id', `player`.`id`,
+       'name', `player`.`name`,
+       'rank_name', `rank`.`name`,
+       'stars', `build_stars`(`rank`.`level`, (select count(*) from `rank`))) as json_results
+from `player`
+         left outer join `rank` on `player`.`rank_id` = `rank`.`id`
+         left outer join `player_ip` on `player`.`id` = `player_ip`.`player_id`
+         left outer join `player_steamid` on `player`.`id` = `player_steamid`.`player_id`
+where (id is null or `player`.`id` = id)
+and ((name is null or `player`.`name` = name)
+and (ip is null or `player_ip`.`ip` = ip)
+and (steamid is null or `player_steamid`.`steamid` = steamid))
+group by `player`.`id`
+;
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
 
 /*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
@@ -669,4 +1058,4 @@ DELIMITER ;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2020-08-09 16:59:31
+-- Dump completed on 2020-08-10 16:36:18

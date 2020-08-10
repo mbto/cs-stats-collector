@@ -8,6 +8,7 @@ import org.jooq.types.UInteger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 import ru.csdm.stats.common.model.tables.pojos.KnownServer;
+import ru.csdm.stats.common.model.tables.pojos.Player;
 import ru.csdm.stats.common.model.tables.records.PlayerIpRecord;
 import ru.csdm.stats.common.model.tables.records.PlayerRecord;
 import ru.csdm.stats.common.model.tables.records.PlayerSteamidRecord;
@@ -64,13 +65,6 @@ public class CsStatsDao {
                         .collect(Collectors.toMap(KnownServer::getIpport, Function.identity()));
 
                 for (PlayerRecord playerRecord : playerRecords) {
-                    UInteger playerId = transactionalDsl.select(PLAYER.ID)
-                            .from(PLAYER)
-                            // equals, not equalIgnoreCase, because `player`.`name` is CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL
-                            .where(PLAYER.NAME.eq(playerRecord.getName()))
-                            .forUpdate()
-                            .fetchOneInto(PLAYER.ID.getType());
-
                     // If at the time of saving - the known server ID changed or deleted,
                     // the data of which was saved in the cache, so that there are no errors
                     // on table constrains
@@ -84,13 +78,27 @@ public class CsStatsDao {
                             playerRecord.setLastServerId(null);
                     }
 
-                    if (Objects.isNull(playerId)) {
+                    Player player = transactionalDsl.select(PLAYER.ID, PLAYER.NAME)
+                            .from(PLAYER)
+                            // equals, not equalIgnoreCase, because `player`.`name` is CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL
+                            .where(PLAYER.NAME.eq(playerRecord.getName()))
+                            .forUpdate()
+                            .fetchOneInto(Player.class);
+
+                    UInteger playerId;
+                    if (Objects.isNull(player)) {
                         playerId = transactionalDsl.insertInto(PLAYER)
                                 .set(playerRecord)
                                 .returning(PLAYER.ID)
                                 .fetchOne().getId();
                     } else {
+                        playerId = player.getId();
+
                         UpdateSetFirstStep<PlayerRecord> updateStep = transactionalDsl.update(PLAYER);
+
+                        if (!player.getName().equals(playerRecord.getName())) {
+                            updateStep.set(PLAYER.NAME, playerRecord.getName());
+                        }
 
                         if (playerRecord.getKills().longValue() != 0) {
                             updateStep.set(PLAYER.KILLS, PLAYER.KILLS.plus(playerRecord.getKills()));

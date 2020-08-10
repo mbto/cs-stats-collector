@@ -4,19 +4,17 @@
 package ru.csdm.stats.common.model.tables.records;
 
 
-import java.time.LocalDateTime;
-
-import javax.validation.constraints.NotNull;
-import javax.validation.constraints.Size;
-
 import org.jooq.Field;
 import org.jooq.Record1;
 import org.jooq.Record4;
 import org.jooq.Row4;
 import org.jooq.impl.UpdatableRecordImpl;
 import org.jooq.types.UInteger;
-
 import ru.csdm.stats.common.model.tables.PlayerSteamid;
+
+import javax.validation.constraints.NotNull;
+import javax.validation.constraints.Size;
+import java.time.LocalDateTime;
 
 
 /**
@@ -25,7 +23,7 @@ import ru.csdm.stats.common.model.tables.PlayerSteamid;
 @SuppressWarnings({ "all", "unchecked", "rawtypes" })
 public class PlayerSteamidRecord extends UpdatableRecordImpl<PlayerSteamidRecord> implements Record4<UInteger, UInteger, String, LocalDateTime> {
 
-    private static final long serialVersionUID = -1406819345;
+    private static final long serialVersionUID = 665613351;
 
     /**
      * Setter for <code>csstats.player_steamid.id</code>.
@@ -82,7 +80,6 @@ public class PlayerSteamidRecord extends UpdatableRecordImpl<PlayerSteamidRecord
     /**
      * Getter for <code>csstats.player_steamid.reg_datetime</code>.
      */
-    @NotNull
     public LocalDateTime getRegDatetime() {
         return (LocalDateTime) get(3);
     }

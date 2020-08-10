@@ -9,6 +9,7 @@ import org.springframework.context.annotation.Lazy;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.stereotype.Service;
+import org.springframework.util.LinkedCaseInsensitiveMap;
 import ru.csdm.stats.common.FlushEvent;
 import ru.csdm.stats.common.GameSessionFetchMode;
 import ru.csdm.stats.common.SystemEvent;
@@ -143,7 +144,7 @@ public class DatagramsConsumer {
             LocalDateTime dateTime = LocalDateTime.parse(msgMatcher.group("date"), MMDDYYYY_HHMMSS_PATTERN);
             serverData.setLastTouchDateTime(dateTime);
 
-/* L 01/01/2020 - 20:50:08: Started map "de_dust2" (CRC "1159425449") -> Started map "de_dust2" (CRC "1159425449") */
+            // Extract "msg" from "L 01/01/2020 - 20:50:08: msg"
             String rawMsg = msgMatcher.group("msg");
             Matcher actionMatcher = TWO.pattern.matcher(rawMsg);
 
@@ -233,6 +234,7 @@ public class DatagramsConsumer {
                     continue;
                 }
 
+/* L 01/01/2020 - 21:19:26: "Currv<29><BOT><CT>" committed suicide with "grenade" */
                 if(eventName.equals("committed suicide with")) {
                     String sourceRaw = eventMatcher.group(1);
                     Matcher sourceMatcher = PLAYER.pattern.matcher(sourceRaw);
@@ -260,6 +262,7 @@ public class DatagramsConsumer {
                     continue;
                 }
 
+/* L 01/01/2020 - 13:15:08: "Name5<5><STEAM_0:0:123456><CT>" changed name to "Name9" */
                 if(eventName.equals("changed name to")) {
                     String sourceRaw = eventMatcher.group(1);
                     Matcher sourceMatcher = PLAYER.pattern.matcher(sourceRaw);
@@ -280,18 +283,27 @@ public class DatagramsConsumer {
                         String sourceNewName = eventMatcher.group(3);
 
                         CollectedPlayer collectedPlayer = allocatePlayer(knownServer, sourceName, sourceAuth, dateTime);
-                        collectedPlayer.onDisconnected(dateTime);
 
-                        Set<String> ipAddresses = collectedPlayer.getIpAddresses();
+                        /* Using compare method from org.springframework.util.LinkedCaseInsensitiveMap#convertKey */
+                        if(sourceName.toLowerCase().equals(sourceNewName.toLowerCase())) {
+                            // changing name from Source to source, nothing changes
+                            collectedPlayer.setName(sourceNewName);
+                        } else {
+                            collectedPlayer.onDisconnected(dateTime);
 
-                        collectedPlayer = allocatePlayer(knownServer, sourceNewName, sourceAuth, dateTime);
-                        collectedPlayer.getIpAddresses().addAll(ipAddresses); // without collectedPlayer.addIpAddress(), due already extracted
+                            Set<String> ipAddresses = collectedPlayer.getIpAddresses();
 
-                        if(knownServer.getStartSessionOnAction()) {
-                            continue;
+                            collectedPlayer = allocatePlayer(knownServer, sourceNewName, sourceAuth, dateTime);
+                            // without ru.csdm.stats.common.dto.CollectedPlayer#addIpAddress, due already extracted
+                            collectedPlayer.getIpAddresses().addAll(ipAddresses);
+
+                            if (knownServer.getStartSessionOnAction()) {
+                                continue;
+                            }
+
+                            collectedPlayer.getCurrentSession(dateTime); // activate session
                         }
 
-                        collectedPlayer.getCurrentSession(dateTime); // activate session
                         continue;
                     }
 
@@ -364,13 +376,15 @@ public class DatagramsConsumer {
                 String eventName = eventMatcher.group(1);
 
 /* L 01/01/2020 - 20:50:08: Started map "de_dust2" (CRC "1159425449") */
-                if (eventName.equals("Started map")) {
+                if(eventName.equals("Started map")) {
                     flushSessions(address, dateTime, NEW_GAME_MAP);
                     continue;
                 }
 
                 continue;
             }
+
+            // Did not match patterns:
 
 /* L 01/01/2020 - 20:52:15: Server shutdown */
             if(rawMsg.equals("Server shutdown")) {
@@ -404,7 +418,7 @@ public class DatagramsConsumer {
             Map<String, CollectedPlayer> gameSessions = gameSessionByAddress.get(address);
 
             if (Objects.isNull(gameSessions)) {
-                gameSessions = new LinkedHashMap<>();
+                gameSessions = new LinkedCaseInsensitiveMap<>();
                 gameSessionByAddress.put(address, gameSessions);
 
                 log.info(address + " Created gameSessions container");
@@ -414,7 +428,7 @@ public class DatagramsConsumer {
         }
         else if(gsFetchMode == REPLACE_IF_EXISTS) {
             Map<String, CollectedPlayer> oldGameSessions = gameSessionByAddress
-                    .replace(address, new LinkedHashMap<>());
+                    .replace(address, new LinkedCaseInsensitiveMap<>());
 
             if(Objects.nonNull(oldGameSessions))
                 log.info(address + " Recreated gameSessions container");

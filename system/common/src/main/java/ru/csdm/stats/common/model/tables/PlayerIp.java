@@ -4,28 +4,18 @@
 package ru.csdm.stats.common.model.tables;
 
 
-import java.time.LocalDateTime;
-import java.util.Arrays;
-import java.util.List;
-
-import org.jooq.Field;
-import org.jooq.ForeignKey;
-import org.jooq.Identity;
-import org.jooq.Index;
-import org.jooq.Name;
-import org.jooq.Record;
-import org.jooq.Schema;
-import org.jooq.Table;
-import org.jooq.TableField;
-import org.jooq.UniqueKey;
+import org.jooq.*;
 import org.jooq.impl.DSL;
 import org.jooq.impl.TableImpl;
 import org.jooq.types.UInteger;
-
 import ru.csdm.stats.common.model.Csstats;
 import ru.csdm.stats.common.model.Indexes;
 import ru.csdm.stats.common.model.Keys;
 import ru.csdm.stats.common.model.tables.records.PlayerIpRecord;
+
+import java.time.LocalDateTime;
+import java.util.Arrays;
+import java.util.List;
 
 
 /**
@@ -34,7 +24,7 @@ import ru.csdm.stats.common.model.tables.records.PlayerIpRecord;
 @SuppressWarnings({ "all", "unchecked", "rawtypes" })
 public class PlayerIp extends TableImpl<PlayerIpRecord> {
 
-    private static final long serialVersionUID = -1773073228;
+    private static final long serialVersionUID = 1892441257;
 
     /**
      * The reference instance of <code>csstats.player_ip</code>
@@ -67,7 +57,7 @@ public class PlayerIp extends TableImpl<PlayerIpRecord> {
     /**
      * The column <code>csstats.player_ip.reg_datetime</code>.
      */
-    public final TableField<PlayerIpRecord, LocalDateTime> REG_DATETIME = createField("reg_datetime", org.jooq.impl.SQLDataType.LOCALDATETIME.nullable(false), this, "");
+    public final TableField<PlayerIpRecord, LocalDateTime> REG_DATETIME = createField("reg_datetime", org.jooq.impl.SQLDataType.LOCALDATETIME.nullable(false).defaultValue(org.jooq.impl.DSL.field("CURRENT_TIMESTAMP", org.jooq.impl.SQLDataType.LOCALDATETIME)), this, "");
 
     /**
      * Create a <code>csstats.player_ip</code> table reference
