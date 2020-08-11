@@ -267,105 +267,181 @@ public class Routines {
     }
 
     /**
-     * Call <code>csstats.player_detail</code>
+     * Call <code>csstats.PlayerDetail</code>
      */
-    public static void playerDetail(Configuration configuration, UInteger id, String name, String ip, String steamid) {
-        PlayerDetail p = new PlayerDetail();
+    public static void playerdetail(Configuration configuration, UInteger id, String name, String ip, String steamid, UInteger page, UInteger perPage) {
+        Playerdetail p = new Playerdetail();
         p.setId(id);
         p.setName_(name);
         p.setIp(ip);
         p.setSteamid(steamid);
+        p.setPage(page);
+        p.setPerPage(perPage);
 
         p.execute(configuration);
     }
 
     /**
-     * Call <code>csstats.player_detail_json</code>
+     * Call <code>csstats.PlayerDetailJson</code>
      */
-    public static void playerDetailJson(Configuration configuration, UInteger id, String name, String ip, String steamid) {
-        PlayerDetailJson p = new PlayerDetailJson();
+    public static void playerdetailjson(Configuration configuration, UInteger id, String name, String ip, String steamid, UInteger page, UInteger perPage) {
+        Playerdetailjson p = new Playerdetailjson();
         p.setId(id);
         p.setName_(name);
         p.setIp(ip);
         p.setSteamid(steamid);
+        p.setPage(page);
+        p.setPerPage(perPage);
 
         p.execute(configuration);
     }
 
     /**
-     * Call <code>csstats.player_full</code>
+     * Call <code>csstats.PlayerDetailJsonAgg</code>
      */
-    public static void playerFull(Configuration configuration, UInteger id, String name, String ip, String steamid) {
-        PlayerFull p = new PlayerFull();
+    public static void playerdetailjsonagg(Configuration configuration, UInteger id, String name, String ip, String steamid, UInteger page, UInteger perPage) {
+        Playerdetailjsonagg p = new Playerdetailjsonagg();
         p.setId(id);
         p.setName_(name);
         p.setIp(ip);
         p.setSteamid(steamid);
+        p.setPage(page);
+        p.setPerPage(perPage);
 
         p.execute(configuration);
     }
 
     /**
-     * Call <code>csstats.player_full2</code>
+     * Call <code>csstats.PlayerFull</code>
      */
-    public static void playerFull2(Configuration configuration, UInteger id, String name, String ip, String steamid) {
-        PlayerFull2 p = new PlayerFull2();
+    public static void playerfull(Configuration configuration, UInteger id, String name, String ip, String steamid, UInteger page, UInteger perPage) {
+        Playerfull p = new Playerfull();
         p.setId(id);
         p.setName_(name);
         p.setIp(ip);
         p.setSteamid(steamid);
+        p.setPage(page);
+        p.setPerPage(perPage);
 
         p.execute(configuration);
     }
 
     /**
-     * Call <code>csstats.player_full2_json</code>
+     * Call <code>csstats.PlayerFull2</code>
      */
-    public static void playerFull2Json(Configuration configuration, UInteger id, String name, String ip, String steamid) {
-        PlayerFull2Json p = new PlayerFull2Json();
+    public static void playerfull2(Configuration configuration, UInteger id, String name, String ip, String steamid, UInteger page, UInteger perPage) {
+        Playerfull2 p = new Playerfull2();
         p.setId(id);
         p.setName_(name);
         p.setIp(ip);
         p.setSteamid(steamid);
+        p.setPage(page);
+        p.setPerPage(perPage);
 
         p.execute(configuration);
     }
 
     /**
-     * Call <code>csstats.player_full_json</code>
+     * Call <code>csstats.PlayerFull2Json</code>
      */
-    public static void playerFullJson(Configuration configuration, UInteger id, String name, String ip, String steamid) {
-        PlayerFullJson p = new PlayerFullJson();
+    public static void playerfull2json(Configuration configuration, UInteger id, String name, String ip, String steamid, UInteger page, UInteger perPage) {
+        Playerfull2json p = new Playerfull2json();
         p.setId(id);
         p.setName_(name);
         p.setIp(ip);
         p.setSteamid(steamid);
+        p.setPage(page);
+        p.setPerPage(perPage);
 
         p.execute(configuration);
     }
 
     /**
-     * Call <code>csstats.player_summary</code>
+     * Call <code>csstats.PlayerFull2JsonAgg</code>
      */
-    public static void playerSummary(Configuration configuration, UInteger id, String name, String ip, String steamid) {
-        PlayerSummary p = new PlayerSummary();
+    public static void playerfull2jsonagg(Configuration configuration, UInteger id, String name, String ip, String steamid, UInteger page, UInteger perPage) {
+        Playerfull2jsonagg p = new Playerfull2jsonagg();
         p.setId(id);
         p.setName_(name);
         p.setIp(ip);
         p.setSteamid(steamid);
+        p.setPage(page);
+        p.setPerPage(perPage);
 
         p.execute(configuration);
     }
 
     /**
-     * Call <code>csstats.player_summary_json</code>
+     * Call <code>csstats.PlayerFullJson</code>
      */
-    public static void playerSummaryJson(Configuration configuration, UInteger id, String name, String ip, String steamid) {
-        PlayerSummaryJson p = new PlayerSummaryJson();
+    public static void playerfulljson(Configuration configuration, UInteger id, String name, String ip, String steamid, UInteger page, UInteger perPage) {
+        Playerfulljson p = new Playerfulljson();
         p.setId(id);
         p.setName_(name);
         p.setIp(ip);
         p.setSteamid(steamid);
+        p.setPage(page);
+        p.setPerPage(perPage);
+
+        p.execute(configuration);
+    }
+
+    /**
+     * Call <code>csstats.PlayerFullJsonAgg</code>
+     */
+    public static void playerfulljsonagg(Configuration configuration, UInteger id, String name, String ip, String steamid, UInteger page, UInteger perPage) {
+        Playerfulljsonagg p = new Playerfulljsonagg();
+        p.setId(id);
+        p.setName_(name);
+        p.setIp(ip);
+        p.setSteamid(steamid);
+        p.setPage(page);
+        p.setPerPage(perPage);
+
+        p.execute(configuration);
+    }
+
+    /**
+     * Call <code>csstats.PlayerSummary</code>
+     */
+    public static void playersummary(Configuration configuration, UInteger id, String name, String ip, String steamid, UInteger page, UInteger perPage) {
+        Playersummary p = new Playersummary();
+        p.setId(id);
+        p.setName_(name);
+        p.setIp(ip);
+        p.setSteamid(steamid);
+        p.setPage(page);
+        p.setPerPage(perPage);
+
+        p.execute(configuration);
+    }
+
+    /**
+     * Call <code>csstats.PlayerSummaryJson</code>
+     */
+    public static void playersummaryjson(Configuration configuration, UInteger id, String name, String ip, String steamid, UInteger page, UInteger perPage) {
+        Playersummaryjson p = new Playersummaryjson();
+        p.setId(id);
+        p.setName_(name);
+        p.setIp(ip);
+        p.setSteamid(steamid);
+        p.setPage(page);
+        p.setPerPage(perPage);
+
+        p.execute(configuration);
+    }
+
+    /**
+     * Call <code>csstats.PlayerSummaryJsonAgg</code>
+     */
+    public static void playersummaryjsonagg(Configuration configuration, UInteger id, String name, String ip, String steamid, UInteger page, UInteger perPage) {
+        Playersummaryjsonagg p = new Playersummaryjsonagg();
+        p.setId(id);
+        p.setName_(name);
+        p.setIp(ip);
+        p.setSteamid(steamid);
+        p.setPage(page);
+        p.setPerPage(perPage);
 
         p.execute(configuration);
     }

@@ -129,7 +129,7 @@ DELIMITER ;;
     
 	if( !is_valid_ip(NEW.ipport, false, true)) then
 		/* Invalid ipport=255.255.255.255:12345 @ len=36 */
-		set error_msg = concat('Invalid ipport=', NEW.ipport);
+		set error_msg = concat('Invalid ipport=', ifnull(NEW.ipport, ''));
 		SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = error_msg;
     end if;
 END */;;
@@ -152,7 +152,7 @@ DELIMITER ;;
     
     if( !is_valid_ip(NEW.ipport, false, true)) then
 		/* Invalid ipport=255.255.255.255:12345 @ len=36 */
-		set error_msg = concat('Invalid ipport=', NEW.ipport);
+		set error_msg = concat('Invalid ipport=', ifnull(NEW.ipport, ''));
 		SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = error_msg;
     end if;
 END */;;
@@ -283,9 +283,9 @@ DELIMITER ;;
 /*!50003 CREATE*/ /*!50017 DEFINER=`root`@`%`*/ /*!50003 TRIGGER `player_ip_BEFORE_INSERT` BEFORE INSERT ON `player_ip` FOR EACH ROW BEGIN
 	declare error_msg VARCHAR(95);
 	declare existed_id int unsigned;
-	
+    
     if( !is_valid_ip(NEW.ip, false, false)) then
-		set error_msg = concat('Invalid ip=', NEW.ip);
+		set error_msg = concat('Invalid ip=', ifnull(NEW.ip, ''));
 		SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = error_msg;
     end if;
     
@@ -295,9 +295,10 @@ DELIMITER ;;
     
 	if(existed_id is not null) then
 		/* Unable to insert ip=255.255.255.255, due for player_id=4294967295 already existed id=4294967295 @ len=95 */
-		set error_msg = concat('Unable to insert ip=', NEW.ip, ', due for player_id=', NEW.player_id, ' already existed id=', existed_id);
+		set error_msg = concat('Unable to insert ip=', ifnull(NEW.ip, ''), ', due for player_id=', NEW.player_id, ' already existed id=', existed_id);
 		SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = error_msg;
     end if;
+    
 END */;;
 DELIMITER ;
 /*!50003 SET sql_mode              = @saved_sql_mode */ ;
@@ -318,7 +319,7 @@ DELIMITER ;;
 	declare existed_id int unsigned;
     
     if( !is_valid_ip(NEW.ip, false, false)) then
-		set error_msg = concat('Invalid ip=', NEW.ip);
+		set error_msg = concat('Invalid ip=', ifnull(NEW.ip, ''));
 		SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = error_msg;
     end if;
     
@@ -329,7 +330,7 @@ DELIMITER ;;
     
 	if(existed_id is not null) then
 		/* Unable to update ip from 255.255.255.255 to 255.255.255.255, due for player_id=4294967295 already existed id=4294967295 @ len=119 */
-		set error_msg = concat('Unable to update ip from ', OLD.ip, ' to ', NEW.ip, ', due for player_id=', NEW.player_id, ' already existed id=', existed_id);
+		set error_msg = concat('Unable to update ip from ', ifnull(OLD.ip, ''), ' to ', ifnull(NEW.ip, ''), ', due for player_id=', NEW.player_id, ' already existed id=', existed_id);
 		SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = error_msg;
     end if;
 END */;;
@@ -382,7 +383,7 @@ DELIMITER ;;
 	declare existed_id int unsigned;
     
     if( !is_valid_steamid(NEW.steamid, false, true)) then
-		set error_msg = concat('Invalid steamid=', NEW.steamid);
+		set error_msg = concat('Invalid steamid=', ifnull(NEW.steamid, ''));
 		SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = error_msg;
     end if;
     
@@ -392,7 +393,7 @@ DELIMITER ;;
     
 	if(existed_id is not null) then
 		/* Unable to insert steamid=STEAM_0:0:123123123123, due for player_id=4294967295 already existed id=4294967295 @ len=107 */
-		set error_msg = concat('Unable to insert steamid=', NEW.steamid, ', due for player_id=', NEW.player_id, ' already existed id=', existed_id);
+		set error_msg = concat('Unable to insert steamid=', ifnull(NEW.steamid, ''), ', due for player_id=', NEW.player_id, ' already existed id=', existed_id);
 		SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = error_msg;
     end if;
 END */;;
@@ -415,7 +416,7 @@ DELIMITER ;;
 	declare existed_id int unsigned;
     
     if( !is_valid_steamid(NEW.steamid, false, true)) then
-		set error_msg = concat('Invalid steamid=', NEW.steamid);
+		set error_msg = concat('Invalid steamid=', ifnull(NEW.steamid, ''));
 		SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = error_msg;
     end if;
     
@@ -426,7 +427,7 @@ DELIMITER ;;
     
 	if(existed_id is not null) then
 		/* Unable to update steamid from STEAM_0:0:123123123123 to STEAM_0:0:123123123123, due for player_id=4294967295 already existed id=4294967295 @ len=138 */
-		set error_msg = concat('Unable to update steamid from ', OLD.steamid, ' to ', NEW.steamid, ', due for player_id=', NEW.player_id, ' already existed id=', existed_id);
+		set error_msg = concat('Unable to update steamid from ', ifnull(OLD.steamid, ''), ' to ', ifnull(NEW.steamid, ''), ', due for player_id=', NEW.player_id, ' already existed id=', existed_id);
 		SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = error_msg;
     end if;
 END */;;
@@ -687,15 +688,15 @@ DELIMITER ;;
 CREATE DEFINER=`root`@`%` FUNCTION `is_valid_ip`(ip varchar(21), nullable boolean, with_port boolean) RETURNS tinyint unsigned
     DETERMINISTIC
 BEGIN
-	if(nullable = true and ip is null) then
+	if(nullable and ip is null) then
 		return true;
 	end if;
     
-    if(with_port = true) then
-		return (select ip regexp "^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?):\\d{1,5}$");
+    if with_port then
+		return (select ip regexp "^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?):\\d{1,5}$") is true;
 	end if;
 	
-	return (select ip regexp "^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$");
+	return (select ip regexp "^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$") is true;
 END ;;
 DELIMITER ;
 /*!50003 SET sql_mode              = @saved_sql_mode */ ;
@@ -715,22 +716,22 @@ DELIMITER ;;
 CREATE DEFINER=`root`@`%` FUNCTION `is_valid_steamid`(steamid varchar(22), nullable boolean, only_legal boolean) RETURNS tinyint unsigned
     DETERMINISTIC
 BEGIN
-	if(nullable = true and steamid is null) then
+	if(nullable and steamid is null) then
 		return true;
 	end if;
     
 	if only_legal then
-		return (select steamid regexp "^STEAM_[0-1]:[0-1]:[0-9]+$");
+		return (select steamid regexp "^STEAM_[0-1]:[0-1]:[0-9]+$") is true;
 	end if;
     
-    return (select steamid regexp "^STEAM_\\d+:\\d+:\\d+$");
+    return (select steamid regexp "^STEAM_\\d+:\\d+:\\d+$") is true;
 END ;;
 DELIMITER ;
 /*!50003 SET sql_mode              = @saved_sql_mode */ ;
 /*!50003 SET character_set_client  = @saved_cs_client */ ;
 /*!50003 SET character_set_results = @saved_cs_results */ ;
 /*!50003 SET collation_connection  = @saved_col_connection */ ;
-/*!50003 DROP PROCEDURE IF EXISTS `player_detail` */;
+/*!50003 DROP PROCEDURE IF EXISTS `PlayerDetail` */;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
 /*!50003 SET @saved_cs_results     = @@character_set_results */ ;
 /*!50003 SET @saved_col_connection = @@collation_connection */ ;
@@ -740,8 +741,11 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`root`@`%` PROCEDURE `player_detail`(id int unsigned, name varchar(31), ip varchar(15), steamid varchar(22))
+CREATE DEFINER=`root`@`%` PROCEDURE `PlayerDetail`(id int unsigned, name varchar(31), 
+ip varchar(15), steamid varchar(22), page int unsigned, per_page int unsigned)
 BEGIN
+set page = ((page - 1) * per_page);
+
 select `player`.`id`,
        `player`.`name`,
        `player`.`kills`,
@@ -757,7 +761,7 @@ where (id is null or `player`.`id` = id)
 and ((name is null or `player`.`name` = name)
 and (ip is null or `player_ip`.`ip` = ip)
 and (steamid is null or `player_steamid`.`steamid` = steamid))
-group by `player`.`id`
+group by `player`.`id` order by `rank`.`level` desc, `player`.`time_secs` desc limit page, per_page
 ;
 END ;;
 DELIMITER ;
@@ -765,7 +769,7 @@ DELIMITER ;
 /*!50003 SET character_set_client  = @saved_cs_client */ ;
 /*!50003 SET character_set_results = @saved_cs_results */ ;
 /*!50003 SET collation_connection  = @saved_col_connection */ ;
-/*!50003 DROP PROCEDURE IF EXISTS `player_detail_json` */;
+/*!50003 DROP PROCEDURE IF EXISTS `PlayerDetailJson` */;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
 /*!50003 SET @saved_cs_results     = @@character_set_results */ ;
 /*!50003 SET @saved_col_connection = @@collation_connection */ ;
@@ -775,15 +779,19 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`root`@`%` PROCEDURE `player_detail_json`(id int unsigned, name varchar(31), ip varchar(15), steamid varchar(22))
+CREATE DEFINER=`root`@`%` PROCEDURE `PlayerDetailJson`(id int unsigned, name varchar(31), 
+ip varchar(15), steamid varchar(22), page int unsigned, per_page int unsigned)
 BEGIN
-select json_object('id', `player`.`id`,
-       'name', `player`.`name`,
-       'kills', `player`.`kills`,
-       'deaths', `player`.`deaths`,
-       'gaming_time', `build_human_time`(`player`.`time_secs`),
-       'rank_name', `rank`.`name`,
-       'stars', `build_stars`(`rank`.`level`, (select count(*) from `rank`))) as json_results
+set page = ((page - 1) * per_page);
+
+with sub as (select count(*) over() as count_total, 
+	json_object('id', `player`.`id`,
+		'name', `player`.`name`,
+		'kills', `player`.`kills`,
+		'deaths', `player`.`deaths`,
+		'gaming_time', `build_human_time`(`player`.`time_secs`),
+		'rank_name', `rank`.`name`,
+		'stars', `build_stars`(`rank`.`level`, (select count(*) from `rank`))) as results
 from `player`
          left outer join `rank` on `player`.`rank_id` = `rank`.`id`
          left outer join `player_ip` on `player`.`id` = `player_ip`.`player_id`
@@ -792,7 +800,13 @@ where (id is null or `player`.`id` = id)
 and ((name is null or `player`.`name` = name)
 and (ip is null or `player_ip`.`ip` = ip)
 and (steamid is null or `player_steamid`.`steamid` = steamid))
-group by `player`.`id`
+group by `player`.`id` order by `rank`.`level` desc, `player`.`time_secs` desc limit page, per_page)
+select
+ case when sub.count_total > 0
+  then sub.results
+-- else json_object() -- bug, not working
+ end as results
+from sub
 ;
 END ;;
 DELIMITER ;
@@ -800,7 +814,7 @@ DELIMITER ;
 /*!50003 SET character_set_client  = @saved_cs_client */ ;
 /*!50003 SET character_set_results = @saved_cs_results */ ;
 /*!50003 SET collation_connection  = @saved_col_connection */ ;
-/*!50003 DROP PROCEDURE IF EXISTS `player_full` */;
+/*!50003 DROP PROCEDURE IF EXISTS `PlayerDetailJsonAgg` */;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
 /*!50003 SET @saved_cs_results     = @@character_set_results */ ;
 /*!50003 SET @saved_col_connection = @@collation_connection */ ;
@@ -810,8 +824,56 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`root`@`%` PROCEDURE `player_full`(id int unsigned, name varchar(31), ip varchar(15), steamid varchar(22))
+CREATE DEFINER=`root`@`%` PROCEDURE `PlayerDetailJsonAgg`(id int unsigned, name varchar(31), 
+ip varchar(15), steamid varchar(22), page int unsigned, per_page int unsigned)
 BEGIN
+set page = ((page - 1) * per_page);
+
+with sub as (select count(*) over() as count_total, 
+	json_object('id', `player`.`id`,
+		'name', `player`.`name`,
+		'kills', `player`.`kills`,
+		'deaths', `player`.`deaths`,
+		'gaming_time', `build_human_time`(`player`.`time_secs`),
+		'rank_name', `rank`.`name`,
+		'stars', `build_stars`(`rank`.`level`, (select count(*) from `rank`))) as results
+from `player`
+         left outer join `rank` on `player`.`rank_id` = `rank`.`id`
+         left outer join `player_ip` on `player`.`id` = `player_ip`.`player_id`
+         left outer join `player_steamid` on `player`.`id` = `player_steamid`.`player_id`
+where (id is null or `player`.`id` = id)
+and ((name is null or `player`.`name` = name)
+and (ip is null or `player_ip`.`ip` = ip)
+and (steamid is null or `player_steamid`.`steamid` = steamid))
+group by `player`.`id` order by `rank`.`level` desc, `player`.`time_secs` desc limit page, per_page)
+select
+ case when sub.count_total > 0
+  then json_object('count_total', sub.count_total, 'results', json_arrayagg(sub.results))
+  else json_object('count_total', 0, 'results', cast('[]' as json))
+ end as results
+from sub
+;
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `PlayerFull` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_0900_ai_ci */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,NO_ENGINE_SUBSTITUTION' */ ;
+DELIMITER ;;
+CREATE DEFINER=`root`@`%` PROCEDURE `PlayerFull`(id int unsigned, name varchar(31), 
+ip varchar(15), steamid varchar(22), page int unsigned, per_page int unsigned)
+BEGIN
+set page = ((page - 1) * per_page);
+
 select `player`.`id`,
        `player`.`name`,
        `player`.`kills`,
@@ -838,7 +900,7 @@ where (id is null or `player`.`id` = id)
 and ((name is null or `player`.`name` = name)
 and (ip is null or `player_ip`.`ip` = ip)
 and (steamid is null or `player_steamid`.`steamid` = steamid))
-group by `player`.`id`
+group by `player`.`id` order by `rank`.`level` desc, `player`.`time_secs` limit page, per_page
 ;
 END ;;
 DELIMITER ;
@@ -846,7 +908,7 @@ DELIMITER ;
 /*!50003 SET character_set_client  = @saved_cs_client */ ;
 /*!50003 SET character_set_results = @saved_cs_results */ ;
 /*!50003 SET collation_connection  = @saved_col_connection */ ;
-/*!50003 DROP PROCEDURE IF EXISTS `player_full2` */;
+/*!50003 DROP PROCEDURE IF EXISTS `PlayerFull2` */;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
 /*!50003 SET @saved_cs_results     = @@character_set_results */ ;
 /*!50003 SET @saved_col_connection = @@collation_connection */ ;
@@ -856,8 +918,11 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`root`@`%` PROCEDURE `player_full2`(id int unsigned, name varchar(31), ip varchar(15), steamid varchar(22))
+CREATE DEFINER=`root`@`%` PROCEDURE `PlayerFull2`(id int unsigned, name varchar(31), 
+ip varchar(15), steamid varchar(22), page int unsigned, per_page int unsigned)
 BEGIN
+set page = ((page - 1) * per_page);
+
 select `player`.`id`,
        `player`.`name`,
        `player`.`kills`,
@@ -884,7 +949,7 @@ where (id is null or `player`.`id` = id)
 and ((name is null or `player`.`name` = name)
 and (ip is null or `player_ip`.`ip` = ip)
 and (steamid is null or `player_steamid`.`steamid` = steamid))
-group by `player`.`id`
+group by `player`.`id` order by `rank`.`level` desc, `player`.`time_secs` limit page, per_page
 ;
 END ;;
 DELIMITER ;
@@ -892,7 +957,7 @@ DELIMITER ;
 /*!50003 SET character_set_client  = @saved_cs_client */ ;
 /*!50003 SET character_set_results = @saved_cs_results */ ;
 /*!50003 SET collation_connection  = @saved_col_connection */ ;
-/*!50003 DROP PROCEDURE IF EXISTS `player_full2_json` */;
+/*!50003 DROP PROCEDURE IF EXISTS `PlayerFull2Json` */;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
 /*!50003 SET @saved_cs_results     = @@character_set_results */ ;
 /*!50003 SET @saved_col_connection = @@collation_connection */ ;
@@ -902,19 +967,23 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`root`@`%` PROCEDURE `player_full2_json`(id int unsigned, name varchar(31), ip varchar(15), steamid varchar(22))
+CREATE DEFINER=`root`@`%` PROCEDURE `PlayerFull2Json`(id int unsigned, name varchar(31), 
+ip varchar(15), steamid varchar(22), page int unsigned, per_page int unsigned)
 BEGIN
-select json_object('id', `player`.`id`,
-       'name', `player`.`name`,
-       'kills', `player`.`kills`,
-       'deaths', `player`.`deaths`,
-       'gaming_time', `build_human_time`(`player`.`time_secs`),
-       'rank_name', `rank`.`name`,
-       'stars', `build_stars`(`rank`.`level`, (select count(*) from `rank`)),
-       'last_server_name', `known_server`.`name`,
-       'lastseen_datetime', DATE_FORMAT(`player`.`lastseen_datetime`, '%Y-%m-%d %H:%i:%s'),
-       'ips', ips.grouped,
-       'steamids', steamids.grouped) as json_results
+set page = ((page - 1) * per_page);
+
+with sub as (select count(*) over() as count_total, 
+	json_object('id', `player`.`id`,
+		'name', `player`.`name`,
+		'kills', `player`.`kills`,
+		'deaths', `player`.`deaths`,
+		'gaming_time', `build_human_time`(`player`.`time_secs`),
+		'rank_name', `rank`.`name`,
+		'stars', `build_stars`(`rank`.`level`, (select count(*) from `rank`)),
+		'last_server_name', `known_server`.`name`,
+		'lastseen_datetime', DATE_FORMAT(`player`.`lastseen_datetime`, '%Y-%m-%d %H:%i:%s'),
+		'ips', ips.grouped,
+		'steamids', steamids.grouped) as results
 from `player`
          left outer join `rank` on `player`.`rank_id` = `rank`.`id`
 		 left outer join `known_server` on `player`.`last_server_id` = `known_server`.`id`
@@ -930,7 +999,13 @@ where (id is null or `player`.`id` = id)
 and ((name is null or `player`.`name` = name)
 and (ip is null or `player_ip`.`ip` = ip)
 and (steamid is null or `player_steamid`.`steamid` = steamid))
-group by `player`.`id`
+group by `player`.`id` order by `rank`.`level` desc, `player`.`time_secs` limit page, per_page)
+select
+ case when sub.count_total > 0
+  then sub.results
+-- else json_object() -- bug, not working
+ end as results
+from sub
 ;
 END ;;
 DELIMITER ;
@@ -938,7 +1013,7 @@ DELIMITER ;
 /*!50003 SET character_set_client  = @saved_cs_client */ ;
 /*!50003 SET character_set_results = @saved_cs_results */ ;
 /*!50003 SET collation_connection  = @saved_col_connection */ ;
-/*!50003 DROP PROCEDURE IF EXISTS `player_full_json` */;
+/*!50003 DROP PROCEDURE IF EXISTS `PlayerFull2JsonAgg` */;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
 /*!50003 SET @saved_cs_results     = @@character_set_results */ ;
 /*!50003 SET @saved_col_connection = @@collation_connection */ ;
@@ -948,19 +1023,79 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`root`@`%` PROCEDURE `player_full_json`(id int unsigned, name varchar(31), ip varchar(15), steamid varchar(22))
+CREATE DEFINER=`root`@`%` PROCEDURE `PlayerFull2JsonAgg`(id int unsigned, name varchar(31), 
+ip varchar(15), steamid varchar(22), page int unsigned, per_page int unsigned)
 BEGIN
-select json_object('id', `player`.`id`,
-       'name', `player`.`name`,
-       'kills', `player`.`kills`,
-       'deaths', `player`.`deaths`,
-       'gaming_time', `build_human_time`(`player`.`time_secs`),
-       'rank_name', `rank`.`name`,
-       'stars', `build_stars`(`rank`.`level`, (select count(*) from `rank`)),
-       'last_server_name', `known_server`.`name`,
-       'lastseen_datetime', DATE_FORMAT(`player`.`lastseen_datetime`, '%Y-%m-%d %H:%i:%s'),
-       'ips', ips.grouped,
-       'steamids', steamids.grouped) as json_results
+set page = ((page - 1) * per_page);
+
+with sub as (select count(*) over() as count_total, 
+	json_object('id', `player`.`id`,
+		'name', `player`.`name`,
+		'kills', `player`.`kills`,
+		'deaths', `player`.`deaths`,
+		'gaming_time', `build_human_time`(`player`.`time_secs`),
+		'rank_name', `rank`.`name`,
+		'stars', `build_stars`(`rank`.`level`, (select count(*) from `rank`)),
+		'last_server_name', `known_server`.`name`,
+		'lastseen_datetime', DATE_FORMAT(`player`.`lastseen_datetime`, '%Y-%m-%d %H:%i:%s'),
+		'ips', ips.grouped,
+		'steamids', steamids.grouped) as results
+from `player`
+         left outer join `rank` on `player`.`rank_id` = `rank`.`id`
+		 left outer join `known_server` on `player`.`last_server_id` = `known_server`.`id`
+         left outer join `player_ip` on `player`.`id` = `player_ip`.`player_id`
+         left outer join `player_steamid` on `player`.`id` = `player_steamid`.`player_id`,
+         lateral (select cast(concat('[', substring_index(group_concat(distinct concat('"', `player_ip`.`ip`, '"')
+			order by `player_ip`.`reg_datetime` desc SEPARATOR ','), ',', 15), ']') as json) as `grouped`
+				from `player_ip` where `player`.`id` = `player_ip`.`player_id`) as `ips`,
+         lateral (select cast(concat('[', substring_index(group_concat(distinct concat('"', `player_steamid`.`steamid`, '"')
+			order by `player_steamid`.`reg_datetime` desc SEPARATOR ','), ',', 15), ']') as json) as `grouped`
+				from `player_steamid` where `player`.`id` = `player_steamid`.`player_id`) as `steamids`
+where (id is null or `player`.`id` = id)
+and ((name is null or `player`.`name` = name)
+and (ip is null or `player_ip`.`ip` = ip)
+and (steamid is null or `player_steamid`.`steamid` = steamid))
+group by `player`.`id` order by `rank`.`level` desc, `player`.`time_secs` limit page, per_page)
+select
+ case when sub.count_total > 0
+  then json_object('count_total', sub.count_total, 'results', json_arrayagg(sub.results))
+  else json_object('count_total', 0, 'results', cast('[]' as json))
+ end as results
+from sub
+;
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `PlayerFullJson` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_0900_ai_ci */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,NO_ENGINE_SUBSTITUTION' */ ;
+DELIMITER ;;
+CREATE DEFINER=`root`@`%` PROCEDURE `PlayerFullJson`(id int unsigned, name varchar(31), 
+ip varchar(15), steamid varchar(22), page int unsigned, per_page int unsigned)
+BEGIN
+set page = ((page - 1) * per_page);
+
+with sub as (select count(*) over() as count_total, 
+	json_object('id', `player`.`id`,
+		'name', `player`.`name`,
+		'kills', `player`.`kills`,
+		'deaths', `player`.`deaths`,
+		'gaming_time', `build_human_time`(`player`.`time_secs`),
+		'rank_name', `rank`.`name`,
+		'stars', `build_stars`(`rank`.`level`, (select count(*) from `rank`)),
+		'last_server_name', `known_server`.`name`,
+		'lastseen_datetime', DATE_FORMAT(`player`.`lastseen_datetime`, '%Y-%m-%d %H:%i:%s'),
+		'ips', ips.grouped,
+		'steamids', steamids.grouped) as results
 from `player`
          left outer join `rank` on `player`.`rank_id` = `rank`.`id`
 		 left outer join `known_server` on `player`.`last_server_id` = `known_server`.`id`
@@ -976,7 +1111,13 @@ where (id is null or `player`.`id` = id)
 and ((name is null or `player`.`name` = name)
 and (ip is null or `player_ip`.`ip` = ip)
 and (steamid is null or `player_steamid`.`steamid` = steamid))
-group by `player`.`id`
+group by `player`.`id` order by `rank`.`level` desc, `player`.`time_secs` limit page, per_page)
+select
+ case when sub.count_total > 0
+  then sub.results
+-- else json_object() -- bug, not working
+ end as results
+from sub
 ;
 END ;;
 DELIMITER ;
@@ -984,7 +1125,7 @@ DELIMITER ;
 /*!50003 SET character_set_client  = @saved_cs_client */ ;
 /*!50003 SET character_set_results = @saved_cs_results */ ;
 /*!50003 SET collation_connection  = @saved_col_connection */ ;
-/*!50003 DROP PROCEDURE IF EXISTS `player_summary` */;
+/*!50003 DROP PROCEDURE IF EXISTS `PlayerFullJsonAgg` */;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
 /*!50003 SET @saved_cs_results     = @@character_set_results */ ;
 /*!50003 SET @saved_col_connection = @@collation_connection */ ;
@@ -994,8 +1135,67 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`root`@`%` PROCEDURE `player_summary`(id int unsigned, name varchar(31), ip varchar(15), steamid varchar(22))
+CREATE DEFINER=`root`@`%` PROCEDURE `PlayerFullJsonAgg`(id int unsigned, name varchar(31), 
+ip varchar(15), steamid varchar(22), page int unsigned, per_page int unsigned)
 BEGIN
+set page = ((page - 1) * per_page);
+
+with sub as (select count(*) over() as count_total, 
+	json_object('id', `player`.`id`,
+		'name', `player`.`name`,
+		'kills', `player`.`kills`,
+		'deaths', `player`.`deaths`,
+		'gaming_time', `build_human_time`(`player`.`time_secs`),
+		'rank_name', `rank`.`name`,
+		'stars', `build_stars`(`rank`.`level`, (select count(*) from `rank`)),
+		'last_server_name', `known_server`.`name`,
+		'lastseen_datetime', DATE_FORMAT(`player`.`lastseen_datetime`, '%Y-%m-%d %H:%i:%s'),
+		'ips', ips.grouped,
+		'steamids', steamids.grouped) as results
+from `player`
+         left outer join `rank` on `player`.`rank_id` = `rank`.`id`
+		 left outer join `known_server` on `player`.`last_server_id` = `known_server`.`id`
+         left outer join `player_ip` on `player`.`id` = `player_ip`.`player_id`
+         left outer join `player_steamid` on `player`.`id` = `player_steamid`.`player_id`,
+         lateral (select substring_index(group_concat(distinct `player_ip`.`ip` 
+			order by `player_ip`.`reg_datetime` desc SEPARATOR ','), ',', 15) as `grouped`
+				from `player_ip` where `player`.`id` = `player_ip`.`player_id`) as `ips`, 
+         lateral (select substring_index(group_concat(distinct `player_steamid`.`steamid` 
+			order by `player_steamid`.`reg_datetime` desc SEPARATOR ','), ',', 15) as `grouped`
+				from `player_steamid` where `player`.`id` = `player_steamid`.`player_id`) as `steamids`
+where (id is null or `player`.`id` = id)
+and ((name is null or `player`.`name` = name)
+and (ip is null or `player_ip`.`ip` = ip)
+and (steamid is null or `player_steamid`.`steamid` = steamid))
+group by `player`.`id` order by `rank`.`level` desc, `player`.`time_secs` limit page, per_page)
+select
+ case when sub.count_total > 0
+  then json_object('count_total', sub.count_total, 'results', json_arrayagg(sub.results))
+  else json_object('count_total', 0, 'results', cast('[]' as json))
+ end as results
+from sub
+;
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `PlayerSummary` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_0900_ai_ci */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,NO_ENGINE_SUBSTITUTION' */ ;
+DELIMITER ;;
+CREATE DEFINER=`root`@`%` PROCEDURE `PlayerSummary`(id int unsigned, name varchar(31), 
+ip varchar(15), steamid varchar(22), page int unsigned, per_page int unsigned)
+BEGIN
+set page = ((page - 1) * per_page);
+
 select `player`.`id`,
        `player`.`name`,
        `rank`.`name` as `rank_name`,
@@ -1008,7 +1208,7 @@ where (id is null or `player`.`id` = id)
 and ((name is null or `player`.`name` = name)
 and (ip is null or `player_ip`.`ip` = ip)
 and (steamid is null or `player_steamid`.`steamid` = steamid))
-group by `player`.`id`
+group by `player`.`id` order by `rank`.`level` desc, `player`.`time_secs` limit page, per_page
 ;
 END ;;
 DELIMITER ;
@@ -1016,7 +1216,7 @@ DELIMITER ;
 /*!50003 SET character_set_client  = @saved_cs_client */ ;
 /*!50003 SET character_set_results = @saved_cs_results */ ;
 /*!50003 SET collation_connection  = @saved_col_connection */ ;
-/*!50003 DROP PROCEDURE IF EXISTS `player_summary_json` */;
+/*!50003 DROP PROCEDURE IF EXISTS `PlayerSummaryJson` */;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
 /*!50003 SET @saved_cs_results     = @@character_set_results */ ;
 /*!50003 SET @saved_col_connection = @@collation_connection */ ;
@@ -1026,12 +1226,16 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`root`@`%` PROCEDURE `player_summary_json`(id int unsigned, name varchar(31), ip varchar(15), steamid varchar(22))
+CREATE DEFINER=`root`@`%` PROCEDURE `PlayerSummaryJson`(id int unsigned, name varchar(31), 
+ip varchar(15), steamid varchar(22), page int unsigned, per_page int unsigned)
 BEGIN
-select json_object('id', `player`.`id`,
-       'name', `player`.`name`,
-       'rank_name', `rank`.`name`,
-       'stars', `build_stars`(`rank`.`level`, (select count(*) from `rank`))) as json_results
+set page = ((page - 1) * per_page);
+
+with sub as (select count(*) over() as count_total, 
+	json_object('id', `player`.`id`,
+		'name', `player`.`name`,
+		'rank_name', `rank`.`name`,
+		'stars', `build_stars`(`rank`.`level`, (select count(*) from `rank`))) as results
 from `player`
          left outer join `rank` on `player`.`rank_id` = `rank`.`id`
          left outer join `player_ip` on `player`.`id` = `player_ip`.`player_id`
@@ -1040,7 +1244,55 @@ where (id is null or `player`.`id` = id)
 and ((name is null or `player`.`name` = name)
 and (ip is null or `player_ip`.`ip` = ip)
 and (steamid is null or `player_steamid`.`steamid` = steamid))
-group by `player`.`id`
+group by `player`.`id` order by `rank`.`level` desc, `player`.`time_secs` limit page, per_page)
+select
+ case when sub.count_total > 0
+  then sub.results
+-- else json_object() -- bug, not working
+ end as results
+from sub
+;
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `PlayerSummaryJsonAgg` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_0900_ai_ci */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,NO_ENGINE_SUBSTITUTION' */ ;
+DELIMITER ;;
+CREATE DEFINER=`root`@`%` PROCEDURE `PlayerSummaryJsonAgg`(id int unsigned, name varchar(31), 
+ip varchar(15), steamid varchar(22), page int unsigned, per_page int unsigned)
+BEGIN
+set page = ((page - 1) * per_page);
+
+with sub as (select count(*) over() as count_total, 
+	json_object('id', `player`.`id`,
+		'name', `player`.`name`,
+		'rank_name', `rank`.`name`,
+		'stars', `build_stars`(`rank`.`level`, (select count(*) from `rank`))) as results
+from `player`
+         left outer join `rank` on `player`.`rank_id` = `rank`.`id`
+         left outer join `player_ip` on `player`.`id` = `player_ip`.`player_id`
+         left outer join `player_steamid` on `player`.`id` = `player_steamid`.`player_id`
+where (id is null or `player`.`id` = id)
+and ((name is null or `player`.`name` = name)
+and (ip is null or `player_ip`.`ip` = ip)
+and (steamid is null or `player_steamid`.`steamid` = steamid))
+group by `player`.`id` order by `rank`.`level` desc, `player`.`time_secs` limit page, per_page)
+select
+ case when sub.count_total > 0
+  then json_object('count_total', sub.count_total, 'results', json_arrayagg(sub.results))
+  else json_object('count_total', 0, 'results', cast('[]' as json))
+ end as results
+from sub
 ;
 END ;;
 DELIMITER ;
@@ -1058,4 +1310,4 @@ DELIMITER ;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2020-08-10 16:36:18
+-- Dump completed on 2020-08-11  4:16:10

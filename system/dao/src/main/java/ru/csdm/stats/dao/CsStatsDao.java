@@ -2,6 +2,8 @@ package ru.csdm.stats.dao;
 
 import lombok.extern.slf4j.Slf4j;
 import org.jooq.DSLContext;
+import org.jooq.Record1;
+import org.jooq.SelectLimitPercentStep;
 import org.jooq.UpdateSetFirstStep;
 import org.jooq.impl.DSL;
 import org.jooq.types.UInteger;
@@ -16,6 +18,7 @@ import ru.csdm.stats.common.model.tables.records.PlayerSteamidRecord;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -36,9 +39,9 @@ public class CsStatsDao {
                 .fetchInto(KnownServer.class);
     }
 
-    public void mergePlayersStats(String address, List<PlayerRecord> playerRecords,
-                                  Map<String, List<PlayerIpRecord>> ips,
-                                  Map<String, List<PlayerSteamidRecord>> steamIds) {
+    public void mergePlayersStats(String address, List<PlayerRecord> plannedPlayers,
+                                  Map<String, List<PlayerIpRecord>> plannedIpsByName,
+                                  Map<String, List<PlayerSteamidRecord>> plannedSteamIdsByName) {
         if(log.isDebugEnabled())
             log.debug("mergePlayersStats() start");
 
@@ -64,31 +67,31 @@ public class CsStatsDao {
                         .stream()
                         .collect(Collectors.toMap(KnownServer::getIpport, Function.identity()));
 
-                for (PlayerRecord playerRecord : playerRecords) {
+                for (PlayerRecord plannedPlayer : plannedPlayers) {
                     // If at the time of saving - the known server ID changed or deleted,
                     // the data of which was saved in the cache, so that there are no errors
                     // on table constrains
-                    if(!knownServerById.containsKey(playerRecord.getLastServerId())) {
+                    if(!knownServerById.containsKey(plannedPlayer.getLastServerId())) {
                         // Attempt to search known server with a changed ID
                         KnownServer knownServer = knownServerByAddress.get(address);
 
                         if(Objects.nonNull(knownServer))
-                            playerRecord.setLastServerId(knownServer.getId());
+                            plannedPlayer.setLastServerId(knownServer.getId());
                         else
-                            playerRecord.setLastServerId(null);
+                            plannedPlayer.setLastServerId(null);
                     }
 
                     Player player = transactionalDsl.select(PLAYER.ID, PLAYER.NAME)
                             .from(PLAYER)
                             // equals, not equalIgnoreCase, because `player`.`name` is CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL
-                            .where(PLAYER.NAME.eq(playerRecord.getName()))
+                            .where(PLAYER.NAME.eq(plannedPlayer.getName()))
                             .forUpdate()
                             .fetchOneInto(Player.class);
 
                     UInteger playerId;
                     if (Objects.isNull(player)) {
                         playerId = transactionalDsl.insertInto(PLAYER)
-                                .set(playerRecord)
+                                .set(plannedPlayer)
                                 .returning(PLAYER.ID)
                                 .fetchOne().getId();
                     } else {
@@ -96,67 +99,97 @@ public class CsStatsDao {
 
                         UpdateSetFirstStep<PlayerRecord> updateStep = transactionalDsl.update(PLAYER);
 
-                        if (!player.getName().equals(playerRecord.getName())) {
-                            updateStep.set(PLAYER.NAME, playerRecord.getName());
+                        if (!player.getName().equals(plannedPlayer.getName())) {
+                            updateStep.set(PLAYER.NAME, plannedPlayer.getName());
                         }
 
-                        if (playerRecord.getKills().longValue() != 0) {
-                            updateStep.set(PLAYER.KILLS, PLAYER.KILLS.plus(playerRecord.getKills()));
+                        if (plannedPlayer.getKills().longValue() != 0) {
+                            updateStep.set(PLAYER.KILLS, PLAYER.KILLS.plus(plannedPlayer.getKills()));
                         }
 
-                        if (playerRecord.getDeaths().longValue() != 0) {
-                            updateStep.set(PLAYER.DEATHS, PLAYER.DEATHS.plus(playerRecord.getDeaths()));
+                        if (plannedPlayer.getDeaths().longValue() != 0) {
+                            updateStep.set(PLAYER.DEATHS, PLAYER.DEATHS.plus(plannedPlayer.getDeaths()));
                         }
 
-                        updateStep.set(PLAYER.TIME_SECS, PLAYER.TIME_SECS.plus(playerRecord.getTimeSecs()))
-                                .set(PLAYER.LASTSEEN_DATETIME, playerRecord.getLastseenDatetime())
-                                .set(PLAYER.LAST_SERVER_ID, playerRecord.getLastServerId())
+                        updateStep.set(PLAYER.TIME_SECS, PLAYER.TIME_SECS.plus(plannedPlayer.getTimeSecs()))
+                                .set(PLAYER.LASTSEEN_DATETIME, plannedPlayer.getLastseenDatetime())
+                                .set(PLAYER.LAST_SERVER_ID, plannedPlayer.getLastServerId())
                                 .where(PLAYER.ID.eq(playerId))
                                 .execute();
                     }
 
-                    List<PlayerIpRecord> playerIpRecords = ips.get(playerRecord.getName());
-                    if(!playerIpRecords.isEmpty()) {
-                        List<String> existedIps = transactionalDsl.select(PLAYER_IP.IP)
+                    List<PlayerIpRecord> plannedIps = plannedIpsByName.get(plannedPlayer.getName());
+                    if(!plannedIps.isEmpty()) {
+                        Set<String> existedIps = transactionalDsl.select(PLAYER_IP.IP)
                                 .from(PLAYER_IP)
                                 .where(PLAYER_IP.PLAYER_ID.eq(playerId),
                                         PLAYER_IP.IP.in(
-                                                playerIpRecords.stream()
+                                                plannedIps.stream()
                                                         .map(PlayerIpRecord::getIp)
-                                                        .collect(Collectors.toList())
-                                        )).fetch(PLAYER_IP.IP);
+                                                        .collect(Collectors.toSet())
+                                        )).fetchSet(PLAYER_IP.IP);
 
-                        playerIpRecords.removeIf(pir -> existedIps.contains(pir.getIp()));
+                        plannedIps.removeIf(pir -> existedIps.contains(pir.getIp()));
                     }
 
-                    for (PlayerIpRecord playerIpRecord : playerIpRecords) {
-                        playerIpRecord.setPlayerId(playerId);
+                    for (PlayerIpRecord plannedIp : plannedIps) {
+                        plannedIp.setPlayerId(playerId);
+                    }
+                    transactionalDsl.batchInsert(plannedIps).execute();
 
-                        transactionalDsl.insertInto(PLAYER_IP)
-                            .set(playerIpRecord)
-                            .execute();
+                    int ipsCount = transactionalDsl.selectCount()
+                            .from(PLAYER_IP)
+                            .where(PLAYER_IP.PLAYER_ID.eq(playerId))
+                            .fetchOneInto(int.class);
+
+                    if(ipsCount > 15) {
+                        SelectLimitPercentStep<Record1<UInteger>> subquery = DSL.select(PLAYER_IP.ID)
+                                .from(PLAYER_IP)
+                                .where(PLAYER_IP.PLAYER_ID.eq(playerId))
+                                .orderBy(PLAYER_IP.REG_DATETIME.asc())
+                                .limit(ipsCount - 15);
+
+                        transactionalDsl.deleteFrom(PLAYER_IP)
+                                .where(PLAYER_IP.PLAYER_ID.eq(playerId),
+                                       PLAYER_IP.ID.in(DSL.select(subquery.field(PLAYER_IP.ID)).from(subquery))
+                                ).execute();
                     }
 
-                    List<PlayerSteamidRecord> playerSteamIdRecords = steamIds.get(playerRecord.getName());
-                    if(!playerSteamIdRecords.isEmpty()) {
-                        List<String> existedSteamIds = transactionalDsl.select(PLAYER_STEAMID.STEAMID)
+                    List<PlayerSteamidRecord> plannedSteamIds = plannedSteamIdsByName.get(plannedPlayer.getName());
+                    if(!plannedSteamIds.isEmpty()) {
+                        Set<String> existedSteamIds = transactionalDsl.select(PLAYER_STEAMID.STEAMID)
                                 .from(PLAYER_STEAMID)
                                 .where(PLAYER_STEAMID.PLAYER_ID.eq(playerId),
                                         PLAYER_STEAMID.STEAMID.in(
-                                                playerSteamIdRecords.stream()
+                                                plannedSteamIds.stream()
                                                         .map(PlayerSteamidRecord::getSteamid)
-                                                        .collect(Collectors.toList())
-                                        )).fetch(PLAYER_STEAMID.STEAMID);
+                                                        .collect(Collectors.toSet())
+                                        )).fetchSet(PLAYER_STEAMID.STEAMID);
 
-                        playerSteamIdRecords.removeIf(psir -> existedSteamIds.contains(psir.getSteamid()));
+                        plannedSteamIds.removeIf(psir -> existedSteamIds.contains(psir.getSteamid()));
                     }
 
-                    for (PlayerSteamidRecord playerSteamIdRecord : playerSteamIdRecords) {
-                        playerSteamIdRecord.setPlayerId(playerId);
+                    for (PlayerSteamidRecord plannedSteamId : plannedSteamIds) {
+                        plannedSteamId.setPlayerId(playerId);
+                    }
+                    transactionalDsl.batchInsert(plannedSteamIds).execute();
 
-                        transactionalDsl.insertInto(PLAYER_STEAMID)
-                                .set(playerSteamIdRecord)
-                                .execute();
+                    int steamIdsCount = transactionalDsl.selectCount()
+                            .from(PLAYER_STEAMID)
+                            .where(PLAYER_STEAMID.PLAYER_ID.eq(playerId))
+                            .fetchOneInto(int.class);
+
+                    if(steamIdsCount > 15) {
+                        SelectLimitPercentStep<Record1<UInteger>> subquery = DSL.select(PLAYER_STEAMID.ID)
+                                .from(PLAYER_STEAMID)
+                                .where(PLAYER_STEAMID.PLAYER_ID.eq(playerId))
+                                .orderBy(PLAYER_STEAMID.REG_DATETIME.asc())
+                                .limit(steamIdsCount - 15);
+
+                        transactionalDsl.deleteFrom(PLAYER_STEAMID)
+                                .where(PLAYER_STEAMID.PLAYER_ID.eq(playerId),
+                                        PLAYER_STEAMID.ID.in(DSL.select(subquery.field(PLAYER_STEAMID.ID)).from(subquery))
+                                ).execute();
                     }
                 }
             } finally {

@@ -33,10 +33,10 @@ public class PlayersSender {
     public void sendAsync(String address, List<CollectedPlayer> collectedPlayers) {
         log.info(address + " Calculating stats from " + collectedPlayers.size() + " player" + (collectedPlayers.size() > 1 ? "s" : ""));
 
-        Map<String, List<PlayerIpRecord>> ips = new HashMap<>();
-        Map<String, List<PlayerSteamidRecord>> steamIds = new HashMap<>();
+        Map<String, List<PlayerIpRecord>> plannedIpsByName = new HashMap<>();
+        Map<String, List<PlayerSteamidRecord>> plannedSteamIdsByName = new HashMap<>();
 
-        List<PlayerRecord> playerRecords = collectedPlayers
+        List<PlayerRecord> plannedPlayers = collectedPlayers
                 .stream()
                 .map(collectedPlayer -> {
                     long totalKills = 0;
@@ -56,15 +56,15 @@ public class PlayersSender {
                     if(totalKills == 0 && totalDeaths == 0 && totalTimeInSecs == 0)
                         return null;
 
-                    PlayerRecord playerRecord = new PlayerRecord();
-                    playerRecord.setName(collectedPlayer.getName());
-                    playerRecord.setKills(UInteger.valueOf(totalKills));
-                    playerRecord.setDeaths(UInteger.valueOf(totalDeaths));
-                    playerRecord.setTimeSecs(UInteger.valueOf(totalTimeInSecs));
-                    playerRecord.setLastServerId(collectedPlayer.getLastServerId());
-                    playerRecord.setLastseenDatetime(collectedPlayer.getLastseenDatetime());
+                    PlayerRecord plannedPlayer = new PlayerRecord();
+                    plannedPlayer.setName(collectedPlayer.getName());
+                    plannedPlayer.setKills(UInteger.valueOf(totalKills));
+                    plannedPlayer.setDeaths(UInteger.valueOf(totalDeaths));
+                    plannedPlayer.setTimeSecs(UInteger.valueOf(totalTimeInSecs));
+                    plannedPlayer.setLastServerId(collectedPlayer.getLastServerId());
+                    plannedPlayer.setLastseenDatetime(collectedPlayer.getLastseenDatetime());
 
-                    ips.put(collectedPlayer.getName(), collectedPlayer.getIpAddresses().stream()
+                    plannedIpsByName.put(collectedPlayer.getName(), collectedPlayer.getIpAddresses().stream()
                             .map(ip -> {
                                 PlayerIpRecord playerIpRecord = new PlayerIpRecord();
                                 playerIpRecord.setIp(ip);
@@ -72,7 +72,7 @@ public class PlayersSender {
                                 return playerIpRecord;
                             }).collect(Collectors.toList()));
 
-                    steamIds.put(collectedPlayer.getName(), collectedPlayer.getSteamIds().stream()
+                    plannedSteamIdsByName.put(collectedPlayer.getName(), collectedPlayer.getSteamIds().stream()
                             .map(steamId -> {
                                 PlayerSteamidRecord playerSteamIdRecord = new PlayerSteamidRecord();
                                 playerSteamIdRecord.setSteamid(steamId);
@@ -80,30 +80,30 @@ public class PlayersSender {
                                 return playerSteamIdRecord;
                             }).collect(Collectors.toList()));
 
-                    return playerRecord;
+                    return plannedPlayer;
                 })
                 .filter(Objects::nonNull)
                 .collect(Collectors.toList());
 
-        if(playerRecords.isEmpty()) {
-            log.info(address + " Skip flushing players stats, due empty playerRecords");
+        if(plannedPlayers.isEmpty()) {
+            log.info(address + " Skip flushing players stats, due empty plannedPlayers");
             return;
         }
 
-        log.info(address + " Flushing " + playerRecords.size() + " player" + (playerRecords.size() > 1 ? "s" : "") + " stats");
+        log.info(address + " Flushing " + plannedPlayers.size() + " player" + (plannedPlayers.size() > 1 ? "s" : "") + " stats");
 
-        for (PlayerRecord playerRecord : playerRecords) {
-            log.info(address + " " + playerRecordToString(playerRecord));
+        for (PlayerRecord plannedPlayer : plannedPlayers) {
+            log.info(address + " " + playerRecordToString(plannedPlayer));
         }
 
         try {
-            csStatsDao.mergePlayersStats(address, playerRecords, ips, steamIds);
+            csStatsDao.mergePlayersStats(address, plannedPlayers, plannedIpsByName, plannedSteamIdsByName);
 
-            log.info(address + " Successfully merged " + playerRecords.size() +
-                    " player" + (playerRecords.size() > 1 ? "s" : "") + " stats");
+            log.info(address + " Successfully merged " + plannedPlayers.size() +
+                    " player" + (plannedPlayers.size() > 1 ? "s" : "") + " stats");
         } catch (Throwable e) {
-            log.warn(address + " Failed merging " + playerRecords.size() +
-                    " player" + (playerRecords.size() > 1 ? "s" : "") + " stats", e);
+            log.warn(address + " Failed merging " + plannedPlayers.size() +
+                    " player" + (plannedPlayers.size() > 1 ? "s" : "") + " stats", e);
         }
     }
 }
