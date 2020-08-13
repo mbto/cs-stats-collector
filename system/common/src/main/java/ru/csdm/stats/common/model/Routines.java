@@ -402,6 +402,22 @@ public class Routines {
     }
 
     /**
+     * Call <code>csstats.PlayerHistoryJsonAgg</code>
+     */
+    public static void playerhistoryjsonagg(Configuration configuration, UInteger id, String name, String ip, String steamid, UInteger page, UInteger perPage, UInteger historyLimit) {
+        Playerhistoryjsonagg p = new Playerhistoryjsonagg();
+        p.setId(id);
+        p.setName_(name);
+        p.setIp(ip);
+        p.setSteamid(steamid);
+        p.setPage(page);
+        p.setPerPage(perPage);
+        p.setHistoryLimit(historyLimit);
+
+        p.execute(configuration);
+    }
+
+    /**
      * Call <code>csstats.PlayerSummary</code>
      */
     public static void playersummary(Configuration configuration, UInteger id, String name, String ip, String steamid, UInteger page, UInteger perPage) {

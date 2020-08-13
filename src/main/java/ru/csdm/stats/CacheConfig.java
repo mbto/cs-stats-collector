@@ -39,7 +39,7 @@ public class CacheConfig {
             cacheManager.setCaches(Arrays.asList(
                     new CaffeineCache("apiUsers", Caffeine.newBuilder()
                             .maximumSize(Math.max(10, apiUsersCount + 5))
-                            .expireAfterWrite(5, TimeUnit.MINUTES)
+                            .expireAfterWrite(30, TimeUnit.MINUTES)
                             .build())
             ));
         }

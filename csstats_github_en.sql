@@ -1,6 +1,6 @@
 -- MySQL dump 10.13  Distrib 8.0.20, for Win64 (x86_64)
 --
--- Host: localhost    Database: csstats_github_en
+-- Host: localhost    Database: csstats
 -- ------------------------------------------------------
 -- Server version	8.0.20
 
@@ -523,7 +523,7 @@ UNLOCK TABLES;
 commit;
 
 --
--- Dumping routines for database 'csstats_github_en'
+-- Dumping routines for database 'csstats'
 --
 /*!50003 DROP FUNCTION IF EXISTS `build_human_time` */;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
@@ -1181,6 +1181,65 @@ DELIMITER ;
 /*!50003 SET character_set_client  = @saved_cs_client */ ;
 /*!50003 SET character_set_results = @saved_cs_results */ ;
 /*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `PlayerHistoryJsonAgg` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_0900_ai_ci */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,NO_ENGINE_SUBSTITUTION' */ ;
+DELIMITER ;;
+CREATE DEFINER=`root`@`%` PROCEDURE `PlayerHistoryJsonAgg`(id int unsigned, name varchar(31), 
+ip varchar(15), steamid varchar(22), page int unsigned, per_page int unsigned, history_limit int unsigned)
+BEGIN
+set page = ((page - 1) * per_page);
+
+with sub as (select
+	count(*) over() as count_total,
+	h.player_name,
+	h.player_level,
+	json_object('player_id', h.player_id,
+				'history', json_arrayagg(json_object('history_id', h.id,
+					'reg_datetime', DATE_FORMAT(h.reg_datetime, '%Y-%m-%d %H:%i:%s'),
+					'old_level', case when r1.id is not null then json_object(r1.`level`, r1.`name`) end,
+					'new_level', case when r2.id is not null then json_object(r2.`level`, r2.`name`) end))) as player
+from (select * from
+		(select h.*, 
+				p.name as player_name, 
+                r.`level` as player_level, 
+                row_number() over(partition by h.player_id 
+					order by r.`level` desc, h.reg_datetime desc, h.id desc) rownum -- #ranking
+			from history h join player p on h.player_id = p.id
+				left outer join `rank` r on p.rank_id = r.id
+                left outer join `player_ip` pip on p.id = pip.player_id
+				left outer join `player_steamid` psid on p.id = psid.player_id
+			where (id is null or p.id = id) -- #filtering players
+				and ((name is null or p.`name` = name)
+				and (ip is null or pip.ip = ip)
+				and (steamid is null or psid.steamid = steamid))
+			group by h.id -- #grouping history
+			order by r.`level` desc, h.reg_datetime desc, h.id desc -- #sorting
+		) h
+    where h.rownum <= history_limit) h -- #limitation per group
+		left outer join `rank` r1 on h.old_rank_id = r1.id
+		left outer join `rank` r2 on h.new_rank_id = r2.id
+ group by h.player_id -- #grouping players
+limit page, per_page -- #limitation per players
+) select
+ case when sub.count_total is not null
+  then json_object('count_total', sub.count_total, 'results', json_arrayagg(json_object(sub.player_name, sub.player)) over(order by sub.player_level desc))
+--  else json_object('count_total', 0, 'results', cast('[]' as json)) -- not working
+ end as results
+from sub order by sub.player_level asc limit 1 #trick for sorting in json_arrayagg with over() =/
+;
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
 /*!50003 DROP PROCEDURE IF EXISTS `PlayerSummary` */;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
 /*!50003 SET @saved_cs_results     = @@character_set_results */ ;
@@ -1310,4 +1369,4 @@ DELIMITER ;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2020-08-11  4:16:10
+-- Dump completed on 2020-08-13 19:12:33

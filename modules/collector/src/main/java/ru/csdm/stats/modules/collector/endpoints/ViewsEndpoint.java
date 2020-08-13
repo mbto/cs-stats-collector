@@ -106,37 +106,27 @@ public class ViewsEndpoint {
     ) {
         return viewsDao.full2(id, name, ip, steamId, page, perPage);
     }
+
+    /**
+     * http://127.0.0.1:8890/stats/player/history?name=Chris Dakota
+     * http://127.0.0.1:8890/stats/player/history?name=%3A%3A%5B%40A%40%5D%3A%3A***%3A%3AMr.%5BH%5DoLm%5BS%5D%3A%3A
+     * http://127.0.0.1:8890/stats/player/history?ip=127.0.0.1&page=1&per_page=40&history_limit=40
+     * http://127.0.0.1:8890/stats/player/history?steamid=STEAM_0%3A0%3A123456
+     * http://127.0.0.1:8890/stats/player/history?id=4567&history_limit=40
+     * http://127.0.0.1:8890/stats/player/history
+     * http://127.0.0.1:8890/stats/player/history?page=1&per_page=40&history_limit=40
+     */
+    @GetMapping(value = "/player/history", produces = MediaType.APPLICATION_JSON_UTF8_VALUE)
+    @PreAuthorize("hasRole('viewer')")
+    public String history(
+            @RequestParam(required = false) Optional<Long> id,
+            @RequestParam(required = false) String name,
+            @RequestParam(required = false) String ip,
+            @RequestParam(required = false, value = "steamid") String steamId,
+            @RequestParam(required = false, defaultValue = "1") long page,
+            @RequestParam(required = false, value = "per_page", defaultValue = "40") long perPage,
+            @RequestParam(required = false, value = "history_limit", defaultValue = "40") long historyLimit
+    ) {
+        return viewsDao.history(id, name, ip, steamId, page, perPage, historyLimit);
+    }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
