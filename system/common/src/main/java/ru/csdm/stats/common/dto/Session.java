@@ -3,7 +3,6 @@ package ru.csdm.stats.common.dto;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
-import ru.csdm.stats.common.utils.SomeUtils;
 
 import java.time.LocalDateTime;
 import java.util.Objects;
@@ -34,16 +33,17 @@ public class Session {
             finished = finishedDateTime;
     }
 
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (!(o instanceof Session)) return false;
-        Session session = (Session) o;
-        return started.equals(session.started);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(started);
-    }
+/* I guess it won't be necessary at all */
+//    @Override
+//    public boolean equals(Object o) {
+//        if (this == o) return true;
+//        if (!(o instanceof Session)) return false;
+//        Session session = (Session) o;
+//        return started.equals(session.started);
+//    }
+//
+//    @Override
+//    public int hashCode() {
+//        return Objects.hash(started);
+//    }
 }

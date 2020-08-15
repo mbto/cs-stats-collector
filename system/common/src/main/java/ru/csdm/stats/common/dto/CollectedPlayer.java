@@ -3,7 +3,6 @@ package ru.csdm.stats.common.dto;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Getter;
 import lombok.Setter;
-import org.apache.commons.lang3.StringUtils;
 import org.jooq.types.UInteger;
 import ru.csdm.stats.common.utils.SomeUtils;
 
@@ -88,16 +87,19 @@ public class CollectedPlayer {
         return name;
     }
 
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (!(o instanceof CollectedPlayer)) return false;
-        CollectedPlayer collectedPlayer = (CollectedPlayer) o;
-        return StringUtils.equalsIgnoreCase(name, collectedPlayer.name);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(name);
-    }
+/* If necessary, which is unlikely, use the compare method.
+    from org.springframework.util.LinkedCaseInsensitiveMap#convertKey
+    not StringUtils.equalsIgnoreCase */
+//    @Override
+//    public boolean equals(Object o) {
+//        if (this == o) return true;
+//        if (!(o instanceof CollectedPlayer)) return false;
+//        CollectedPlayer collectedPlayer = (CollectedPlayer) o;
+//        return StringUtils.equalsIgnoreCase(name, collectedPlayer.name);
+//    }
+//
+//    @Override
+//    public int hashCode() {
+//        return Objects.hash(name);
+//    }
 }
