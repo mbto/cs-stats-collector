@@ -16,6 +16,16 @@
 /*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
 
 --
+-- Current Database: `csstats`
+--
+
+/*!40000 DROP DATABASE IF EXISTS `csstats`*/;
+
+CREATE DATABASE /*!32312 IF NOT EXISTS*/ `csstats` /*!40100 DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci */ /*!80016 DEFAULT ENCRYPTION='N' */;
+
+USE `csstats`;
+
+--
 -- Table structure for table `api_user`
 --
 
@@ -123,6 +133,7 @@ commit;
 /*!50003 SET collation_connection  = utf8mb4_0900_ai_ci */ ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,NO_ENGINE_SUBSTITUTION' */ ;
+/*!50032 DROP TRIGGER IF EXISTS known_server_BEFORE_INSERT */;
 DELIMITER ;;
 /*!50003 CREATE*/ /*!50017 DEFINER=`root`@`%`*/ /*!50003 TRIGGER `known_server_BEFORE_INSERT` BEFORE INSERT ON `known_server` FOR EACH ROW BEGIN
 	declare error_msg VARCHAR(36);
@@ -146,6 +157,7 @@ DELIMITER ;
 /*!50003 SET collation_connection  = utf8mb4_0900_ai_ci */ ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,NO_ENGINE_SUBSTITUTION' */ ;
+/*!50032 DROP TRIGGER IF EXISTS known_server_BEFORE_UPDATE */;
 DELIMITER ;;
 /*!50003 CREATE*/ /*!50017 DEFINER=`root`@`%`*/ /*!50003 TRIGGER `known_server_BEFORE_UPDATE` BEFORE UPDATE ON `known_server` FOR EACH ROW BEGIN
 	declare error_msg VARCHAR(36);
@@ -206,6 +218,7 @@ commit;
 /*!50003 SET collation_connection  = utf8mb4_0900_ai_ci */ ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,NO_ENGINE_SUBSTITUTION' */ ;
+/*!50032 DROP TRIGGER IF EXISTS player_BEFORE_INSERT */;
 DELIMITER ;;
 /*!50003 CREATE*/ /*!50017 DEFINER=`root`@`%`*/ /*!50003 TRIGGER `player_BEFORE_INSERT` BEFORE INSERT ON `player` FOR EACH ROW BEGIN
 	set NEW.rank_id = calculate_rank_id(NEW.kills, NEW.deaths, NEW.time_secs);
@@ -223,6 +236,7 @@ DELIMITER ;
 /*!50003 SET collation_connection  = utf8mb4_0900_ai_ci */ ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,NO_ENGINE_SUBSTITUTION' */ ;
+/*!50032 DROP TRIGGER IF EXISTS player_BEFORE_UPDATE */;
 DELIMITER ;;
 /*!50003 CREATE*/ /*!50017 DEFINER=`root`@`%`*/ /*!50003 TRIGGER `player_BEFORE_UPDATE` BEFORE UPDATE ON `player` FOR EACH ROW BEGIN
 	IF (!(OLD.kills <=> NEW.kills)
@@ -279,6 +293,7 @@ commit;
 /*!50003 SET collation_connection  = utf8mb4_0900_ai_ci */ ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,NO_ENGINE_SUBSTITUTION' */ ;
+/*!50032 DROP TRIGGER IF EXISTS player_ip_BEFORE_INSERT */;
 DELIMITER ;;
 /*!50003 CREATE*/ /*!50017 DEFINER=`root`@`%`*/ /*!50003 TRIGGER `player_ip_BEFORE_INSERT` BEFORE INSERT ON `player_ip` FOR EACH ROW BEGIN
 	declare error_msg VARCHAR(95);
@@ -313,6 +328,7 @@ DELIMITER ;
 /*!50003 SET collation_connection  = utf8mb4_0900_ai_ci */ ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,NO_ENGINE_SUBSTITUTION' */ ;
+/*!50032 DROP TRIGGER IF EXISTS player_ip_BEFORE_UPDATE */;
 DELIMITER ;;
 /*!50003 CREATE*/ /*!50017 DEFINER=`root`@`%`*/ /*!50003 TRIGGER `player_ip_BEFORE_UPDATE` BEFORE UPDATE ON `player_ip` FOR EACH ROW BEGIN
 	declare error_msg VARCHAR(119);
@@ -377,6 +393,7 @@ commit;
 /*!50003 SET collation_connection  = utf8mb4_0900_ai_ci */ ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,NO_ENGINE_SUBSTITUTION' */ ;
+/*!50032 DROP TRIGGER IF EXISTS player_steamid_BEFORE_INSERT */;
 DELIMITER ;;
 /*!50003 CREATE*/ /*!50017 DEFINER=`root`@`%`*/ /*!50003 TRIGGER `player_steamid_BEFORE_INSERT` BEFORE INSERT ON `player_steamid` FOR EACH ROW BEGIN
 	declare error_msg VARCHAR(107);
@@ -410,6 +427,7 @@ DELIMITER ;
 /*!50003 SET collation_connection  = utf8mb4_0900_ai_ci */ ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,NO_ENGINE_SUBSTITUTION' */ ;
+/*!50032 DROP TRIGGER IF EXISTS player_steamid_BEFORE_UPDATE */;
 DELIMITER ;;
 /*!50003 CREATE*/ /*!50017 DEFINER=`root`@`%`*/ /*!50003 TRIGGER `player_steamid_BEFORE_UPDATE` BEFORE UPDATE ON `player_steamid` FOR EACH ROW BEGIN
 	declare error_msg VARCHAR(138);
@@ -1369,4 +1387,4 @@ DELIMITER ;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2020-08-15  3:52:27
+-- Dump completed on 2020-08-15  5:10:15
