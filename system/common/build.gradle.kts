@@ -1,7 +1,7 @@
 import dev.bombinating.gradle.jooq.*
 
 dependencies {
-    jooqRuntime("mysql:mysql-connector-java:8.0.15")
+    jooqRuntime("mysql:mysql-connector-java:8.0.21")
 }
 
 plugins {

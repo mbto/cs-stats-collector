@@ -693,12 +693,12 @@ public class LogsTests {
                                 boolean ignore_bots,
                                 boolean start_session_on_action) {
 
-        List<InsertSetMoreStep<KnownServerRecord>> steps = new ArrayList<>(portEnd - portStart + 1);
+        List<InsertSetMoreStep<KnownServerRecord>> insertSteps = new ArrayList<>(portEnd - portStart + 1);
 
         for (int port = portStart; port <= portEnd; port++) {
             log.info(port + " adding port " + port);
 
-            InsertSetMoreStep<KnownServerRecord> step = DSL.insertInto(KNOWN_SERVER)
+            InsertSetMoreStep<KnownServerRecord> insertStep = DSL.insertInto(KNOWN_SERVER)
                     .set(KNOWN_SERVER.IPPORT, "127.0.0.1:" + port)
                     .set(KNOWN_SERVER.NAME, "Test Server #1")
                     .set(KNOWN_SERVER.ACTIVE, active)
@@ -706,12 +706,12 @@ public class LogsTests {
                     .set(KNOWN_SERVER.IGNORE_BOTS, ignore_bots)
                     .set(KNOWN_SERVER.START_SESSION_ON_ACTION, start_session_on_action);
 
-            steps.add(step);
+            insertSteps.add(insertStep);
         }
 
         adminDsl.transaction(config -> {
             DSLContext transactionalDsl = DSL.using(config);
-            transactionalDsl.batch(steps).execute();
+            transactionalDsl.batch(insertSteps).execute();
         });
 
         settingsService.updateSettings(false);

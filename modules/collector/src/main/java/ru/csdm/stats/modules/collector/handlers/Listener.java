@@ -9,7 +9,6 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.scheduling.annotation.Async;
-import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.stereotype.Service;
 import ru.csdm.stats.common.dto.DatagramsQueue;
 import ru.csdm.stats.common.dto.Message;
@@ -34,9 +33,6 @@ public class Listener {
     private ApplicationContext applicationContext;
 
     @Autowired
-    private ThreadPoolTaskExecutor consumerTaskExecutor;
-
-    @Autowired
     private Map<String, ServerData> availableAddresses;
     @Autowired
     private Map<String, Integer> registeredAddresses;
@@ -50,7 +46,7 @@ public class Listener {
     private int listenerPort;
 
     private DatagramSocket datagramSocket;
-    private int maxConsumers;
+    private static final int availableProcessors = Runtime.getRuntime().availableProcessors();
     private int nextQueueIdCounter;
 
     @Getter
@@ -76,14 +72,12 @@ public class Listener {
 
     @Async(APPLICATION_TASK_EXECUTOR_BEAN_NAME)
     public void launchAsync() {
-        maxConsumers = consumerTaskExecutor.getMaxPoolSize();
-
-        log.info("Activating listener at port " + listenerPort + ", max consumers: " + maxConsumers);
+        log.info("Activating listener at port " + listenerPort);
 
         try {
             datagramSocket = new DatagramSocket(listenerPort);
         } catch (Throwable e) {
-            log.warn("Failed initialize datagram socket at port " + listenerPort, e);
+            log.warn("Failed initialize listener at port " + listenerPort, e);
 
             int code = SpringApplication.exit(applicationContext, () -> 1);
             System.exit(code);
@@ -144,8 +138,8 @@ public class Listener {
 
             log.info(address + " registered with queue id: " + queueId);
 
-            if(maxConsumers > 1) {
-                if(++nextQueueIdCounter >= maxConsumers) {
+            if(availableProcessors > 1) {
+                if(++nextQueueIdCounter >= availableProcessors) {
                     nextQueueIdCounter = 0;
                 }
             }

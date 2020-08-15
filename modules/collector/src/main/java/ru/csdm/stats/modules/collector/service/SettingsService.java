@@ -4,6 +4,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.jooq.exception.DataAccessException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.stereotype.Service;
 import ru.csdm.stats.common.dto.ServerData;
 import ru.csdm.stats.common.model.tables.pojos.KnownServer;
@@ -21,6 +22,8 @@ import java.util.stream.Collectors;
 @Slf4j
 public class SettingsService {
     @Autowired
+    private ThreadPoolTaskExecutor consumerTaskExecutor;
+    @Autowired
     private Map<String, ServerData> availableAddresses;
 
     @Autowired
@@ -33,7 +36,7 @@ public class SettingsService {
         try {
             knownServers = csStatsDao.fetchKnownServers();
         } catch (DataAccessException e) {
-            log.warn("Unable to fetch servers settings from database", e);
+            log.warn("Unable to fetch known servers from database", e);
         }
 
         if(Objects.nonNull(knownServers)) {
@@ -93,6 +96,24 @@ public class SettingsService {
                         }
                     }
                 }
+            }
+
+            int countListening = (int) availableAddresses.values()
+                    .stream()
+                    .filter(ServerData::isListening)
+                    .count();
+
+            int newPoolSize = Math.max(1,
+                    Math.min(countListening, Runtime.getRuntime().availableProcessors())
+            );
+
+            int oldPoolSize = consumerTaskExecutor.getCorePoolSize();
+            if(newPoolSize > oldPoolSize) {
+                consumerTaskExecutor.setMaxPoolSize(newPoolSize);
+                consumerTaskExecutor.setCorePoolSize(newPoolSize);
+            } else if(newPoolSize < oldPoolSize) {
+                consumerTaskExecutor.setCorePoolSize(newPoolSize);
+                consumerTaskExecutor.setMaxPoolSize(newPoolSize);
             }
         }
 

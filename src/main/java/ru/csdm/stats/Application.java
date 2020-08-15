@@ -25,6 +25,10 @@ import static org.springframework.boot.autoconfigure.task.TaskExecutionAutoConfi
 @EnableAsync(proxyTargetClass = true)
 @EnableCaching
 public class Application {
+    static {
+        System.getProperties().setProperty("org.jooq.no-logo", "true");
+    }
+
     public static void main(String[] args) {
         SpringApplication.run(Application.class, args);
     }
@@ -63,18 +67,18 @@ public class Application {
         return new ConcurrentSkipListMap<>();
     }
 
+    /**
+     * Pool used, when HLDS servers sends logs by UDP to cs-stats-collector listener.
+     */
     @Bean
     @DependsOn("playersSenderTaskExecutor")
-    public ThreadPoolTaskExecutor consumerTaskExecutor(
-            @Value("${stats.consumer.pool.maxSize}") int poolMaxSize
-    ) {
+    public ThreadPoolTaskExecutor consumerTaskExecutor() {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
 
-        int poolSize = Math.max(1,
-                Math.min(poolMaxSize, Runtime.getRuntime().availableProcessors())
-        );
-        executor.setCorePoolSize(poolSize);
-        executor.setMaxPoolSize(poolSize);
+        /* Pool sizes changes automatically, depends on the number of active HLDS servers (in table csstats.known_server)
+            AND the number of processors */
+        executor.setCorePoolSize(1);
+        executor.setMaxPoolSize(1);
 
         executor.setThreadGroupName("consumers");
         executor.setThreadNamePrefix("consumer-");
@@ -86,15 +90,18 @@ public class Application {
         return executor;
     }
 
+    /**
+     * Pool used, when merging players into the csstats.* tables.
+     */
     @Bean
     @DependsOn("statsDataSource")
     public ThreadPoolTaskExecutor playersSenderTaskExecutor(
-            @Value("${stats.playersSender.pool.maxSize}") int poolMaxSize
+            @Value("${stats.datasource.maximumPoolSize}") int datasourceMaximumPoolSize
     ) {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
 
         int poolSize = Math.max(1,
-                Math.min(poolMaxSize, Runtime.getRuntime().availableProcessors())
+                Math.min(datasourceMaximumPoolSize, Runtime.getRuntime().availableProcessors())
         );
         executor.setCorePoolSize(poolSize);
         executor.setMaxPoolSize(poolSize);
@@ -110,14 +117,13 @@ public class Application {
     }
 
     @Bean(APPLICATION_TASK_EXECUTOR_BEAN_NAME)
-    public ThreadPoolTaskExecutor applicationTaskExecutor(
-            @Value("${stats.applicationTaskExecutor.pool.maxSize}") int poolMaxSize
-    ) {
+    public ThreadPoolTaskExecutor applicationTaskExecutor() {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
 
-        int poolSize = Math.max(1,
-                Math.min(poolMaxSize, Runtime.getRuntime().availableProcessors())
-        );
+        /* Reducing the number of threads in the standard spring-boot applicationTaskExecutor pool
+           from auto-configuration org.springframework.boot.autoconfigure.task.TaskExecutionAutoConfiguration
+           org.springframework.boot.autoconfigure.task.TaskExecutionProperties.Pool#maxSize = Integer.MAX_VALUE */
+        int poolSize = 2; /* 1-spring-boot framework; 2-for main listener; */
         executor.setCorePoolSize(poolSize);
         executor.setMaxPoolSize(poolSize);
 

@@ -52,7 +52,7 @@ allprojects {
         compile("org.springframework.boot:spring-boot-starter-security:$springVersion")
         compile("org.springframework.boot:spring-boot-starter-jooq:$springVersion")
         compile("org.springframework.boot:spring-boot-starter-cache:$springVersion")
-        compile("mysql:mysql-connector-java:8.0.15")
+        compile("mysql:mysql-connector-java:8.0.21")
         compile("com.github.ben-manes.caffeine:caffeine:2.6.2")
 
         compile("org.springframework.boot:spring-boot-starter-web:$springVersion")
