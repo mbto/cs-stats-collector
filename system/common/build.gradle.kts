@@ -10,10 +10,10 @@ plugins {
 }
 
 jooq {
-    version = "3.11.10" //todo: if migrates to new spring-boot version, can use new code-generator version 3.13.0
+    version = "3.11.10" //todo: if migrates to new spring-boot version, can use new code-generator version 3.13.+
     jdbc {
         driver = "com.mysql.cj.jdbc.Driver"
-        url = "jdbc:mysql://127.0.0.1:3306/?serverTimezone=Europe/Moscow"
+        url = "jdbc:mysql://127.0.0.1:3306/"
         username = "root"
         password = "root"
     }
