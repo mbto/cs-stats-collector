@@ -4,17 +4,21 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.Cache;
+import org.springframework.cache.CacheManager;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import ru.csdm.stats.common.dto.CollectedPlayer;
 import ru.csdm.stats.common.dto.DatagramsQueue;
 import ru.csdm.stats.common.dto.Message;
-import ru.csdm.stats.common.dto.Player;
 import ru.csdm.stats.common.dto.ServerData;
 import ru.csdm.stats.modules.collector.handlers.DatagramsConsumer;
 import ru.csdm.stats.modules.collector.service.SettingsService;
 
+import java.security.Principal;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -38,7 +42,7 @@ public class StatsEndpoint {
     @Autowired
     private Map<Integer, DatagramsQueue> datagramsInQueuesById;
     @Autowired
-    private Map<String, Map<String, Player>> gameSessionByAddress;
+    private Map<String, Map<String, CollectedPlayer>> gameSessionByAddress;
 
     @Autowired
     private DatagramsConsumer datagramsConsumer;
@@ -46,8 +50,16 @@ public class StatsEndpoint {
     @Autowired
     private SettingsService settingsService;
 
+    @Autowired
+    private CacheManager cacheManager;
+
     @PostMapping(value = "/flush")
-    public Map<String, String> flush() {
+    @PreAuthorize("hasRole('manager')")
+    public Map<String, String> flush(Principal principal) {
+        log.info("User '" + Optional.ofNullable(principal)
+                .map(Principal::getName)
+                .orElse("") + "' requested /stats/flush endpoint");
+
         Map<String, String> results = new LinkedHashMap<>();
         for (Map.Entry<String, ServerData> entry : availableAddresses.entrySet()) {
             String address = entry.getKey();
@@ -82,18 +94,31 @@ public class StatsEndpoint {
 
     @PostMapping(value = "/updateSettings")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void updateSettings() {
+    @PreAuthorize("hasRole('manager')")
+    public void updateSettings(Principal principal) {
+        log.info("User '" + Optional.ofNullable(principal)
+                .map(Principal::getName)
+                .orElse("") + "' requested /stats/updateSettings endpoint");
+
+        Optional.ofNullable(cacheManager.getCache("apiUsers")) /* Cache "apiUsers" existed only in "default" profile */
+                .ifPresent(Cache::clear);
+
         settingsService.updateSettings(false);
     }
 
     @GetMapping(value = "", produces = MediaType.APPLICATION_JSON_UTF8_VALUE)
-    public Map<String, Object> stats() {
+    @PreAuthorize("hasRole('manager')")
+    public Map<String, Object> stats(Principal principal) {
+        log.info("User '" + Optional.ofNullable(principal)
+                .map(Principal::getName)
+                .orElse("") + "' requested /stats/ endpoint");
+
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("addresses", Arrays.asList(
                 Pair.of("available", availableAddresses
                         .values()
                         .stream()
-                        .collect(Collectors.groupingBy(ss -> ss.getServerSetting().getIpport(),
+                        .collect(Collectors.groupingBy(ss -> ss.getKnownServer().getIpport(),
                                 LinkedHashMap::new,
                                 Collectors.toList()))
                 ),
@@ -113,7 +138,7 @@ public class StatsEndpoint {
                     DatagramsQueue value = entry.getValue();
                     return value.getDatagramsQueue()
                             .stream()
-                            .collect(Collectors.groupingBy(msg -> msg.getServerData().getServerSetting().getIpport(),
+                            .collect(Collectors.groupingBy(msg -> msg.getServerData().getKnownServer().getIpport(),
                                     LinkedHashMap::new,
                                     Collectors.mapping(Message::getPayload, Collectors.toList())));
                 }));

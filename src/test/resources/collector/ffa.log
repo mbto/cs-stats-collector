@@ -2,9 +2,9 @@ L 01/01/2020 - 23:41:05: Log file started (file "logs\L0101001.log") (game "cstr
 L 01/01/2020 - 23:41:05: Founded spawns @ T:20 CT:20
 L 01/01/2020 - 23:41:05: Server cvar "amx_nextmap" = "cs_havana"
 L 01/01/2020 - 23:41:05: Started map "de_dust2" (CRC "1159425449")
-L 01/01/2020 - 23:41:05: "Admin<1><STEAM_ID_LAN><>" entered the game
+L 01/01/2020 - 23:41:05: "Admin<1><STEAM_0:0:123456><>" entered the game
 L 01/01/2020 - 23:41:06: World triggered "Round_Start"
-L 01/01/2020 - 23:41:06: "Admin<1><STEAM_ID_LAN><>" joined team "CT"
+L 01/01/2020 - 23:41:06: "Admin<1><STEAM_0:0:123456><>" joined team "CT"
 L 01/01/2020 - 23:41:14: "FENIX2H<2><BOT><>" entered the game
 L 01/01/2020 - 23:41:14: "FENIX2H<2><BOT><>" joined team "TERRORIST"
 L 01/01/2020 - 23:41:14: World triggered "Game_Commencing"

@@ -1,7 +1,7 @@
 import org.gradle.api.JavaVersion.VERSION_1_8
 
 group = "cs-stats-collector"
-version = "1.3"
+version = "1.4"
 
 val springVersion: String by extra
 
@@ -16,7 +16,11 @@ subprojects {
 
 tasks {
     // omit version in output jar name
-    bootJar { archiveVersion.set("") }
+    bootJar {
+        archiveVersion.set("")
+        exclude("application.properties")
+        exclude("application-dev.properties")
+    }
     // ensure encoding for non-linux environment
     compileJava { options.encoding = "UTF-8" }
     compileTestJava { options.encoding = "UTF-8" }
@@ -45,8 +49,11 @@ allprojects {
 //        compile("commons-io:commons-io:2.6")
 
 //        compile("org.springframework.boot:spring-boot-actuator:$springVersion")
+        compile("org.springframework.boot:spring-boot-starter-security:$springVersion")
         compile("org.springframework.boot:spring-boot-starter-jooq:$springVersion")
-        compile("mysql:mysql-connector-java:8.0.15")
+        compile("org.springframework.boot:spring-boot-starter-cache:$springVersion")
+        compile("mysql:mysql-connector-java:8.0.21")
+        compile("com.github.ben-manes.caffeine:caffeine:2.6.2")
 
         compile("org.springframework.boot:spring-boot-starter-web:$springVersion")
     }

@@ -1,5 +1,10 @@
 package ru.csdm.stats.common.utils;
 
+import org.apache.commons.lang3.StringUtils;
+import ru.csdm.stats.common.model.tables.pojos.KnownServer;
+import ru.csdm.stats.common.model.tables.pojos.Player;
+import ru.csdm.stats.common.model.tables.records.PlayerRecord;
+
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.sql.Timestamp;
@@ -10,8 +15,53 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Matcher;
+
+import static ru.csdm.stats.common.Constants.IPADDRESS_PATTERN;
+import static ru.csdm.stats.common.Constants.STEAMID_PATTERN;
 
 public class SomeUtils {
+
+    public static String extractIp(String ipRaw) {
+        if(StringUtils.isBlank(ipRaw))
+            return null;
+
+        Matcher matcher = IPADDRESS_PATTERN.matcher(ipRaw);
+        if(matcher.find()) {
+            return matcher.group();
+        }
+
+        return null;
+    }
+
+    public static String extractSteamId(String steamIdRaw) {
+        if(StringUtils.isBlank(steamIdRaw))
+            return null;
+
+        Matcher matcher = STEAMID_PATTERN.matcher(steamIdRaw);
+        if(matcher.find()) {
+            return matcher.group();
+        }
+
+        return null;
+    }
+
+    public static String knownServerToString(KnownServer knownServer) {
+        return knownServer.getIpport() + ": ffa=" + knownServer.getFfa()
+                + ", ignore_bots=" + knownServer.getIgnoreBots()
+                + ", start_session_on_action=" + knownServer.getStartSessionOnAction();
+    }
+
+    public static String playerToString(Player player) {
+        return player.getName() + ": kills=" + player.getKills() +
+                ", deaths=" + player.getDeaths() +
+                ", time=" + player.getTimeSecs() + "s" +
+                " (" + SomeUtils.humanLifetime(player.getTimeSecs().longValue() * 1000) + ")";
+    }
+
+    public static String playerRecordToString(PlayerRecord playerRecord) {
+        return playerToString(playerRecord.into(Player.class));
+    }
 
     public static String addressToString(SocketAddress sa) {
         InetSocketAddress isa = (InetSocketAddress) sa;

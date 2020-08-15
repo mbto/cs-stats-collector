@@ -4,9 +4,11 @@ import lombok.extern.slf4j.Slf4j;
 import org.jooq.exception.DataAccessException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.stereotype.Service;
 import ru.csdm.stats.common.dto.ServerData;
-import ru.csdm.stats.common.dto.ServerSetting;
+import ru.csdm.stats.common.model.tables.pojos.KnownServer;
+import ru.csdm.stats.common.utils.SomeUtils;
 import ru.csdm.stats.dao.CsStatsDao;
 
 import java.time.LocalDateTime;
@@ -20,6 +22,8 @@ import java.util.stream.Collectors;
 @Slf4j
 public class SettingsService {
     @Autowired
+    private ThreadPoolTaskExecutor consumerTaskExecutor;
+    @Autowired
     private Map<String, ServerData> availableAddresses;
 
     @Autowired
@@ -28,19 +32,19 @@ public class SettingsService {
     public void updateSettings(boolean firstLoading) {
         log.info("Updating servers settings from database");
 
-        List<ServerSetting> serversSettings = null;
+        List<KnownServer> knownServers = null;
         try {
-            serversSettings = csStatsDao.fetchServersSettings();
+            knownServers = csStatsDao.fetchKnownServers();
         } catch (DataAccessException e) {
-            log.warn("Unable to fetch servers settings from database", e);
+            log.warn("Unable to fetch known servers from database", e);
         }
 
-        if(Objects.nonNull(serversSettings)) {
+        if(Objects.nonNull(knownServers)) {
             LocalDateTime now = LocalDateTime.now();
-            Map<String, ServerData> serversDatas = serversSettings.stream()
-                    .collect(Collectors.toMap(ServerSetting::getIpport, serverSetting -> {
+            Map<String, ServerData> serversDatas = knownServers.stream()
+                    .collect(Collectors.toMap(KnownServer::getIpport, knownServer -> {
                         ServerData serverData = new ServerData();
-                        serverData.setServerSetting(serverSetting);
+                        serverData.setKnownServer(knownServer);
                         serverData.setLastTouchDateTime(now);
                         serverData.setListening(true);
 
@@ -59,7 +63,7 @@ public class SettingsService {
                     if(!serversDatas.containsKey(address)) {
                         serverData.setListening(false);
 
-                        log.info(serverData.getServerSetting().getIpport() + " listening stopped");
+                        log.info(serverData.getKnownServer().getIpport() + " listening stopped");
                     }
                 }
             }
@@ -74,19 +78,42 @@ public class SettingsService {
                         availableAddresses.put(newAddress, newServerData);
 
                         if(!firstLoading)
-                            log.info(newServerData.getServerSetting().getIpport() + " added to listening");
+                            log.info(newServerData.getKnownServer().getIpport() + " added to listening");
                     } else {
-                        ServerSetting existedServerSetting = existedServerData.getServerSetting();
-                        ServerSetting newServerSetting = newServerData.getServerSetting();
-                        existedServerSetting.applyNewValues(newServerSetting);
+                        KnownServer existedKnownServer = existedServerData.getKnownServer();
+                        KnownServer newKnownServer = newServerData.getKnownServer();
+
+                        existedKnownServer.setId(newKnownServer.getId());
+                        existedKnownServer.setActive(newKnownServer.getActive());
+                        existedKnownServer.setFfa(newKnownServer.getFfa());
+                        existedKnownServer.setIgnoreBots(newKnownServer.getIgnoreBots());
+                        existedKnownServer.setStartSessionOnAction(newKnownServer.getStartSessionOnAction());
 
                         if(!existedServerData.isListening()) {
                             existedServerData.setListening(true);
 
-                            log.info(existedServerData.getServerSetting().getIpport() + " listening started");
+                            log.info(existedServerData.getKnownServer().getIpport() + " listening started");
                         }
                     }
                 }
+            }
+
+            int countListening = (int) availableAddresses.values()
+                    .stream()
+                    .filter(ServerData::isListening)
+                    .count();
+
+            int newPoolSize = Math.max(1,
+                    Math.min(countListening, Runtime.getRuntime().availableProcessors())
+            );
+
+            int oldPoolSize = consumerTaskExecutor.getCorePoolSize();
+            if(newPoolSize > oldPoolSize) {
+                consumerTaskExecutor.setMaxPoolSize(newPoolSize);
+                consumerTaskExecutor.setCorePoolSize(newPoolSize);
+            } else if(newPoolSize < oldPoolSize) {
+                consumerTaskExecutor.setCorePoolSize(newPoolSize);
+                consumerTaskExecutor.setMaxPoolSize(newPoolSize);
             }
         }
 
@@ -98,7 +125,7 @@ public class SettingsService {
 
             for (ServerData serverData : availableAddresses.values()) {
                 log.info(String.format("%-15s", serverData.isListening() ? "[LISTENING]" : "[NOT LISTENING]")
-                        + " " + serverData.getServerSetting().toString());
+                        + " " + SomeUtils.knownServerToString(serverData.getKnownServer()));
             }
         }
     }

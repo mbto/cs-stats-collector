@@ -9,10 +9,15 @@ import org.springframework.context.annotation.Lazy;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.stereotype.Service;
+import org.springframework.util.LinkedCaseInsensitiveMap;
 import ru.csdm.stats.common.FlushEvent;
 import ru.csdm.stats.common.GameSessionFetchMode;
 import ru.csdm.stats.common.SystemEvent;
-import ru.csdm.stats.common.dto.*;
+import ru.csdm.stats.common.dto.CollectedPlayer;
+import ru.csdm.stats.common.dto.DatagramsQueue;
+import ru.csdm.stats.common.dto.Message;
+import ru.csdm.stats.common.dto.ServerData;
+import ru.csdm.stats.common.model.tables.pojos.KnownServer;
 
 import javax.annotation.PreDestroy;
 import java.time.LocalDateTime;
@@ -36,7 +41,7 @@ public class DatagramsConsumer {
     @Autowired
     private Map<String, ServerData> availableAddresses;
     @Autowired
-    private Map<String, Map<String, Player>> gameSessionByAddress;
+    private Map<String, Map<String, CollectedPlayer>> gameSessionByAddress;
 
     @Autowired
     private PlayersSender playersSender;
@@ -105,7 +110,7 @@ public class DatagramsConsumer {
                 message = datagramsQueue.getDatagramsQueue().takeFirst();
 
                 if(debugEnabled)
-                    log.debug(message.getServerData().getServerSetting().getIpport() + " Taked message: " + message);
+                    log.debug(message.getServerData().getKnownServer().getIpport() + " Taked message: " + message);
             } catch (Throwable e) {
                 if (isDeactivated()) {
                     log.info("Deactivation detected");
@@ -117,10 +122,13 @@ public class DatagramsConsumer {
             }
 
             ServerData serverData = message.getServerData();
-            ServerSetting serverSetting = serverData.getServerSetting();
-            String address = serverSetting.getIpport();
+            KnownServer knownServer = serverData.getKnownServer();
+            String address = knownServer.getIpport();
 
             if(Objects.nonNull(message.getSystemEvent())) {
+                if(debugEnabled)
+                    log.debug(address + " Taked system event: " + message.getSystemEvent());
+
                 if(message.getSystemEvent() == SystemEvent.FLUSH_SESSIONS) {
                     flushSessions(address, null, ENDPOINT);
                 }
@@ -136,7 +144,7 @@ public class DatagramsConsumer {
             LocalDateTime dateTime = LocalDateTime.parse(msgMatcher.group("date"), MMDDYYYY_HHMMSS_PATTERN);
             serverData.setLastTouchDateTime(dateTime);
 
-/* L 01/01/2020 - 20:50:08: Started map "de_dust2" (CRC "1159425449") -> Started map "de_dust2" (CRC "1159425449") */
+            // Extract "msg" from "L 01/01/2020 - 20:50:08: msg"
             String rawMsg = msgMatcher.group("msg");
             Matcher actionMatcher = TWO.pattern.matcher(rawMsg);
 
@@ -152,24 +160,24 @@ public class DatagramsConsumer {
                     Matcher targetMatcher = PLAYER.pattern.matcher(targetRaw);
 
                     if (sourceMatcher.find() && targetMatcher.find()) {
-                        String killerName = sourceMatcher.group("name");
-                        String victimName = targetMatcher.group("name");
+                        String killerAuth = sourceMatcher.group("auth");
+                        String victimAuth = targetMatcher.group("auth");
 
-                        if(serverSetting.getIgnore_bots()) {
-                            String killerAuth = sourceMatcher.group("auth");
-                            String victimAuth = targetMatcher.group("auth");
-
+                        if(knownServer.getIgnoreBots()) {
                             if("BOT".equals(killerAuth) || "BOT".equals(victimAuth)) {
                                 if(debugEnabled) {
-                                    log.debug(address + " Skip BOT frag: " + sourceRaw + " & " + targetRaw);
+                                    log.debug(address + " Skip BOT frag: " + sourceRaw + " or " + targetRaw);
                                 }
 
                                 continue;
                             }
                         }
 
-                        if(serverSetting.getFfa()) {
-                            countFrag(address, dateTime, killerName, victimName);
+                        String killerName = sourceMatcher.group("name");
+                        String victimName = targetMatcher.group("name");
+
+                        if(knownServer.getFfa()) {
+                            countFrag(knownServer, dateTime, killerName, killerAuth, victimName, victimAuth);
                         } else {
                             String killerTeam = sourceMatcher.group("team");
                             String victimTeam = targetMatcher.group("team");
@@ -178,9 +186,11 @@ public class DatagramsConsumer {
                                     && StringUtils.isNotBlank(victimTeam)
                                     && !StringUtils.equals(killerTeam, victimTeam)
                             ) {
-                                countFrag(address, dateTime, killerName, victimName);
+                                countFrag(knownServer, dateTime, killerName, killerAuth, victimName, victimAuth);
                             }
                         }
+
+                        continue;
                     }
 
                     continue;
@@ -189,37 +199,146 @@ public class DatagramsConsumer {
                 continue;
             }
 
-            Matcher eventMatcher = FOUR.pattern.matcher(rawMsg);
+            Matcher eventMatcher = THREE.pattern.matcher(rawMsg);
+            if(eventMatcher.find()) {
+                String eventName = eventMatcher.group(2);
+
+/* L 01/01/2020 - 13:15:00: "Name1<5><STEAM_ID_LAN><>" connected, address "12.12.12.12:27005" */
+                if(eventName.equals("connected, address")) { // for players + some bots
+                    String sourceRaw = eventMatcher.group(1);
+                    Matcher sourceMatcher = PLAYER.pattern.matcher(sourceRaw);
+                    if (sourceMatcher.matches()) {
+                        String sourceAuth = sourceMatcher.group("auth");
+
+                        if (knownServer.getIgnoreBots()) {
+                            // some bots generates event "connected, address"
+                            if ("BOT".equals(sourceAuth)) {
+                                continue;
+                            }
+                        }
+
+                        String sourceName = sourceMatcher.group("name");
+                        String sourceIp = eventMatcher.group(3); // Possible values: "loopback:27005", "12.12.12.12:27005", "none"
+
+                        CollectedPlayer collectedPlayer = allocatePlayer(knownServer, sourceName, sourceAuth, dateTime);
+                        collectedPlayer.addIpAddress(sourceIp);
+
+                        if(knownServer.getStartSessionOnAction()) {
+                            continue;
+                        }
+
+                        collectedPlayer.getCurrentSession(dateTime); // activate session
+                        continue;
+                    }
+
+                    continue;
+                }
+
+/* L 01/01/2020 - 21:19:26: "Currv<29><BOT><CT>" committed suicide with "grenade" */
+                if(eventName.equals("committed suicide with")) {
+                    String sourceRaw = eventMatcher.group(1);
+                    Matcher sourceMatcher = PLAYER.pattern.matcher(sourceRaw);
+                    if (sourceMatcher.matches()) {
+                        String sourceAuth = sourceMatcher.group("auth");
+
+                        if (knownServer.getIgnoreBots()) {
+                            if ("BOT".equals(sourceAuth)) {
+                                if(debugEnabled) {
+                                    log.debug(address + " Skip BOT suicide: " + sourceRaw);
+                                }
+
+                                continue;
+                            }
+                        }
+
+                        String sourceName = sourceMatcher.group("name");
+
+                        CollectedPlayer collectedPlayer = allocatePlayer(knownServer, sourceName, sourceAuth, dateTime);
+                        collectedPlayer.upDeaths(dateTime);
+
+                        continue;
+                    }
+
+                    continue;
+                }
+
+/* L 01/01/2020 - 13:15:08: "Name5<5><STEAM_0:0:123456><CT>" changed name to "Name9" */
+                if(eventName.equals("changed name to")) {
+                    String sourceRaw = eventMatcher.group(1);
+                    Matcher sourceMatcher = PLAYER.pattern.matcher(sourceRaw);
+                    if (sourceMatcher.matches()) {
+                        String sourceAuth = sourceMatcher.group("auth");
+
+                        if (knownServer.getIgnoreBots()) {
+                            if ("BOT".equals(sourceAuth)) {
+                                if(debugEnabled) {
+                                    log.debug(address + " Skip BOT changed name: " + sourceRaw);
+                                }
+
+                                continue;
+                            }
+                        }
+
+                        String sourceName = sourceMatcher.group("name");
+                        String sourceNewName = eventMatcher.group(3);
+
+                        CollectedPlayer collectedPlayer = allocatePlayer(knownServer, sourceName, sourceAuth, dateTime);
+
+                        /* Using compare method from org.springframework.util.LinkedCaseInsensitiveMap#convertKey */
+                        if(sourceName.toLowerCase().equals(sourceNewName.toLowerCase())) {
+                            // changing name from Source to source, nothing changes
+                            collectedPlayer.setName(sourceNewName);
+                        } else {
+                            collectedPlayer.onDisconnected(dateTime);
+
+                            Set<String> ipAddresses = collectedPlayer.getIpAddresses();
+
+                            collectedPlayer = allocatePlayer(knownServer, sourceNewName, sourceAuth, dateTime);
+                            // without ru.csdm.stats.common.dto.CollectedPlayer#addIpAddress, due already extracted
+                            collectedPlayer.getIpAddresses().addAll(ipAddresses);
+
+                            if (knownServer.getStartSessionOnAction()) {
+                                continue;
+                            }
+
+                            collectedPlayer.getCurrentSession(dateTime); // activate session
+                        }
+
+                        continue;
+                    }
+
+                    continue;
+                }
+
+                continue;
+            }
+
+            eventMatcher = FOUR.pattern.matcher(rawMsg);
             if (eventMatcher.find()) {
                 String eventName = eventMatcher.group(2);
 
 /* L 01/01/2020 - 20:50:20: "timoxatw<3><BOT><>" entered the game */
-                if (eventName.equals("entered the game")) {
-                    if(serverSetting.getStart_session_on_action()) {
-                        continue;
-                    }
-
+                if (eventName.equals("entered the game")) { // for players + all bots
                     String sourceRaw = eventMatcher.group(1);
                     Matcher sourceMatcher = PLAYER.pattern.matcher(sourceRaw);
                     if (sourceMatcher.matches()) {
-                        if(serverSetting.getIgnore_bots()) {
-                            String sourceAuth = sourceMatcher.group("auth");
+                        String sourceAuth = sourceMatcher.group("auth");
 
+                        if(knownServer.getIgnoreBots()) {
                             if("BOT".equals(sourceAuth)) {
                                 continue;
                             }
                         }
 
                         String sourceName = sourceMatcher.group("name");
-                        allocatePlayer(address, sourceName)
-                                .getCurrentSession(dateTime); // activate session
+                        CollectedPlayer collectedPlayer = allocatePlayer(knownServer, sourceName, sourceAuth, dateTime);
 
-                        //address "12.12.12.12:27005"
-                        //address "loopback:27005"
-                        /*sourceMatcher = PLAYER_IP.pattern.matcher(eventName);
-                        if(sourceMatcher.find()) {
-                            String sourceIp = sourceMatcher.group();
-                        }*/
+                        if(knownServer.getStartSessionOnAction()) {
+                            continue;
+                        }
+
+                        collectedPlayer.getCurrentSession(dateTime); // activate session
+                        continue;
                     }
 
                     continue;
@@ -232,15 +351,18 @@ public class DatagramsConsumer {
                     if (sourceMatcher.find()) {
                         String sourceName = sourceMatcher.group("name");
 
-                        Map<String, Player> gameSessions = allocateGameSession(address, DONT_CREATE);
+                        Map<String, CollectedPlayer> gameSessions = allocateGameSession(address, DONT_CREATE);
 
                         if(Objects.nonNull(gameSessions)) {
-                            Player player = gameSessions.get(sourceName);
+                            CollectedPlayer collectedPlayer = gameSessions.get(sourceName);
 
-                            if (Objects.nonNull(player)) {
-                                player.onDisconnected(dateTime);
+                            if (Objects.nonNull(collectedPlayer)) {
+                                collectedPlayer.onDisconnected(dateTime);
+                                collectedPlayer.setLastseenDatetime(dateTime);
                             }
                         }
+
+                        continue;
                     }
 
                     continue;
@@ -254,13 +376,15 @@ public class DatagramsConsumer {
                 String eventName = eventMatcher.group(1);
 
 /* L 01/01/2020 - 20:50:08: Started map "de_dust2" (CRC "1159425449") */
-                if (eventName.equals("Started map")) {
+                if(eventName.equals("Started map")) {
                     flushSessions(address, dateTime, NEW_GAME_MAP);
                     continue;
                 }
 
                 continue;
             }
+
+            // Did not match patterns:
 
 /* L 01/01/2020 - 20:52:15: Server shutdown */
             if(rawMsg.equals("Server shutdown")) {
@@ -275,23 +399,26 @@ public class DatagramsConsumer {
         log.info("Deactivated");
     }
 
-    private void countFrag(String address, LocalDateTime dateTime, String killerName, String victimName) {
-        Player killer = allocatePlayer(address, killerName);
+    private void countFrag(KnownServer knownServer,
+                           LocalDateTime dateTime,
+                           String killerName, String killerAuth,
+                           String victimName, String victimAuth) {
+        CollectedPlayer killer = allocatePlayer(knownServer, killerName, killerAuth, dateTime);
         killer.upKills(dateTime);
 
-        Player victim = allocatePlayer(address, victimName);
+        CollectedPlayer victim = allocatePlayer(knownServer, victimName, victimAuth, dateTime);
         victim.upDeaths(dateTime);
     }
 
-    private Map<String, Player> allocateGameSession(String address, GameSessionFetchMode gsFetchMode) {
+    private Map<String, CollectedPlayer> allocateGameSession(String address, GameSessionFetchMode gsFetchMode) {
         if(gsFetchMode == DONT_CREATE) {
             return gameSessionByAddress.get(address);
         }
         else if(gsFetchMode == CREATE_IF_NULL) {
-            Map<String, Player> gameSessions = gameSessionByAddress.get(address);
+            Map<String, CollectedPlayer> gameSessions = gameSessionByAddress.get(address);
 
             if (Objects.isNull(gameSessions)) {
-                gameSessions = new LinkedHashMap<>();
+                gameSessions = new LinkedCaseInsensitiveMap<>();
                 gameSessionByAddress.put(address, gameSessions);
 
                 log.info(address + " Created gameSessions container");
@@ -300,8 +427,8 @@ public class DatagramsConsumer {
             return gameSessions;
         }
         else if(gsFetchMode == REPLACE_IF_EXISTS) {
-            Map<String, Player> oldGameSessions = gameSessionByAddress
-                    .replace(address, new LinkedHashMap<>());
+            Map<String, CollectedPlayer> oldGameSessions = gameSessionByAddress
+                    .replace(address, new LinkedCaseInsensitiveMap<>());
 
             if(Objects.nonNull(oldGameSessions))
                 log.info(address + " Recreated gameSessions container");
@@ -315,23 +442,37 @@ public class DatagramsConsumer {
         throw new IllegalStateException("Allocation mode '" + gsFetchMode + "' not chosen");
     }
 
-    private Player allocatePlayer(String address, String name) {
-        Map<String, Player> gameSessions = allocateGameSession(address, CREATE_IF_NULL);
+    private CollectedPlayer allocatePlayer(KnownServer knownServer, String name,
+                                           String steamId, LocalDateTime dateTime) {
+        String address = knownServer.getIpport();
+        Map<String, CollectedPlayer> gameSessions = allocateGameSession(address, CREATE_IF_NULL);
 
-        Player player = gameSessions.get(name);
+        CollectedPlayer collectedPlayer = gameSessions.get(name);
 
-        if (Objects.isNull(player)) {
-            player = new Player(name);
-            gameSessions.put(name, player);
+        if (Objects.isNull(collectedPlayer)) {
+            collectedPlayer = new CollectedPlayer(name);
+            gameSessions.put(name, collectedPlayer);
 
-            log.info(address + " Founded player: " + player);
+            log.info(address + " Founded player: " + collectedPlayer);
         }
 
-        return player;
+        // I will try adding steamId to the HashSet on every call, since the cs-stats-collector can be
+        // started later, after the players have joined. If this happens, the players' IPs will remain
+        // unknown, but at least steamId will remain.
+        collectedPlayer.addSteamId(steamId);
+
+        // Set on every call, if the known server ID suddenly changes (for example, when
+        // calling POST /updateSettings and changing the known server ID, but it is unlikely
+        // that you want to change the known server ID at runtime)
+        collectedPlayer.setLastServerId(knownServer.getId());
+
+        collectedPlayer.setLastseenDatetime(dateTime);
+
+        return collectedPlayer;
     }
 
     private void flushSessions(String address, LocalDateTime dateTime, FlushEvent fromEvent) {
-        Map<String, Player> gameSessions = allocateGameSession(address,
+        Map<String, CollectedPlayer> gameSessions = allocateGameSession(address,
                 fromEvent != PRE_DESTROY_LIFECYCLE ? REPLACE_IF_EXISTS : REMOVE);
 
         if(Objects.isNull(gameSessions)) {
@@ -339,11 +480,11 @@ public class DatagramsConsumer {
             return;
         }
 
-        List<Player> players = new ArrayList<>(gameSessions.values());
+        List<CollectedPlayer> collectedPlayers = new ArrayList<>(gameSessions.values());
 
-        int playersSize = players.size();
+        int playersSize = collectedPlayers.size();
         if (playersSize == 0) {
-            log.info(address + " Skip flushing players, due empty players container. " + fromEvent);
+            log.info(address + " Skip flushing players, due empty collectedPlayers container. " + fromEvent);
             return;
         }
 
@@ -354,10 +495,10 @@ public class DatagramsConsumer {
             dateTime = availableAddresses.get(address).getLastTouchDateTime();
         }
 
-        for (Player player : players) {
-            player.prepareToFlushSessions(dateTime);
+        for (CollectedPlayer collectedPlayer : collectedPlayers) {
+            collectedPlayer.prepareToFlushSessions(dateTime);
         }
 
-        playersSender.sendAsync(address, players);
+        playersSender.sendAsync(address, collectedPlayers);
     }
 }
