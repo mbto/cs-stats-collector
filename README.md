@@ -4,6 +4,7 @@
 * `Merging players statistics to MySQL on 'next map', 'shutdown server' events, or manually;`
 * `Automatic calculation players activity and assignment one of 56 ENG/RUS ranks;`
 * `Provides SQL-routines and REST api for view players statistics & module management;`
+* `cs-stats-collector works in multi-threaded mode, using available processors and queues;`
 
 #### **Requirements:**
 * `Java 8+`
