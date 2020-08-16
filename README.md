@@ -2,7 +2,7 @@
 * `Consuming game logs from HLDS (CS 1.6) servers at UDP port 8888;`
 * `Collecting & caching players statistics (kills, deaths, online at server, IPs, Steam IDs) by player name;`
 * `Merging players statistics to MySQL on 'next map', 'shutdown server' events, or manually;`
-* `Automatic calculation players activity and assignment one of 56 ENG/RUS ranks;`
+* `Automatic calculation players activity and assignment one of 56 ENG/RUS ranks, history keeping;`
 * `Provides SQL-routines and REST api for view players statistics & module management;`
 * `cs-stats-collector works in multi-threaded mode, using available processors and queues;`
 
