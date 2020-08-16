@@ -1,8 +1,9 @@
 #### **Features:**
-* `Consuming game logs from counter-strike 1.6 dedicated-servers at UDP port 8888;`
-* `Collecting & caching players statistics (kills, deaths, online at server in seconds) by player name;`
-* `Merging players statistics to MySQL database on 'next map', 'shutdown server' events, or manually;`
-* `Provides REST-api for management;`
+* `Consuming game logs from HLDS (CS 1.6) servers at UDP port 8888;`
+* `Collecting & caching players statistics (kills, deaths, online at server, IPs, Steam IDs) by player name;`
+* `Merging players statistics to MySQL on 'next map', 'shutdown server' events, or manually;`
+* `Automatic calculation players activity and assignment one of 56 ENG/RUS ranks;`
+* `Provides SQL-routines and REST api for view players statistics & module management;`
 
 #### **Requirements:**
 * `Java 8+`
