@@ -56,9 +56,9 @@ public class StatsEndpoint {
     @PostMapping(value = "/flush")
     @PreAuthorize("hasRole('manager')")
     public Map<String, String> flush(Principal principal) {
-        log.info("User '" + Optional.ofNullable(principal)
+        log.info("Manager '" + Optional.ofNullable(principal)
                 .map(Principal::getName)
-                .orElse("") + "' requested /stats/flush endpoint");
+                .orElse("") + "' requested /stats/flush");
 
         Map<String, String> results = new LinkedHashMap<>();
         for (Map.Entry<String, ServerData> entry : availableAddresses.entrySet()) {
@@ -96,9 +96,9 @@ public class StatsEndpoint {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @PreAuthorize("hasRole('manager')")
     public void updateSettings(Principal principal) {
-        log.info("User '" + Optional.ofNullable(principal)
+        log.info("Manager '" + Optional.ofNullable(principal)
                 .map(Principal::getName)
-                .orElse("") + "' requested /stats/updateSettings endpoint");
+                .orElse("") + "' requested /stats/updateSettings");
 
         Optional.ofNullable(cacheManager.getCache("apiUsers")) /* Cache "apiUsers" existed only in "default" profile */
                 .ifPresent(Cache::clear);
@@ -109,19 +109,14 @@ public class StatsEndpoint {
     @GetMapping(value = "", produces = MediaType.APPLICATION_JSON_UTF8_VALUE)
     @PreAuthorize("hasRole('manager')")
     public Map<String, Object> stats(Principal principal) {
-        log.info("User '" + Optional.ofNullable(principal)
+        log.info("Manager '" + Optional.ofNullable(principal)
                 .map(Principal::getName)
-                .orElse("") + "' requested /stats/ endpoint");
+                .orElse("") + "' requested /stats/");
 
         Map<String, Object> result = new LinkedHashMap<>();
+
         result.put("addresses", Arrays.asList(
-                Pair.of("available", availableAddresses
-                        .values()
-                        .stream()
-                        .collect(Collectors.groupingBy(ss -> ss.getKnownServer().getIpport(),
-                                LinkedHashMap::new,
-                                Collectors.toList()))
-                ),
+                Pair.of("available", availableAddresses),
                 Pair.of("registered with queue id", registeredAddresses)
         ));
 
@@ -138,7 +133,7 @@ public class StatsEndpoint {
                     DatagramsQueue value = entry.getValue();
                     return value.getDatagramsQueue()
                             .stream()
-                            .collect(Collectors.groupingBy(msg -> msg.getServerData().getKnownServer().getIpport(),
+                            .collect(Collectors.groupingBy(message -> message.getServerData().getKnownServer().getIpport(),
                                     LinkedHashMap::new,
                                     Collectors.mapping(Message::getPayload, Collectors.toList())));
                 }));

@@ -5,3 +5,6 @@ out
 build/
 out/
 *.iml
+/Examples.txt
+/Install and launch.txt
+/Questions.txt

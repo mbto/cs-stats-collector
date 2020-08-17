@@ -84,6 +84,8 @@ public class SettingsService {
                         KnownServer newKnownServer = newServerData.getKnownServer();
 
                         existedKnownServer.setId(newKnownServer.getId());
+                        existedKnownServer.setIpport(newKnownServer.getIpport());
+                        existedKnownServer.setName(newKnownServer.getName());
                         existedKnownServer.setActive(newKnownServer.getActive());
                         existedKnownServer.setFfa(newKnownServer.getFfa());
                         existedKnownServer.setIgnoreBots(newKnownServer.getIgnoreBots());

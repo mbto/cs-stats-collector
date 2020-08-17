@@ -83,6 +83,7 @@ public class LogsTests {
 
     @Test
     public void truncateOnly() {
+        truncateTables();
     }
 
     @Test
@@ -696,10 +697,11 @@ public class LogsTests {
         List<InsertSetMoreStep<KnownServerRecord>> insertSteps = new ArrayList<>(portEnd - portStart + 1);
 
         for (int port = portStart; port <= portEnd; port++) {
-            log.info(port + " adding port " + port);
+            String ipport = "127.0.0.1:" + port;
+            log.info("Add address " + ipport);
 
             InsertSetMoreStep<KnownServerRecord> insertStep = DSL.insertInto(KNOWN_SERVER)
-                    .set(KNOWN_SERVER.IPPORT, "127.0.0.1:" + port)
+                    .set(KNOWN_SERVER.IPPORT, ipport)
                     .set(KNOWN_SERVER.NAME, "Test Server #1")
                     .set(KNOWN_SERVER.ACTIVE, active)
                     .set(KNOWN_SERVER.FFA, ffa)
