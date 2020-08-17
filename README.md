@@ -3,7 +3,7 @@
 * `Collecting & caching players statistics (kills, deaths, online at server, IPs, Steam IDs) by player name;`
 * `Merging players statistics to MySQL on 'next map', 'shutdown server' events, or manually;`
 * `Automatic calculation players activity and assignment one of 56 ENG/RUS ranks, history keeping;`
-* `Provides SQL-routines-api and REST-api for view players statistics & module management with basic authentication;`
+* `Provides SQL-routines-api and REST-api for view players statistics & daemon management with basic authentication;`
 * `cs-stats-collector works in multi-threaded mode, using available processors and queues;`
 
 #### **Requirements:**
