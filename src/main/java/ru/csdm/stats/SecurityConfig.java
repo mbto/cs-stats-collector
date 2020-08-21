@@ -13,7 +13,7 @@ import org.springframework.security.config.annotation.web.configuration.WebSecur
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import ru.csdm.stats.service.ApiUserService;
+import ru.csdm.stats.service.ManagerService;
 
 @Profile("default")
 @Configuration
@@ -21,7 +21,7 @@ import ru.csdm.stats.service.ApiUserService;
 @EnableGlobalMethodSecurity(prePostEnabled = true)
 public class SecurityConfig extends WebSecurityConfigurerAdapter {
     @Autowired
-    private ApiUserService apiUserService;
+    private ManagerService managerService;
 
     @Override
     protected void configure(HttpSecurity http) throws Exception {
@@ -49,7 +49,7 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
 
     @Autowired
     public void configureGlobal(AuthenticationManagerBuilder auth) throws Exception {
-        auth.userDetailsService(apiUserService)
+        auth.userDetailsService(managerService)
                 .passwordEncoder(bcryptPasswordEncoder());
     }
 }

@@ -14,7 +14,7 @@ import org.springframework.core.env.Environment;
 import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
 
-import static ru.csdm.stats.common.model.tables.ApiUser.API_USER;
+import static ru.csdm.stats.common.model.collector.tables.Manager.MANAGER;
 
 @Configuration
 @Slf4j
@@ -23,7 +23,7 @@ public class CacheConfig {
     private Environment environment;
 
     @Autowired
-    private DSLContext statsDsl;
+    private DSLContext collectorDsl;
 
     @Bean
     public CacheManager cacheManager() {
@@ -34,11 +34,11 @@ public class CacheConfig {
         } else {
             log.info("Activating caffeine cache");
 
-            int apiUsersCount = statsDsl.fetchCount(API_USER);
+            int managersCount = collectorDsl.fetchCount(MANAGER);
 
             cacheManager.setCaches(Arrays.asList(
-                    new CaffeineCache("apiUsers", Caffeine.newBuilder()
-                            .maximumSize(Math.max(10, apiUsersCount + 5))
+                    new CaffeineCache("managers", Caffeine.newBuilder()
+                            .maximumSize(Math.max(10, managersCount + 5))
                             .expireAfterWrite(30, TimeUnit.MINUTES)
                             .build())
             ));

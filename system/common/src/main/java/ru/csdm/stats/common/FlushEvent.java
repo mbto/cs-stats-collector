@@ -2,6 +2,7 @@ package ru.csdm.stats.common;
 
 public enum FlushEvent {
     ENDPOINT("/flush endpoint"),
+    SCHEDULER("/flush scheduler"),
     PRE_DESTROY_LIFECYCLE("PreDestroy lifecycle"),
     NEW_GAME_MAP("started new game map"),
     SHUTDOWN_GAME_SERVER("shutdown game server");

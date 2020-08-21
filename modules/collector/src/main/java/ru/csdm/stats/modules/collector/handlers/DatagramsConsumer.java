@@ -17,7 +17,7 @@ import ru.csdm.stats.common.dto.CollectedPlayer;
 import ru.csdm.stats.common.dto.DatagramsQueue;
 import ru.csdm.stats.common.dto.Message;
 import ru.csdm.stats.common.dto.ServerData;
-import ru.csdm.stats.common.model.tables.pojos.KnownServer;
+import ru.csdm.stats.common.model.collector.tables.pojos.KnownServer;
 
 import javax.annotation.PreDestroy;
 import java.time.LocalDateTime;
@@ -129,8 +129,10 @@ public class DatagramsConsumer {
                 if(debugEnabled)
                     log.debug(address + " Taked system event: " + message.getSystemEvent());
 
-                if(message.getSystemEvent() == SystemEvent.FLUSH_SESSIONS) {
+                if(message.getSystemEvent() == SystemEvent.FLUSH_FROM_ENDPOINT) {
                     flushSessions(address, null, ENDPOINT);
+                } else if(message.getSystemEvent() == SystemEvent.FLUSH_FROM_SCHEDULER) {
+                    flushSessions(address, null, SCHEDULER);
                 }
 
                 continue;
@@ -461,10 +463,9 @@ public class DatagramsConsumer {
         // unknown, but at least steamId will remain.
         collectedPlayer.addSteamId(steamId);
 
-        // Set on every call, if the known server ID suddenly changes (for example, when
-        // calling POST /updateSettings and changing the known server ID, but it is unlikely
-        // that you want to change the known server ID at runtime)
-        collectedPlayer.setLastServerId(knownServer.getId());
+        // Set on every call, if the known server name suddenly changes (for example, when
+        // changing the known server name in `collector`.`known_server` and calling POST /updateSettings )
+        collectedPlayer.setLastServerName(knownServer.getName());
 
         collectedPlayer.setLastseenDatetime(dateTime);
 
@@ -473,7 +474,7 @@ public class DatagramsConsumer {
 
     private void flushSessions(String address, LocalDateTime dateTime, FlushEvent fromEvent) {
         Map<String, CollectedPlayer> gameSessions = allocateGameSession(address,
-                fromEvent != PRE_DESTROY_LIFECYCLE ? REPLACE_IF_EXISTS : REMOVE);
+                fromEvent == PRE_DESTROY_LIFECYCLE ? REMOVE : REPLACE_IF_EXISTS);
 
         if(Objects.isNull(gameSessions)) {
             log.info(address + " Skip flushing players, due gameSessions container not exists. " + fromEvent);
@@ -491,9 +492,13 @@ public class DatagramsConsumer {
         log.info(address + " Prepared " + playersSize +
                 " player" + (playersSize > 1 ? "s" : "") + " to flush. " + fromEvent);
 
+        ServerData serverData = availableAddresses.get(address);
+
         if(Objects.isNull(dateTime)) {
-            dateTime = availableAddresses.get(address).getLastTouchDateTime();
+            dateTime = serverData.getLastTouchDateTime();
         }
+
+        serverData.setNextFlushDateTime(dateTime.plusHours(1));
 
         for (CollectedPlayer collectedPlayer : collectedPlayers) {
             collectedPlayer.prepareToFlushSessions(dateTime);

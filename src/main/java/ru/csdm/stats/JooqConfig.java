@@ -3,54 +3,30 @@ package ru.csdm.stats;
 import com.zaxxer.hikari.HikariDataSource;
 import org.jooq.DSLContext;
 import org.jooq.SQLDialect;
-import org.jooq.impl.DataSourceConnectionProvider;
-import org.jooq.impl.DefaultConfiguration;
-import org.jooq.impl.DefaultDSLContext;
-import org.jooq.impl.DefaultExecuteListenerProvider;
-import org.springframework.boot.autoconfigure.jooq.JooqExceptionTranslator;
-import org.springframework.boot.autoconfigure.jooq.SpringTransactionProvider;
 import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.boot.jdbc.DataSourceBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.DependsOn;
 import org.springframework.context.annotation.Lazy;
-import org.springframework.jdbc.datasource.DataSourceTransactionManager;
-import org.springframework.jdbc.datasource.TransactionAwareDataSourceProxy;
-
-import javax.sql.DataSource;
 
 import static org.springframework.boot.autoconfigure.task.TaskExecutionAutoConfiguration.APPLICATION_TASK_EXECUTOR_BEAN_NAME;
+import static ru.csdm.stats.common.utils.SomeUtils.buildHikariDataSource;
+import static ru.csdm.stats.common.utils.SomeUtils.configJooqContext;
 
 
 @Configuration
 public class JooqConfig {
     @Bean
     @Lazy(false)
-    @DependsOn("statsDataSource")
-    DSLContext statsDsl(HikariDataSource statsDataSource) {
-        return configJooqContext(statsDataSource, SQLDialect.MYSQL);
+    @DependsOn("collectorDataSource")
+    DSLContext collectorDsl(HikariDataSource collectorDataSource) {
+        return configJooqContext(collectorDataSource, SQLDialect.MYSQL, null);
     }
 
     @Bean
-    @ConfigurationProperties("stats.datasource")
+    @ConfigurationProperties("collector.datasource")
     @DependsOn(APPLICATION_TASK_EXECUTOR_BEAN_NAME)
-    public HikariDataSource statsDataSource() {
-        HikariDataSource ds = DataSourceBuilder.create()
-                .driverClassName("com.mysql.cj.jdbc.Driver")
-                .type(HikariDataSource.class)
-                .build();
-
-        ds.setPoolName("stats-pool");
-        return ds;
-    }
-
-    private static DefaultDSLContext configJooqContext(DataSource dataSource, SQLDialect dialect) {
-        DefaultConfiguration config = new DefaultConfiguration();
-        config.set(new DataSourceConnectionProvider(new TransactionAwareDataSourceProxy(dataSource)));
-        config.set(new DefaultExecuteListenerProvider(new JooqExceptionTranslator()));
-        config.set(new SpringTransactionProvider(new DataSourceTransactionManager(dataSource)));
-        config.setSQLDialect(dialect);
-        return new DefaultDSLContext(config);
+    public HikariDataSource collectorDataSource() {
+        return buildHikariDataSource("collector-pool");
     }
 }

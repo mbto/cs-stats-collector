@@ -1,4 +1,5 @@
 import dev.bombinating.gradle.jooq.*
+import org.jooq.meta.jaxb.SchemaMappingType
 
 dependencies {
     jooqRuntime("mysql:mysql-connector-java:8.0.21")
@@ -20,7 +21,15 @@ jooq {
     generator {
         database {
             name = "org.jooq.meta.mysql.MySQLDatabase"
-            inputSchema = "csstats"
+
+            val collector = SchemaMappingType();
+            collector.inputSchema = "collector"
+
+            val csstats = SchemaMappingType();
+            csstats.inputSchema = "csstats"
+
+            schemata = listOf(collector, csstats)
+
             forcedTypes {
                 forcedType {
                     name = "BOOLEAN"
@@ -36,7 +45,7 @@ jooq {
         }
         generate {
             isDaos = false
-            isRoutines = true
+            isRoutines = false
             isPojos = true
             isPojosEqualsAndHashCode = true
             isValidationAnnotations = true

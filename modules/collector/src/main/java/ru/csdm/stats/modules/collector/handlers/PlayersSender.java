@@ -8,9 +8,9 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import ru.csdm.stats.common.dto.CollectedPlayer;
 import ru.csdm.stats.common.dto.Session;
-import ru.csdm.stats.common.model.tables.records.PlayerIpRecord;
-import ru.csdm.stats.common.model.tables.records.PlayerRecord;
-import ru.csdm.stats.common.model.tables.records.PlayerSteamidRecord;
+import ru.csdm.stats.common.model.csstats.tables.records.PlayerIpRecord;
+import ru.csdm.stats.common.model.csstats.tables.records.PlayerRecord;
+import ru.csdm.stats.common.model.csstats.tables.records.PlayerSteamidRecord;
 import ru.csdm.stats.dao.CsStatsDao;
 
 import java.time.Duration;
@@ -61,8 +61,8 @@ public class PlayersSender {
                     plannedPlayer.setKills(UInteger.valueOf(totalKills));
                     plannedPlayer.setDeaths(UInteger.valueOf(totalDeaths));
                     plannedPlayer.setTimeSecs(UInteger.valueOf(totalTimeInSecs));
-                    plannedPlayer.setLastServerId(collectedPlayer.getLastServerId());
                     plannedPlayer.setLastseenDatetime(collectedPlayer.getLastseenDatetime());
+                    plannedPlayer.setLastServerName(collectedPlayer.getLastServerName());
 
                     plannedIpsByName.put(collectedPlayer.getName(), collectedPlayer.getIpAddresses().stream()
                             .map(ip -> {

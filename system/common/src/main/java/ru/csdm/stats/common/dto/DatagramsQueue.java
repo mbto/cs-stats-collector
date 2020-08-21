@@ -10,5 +10,5 @@ import java.util.concurrent.LinkedBlockingDeque;
  */
 public class DatagramsQueue {
     @Getter
-    private LinkedBlockingDeque<Message> datagramsQueue = new LinkedBlockingDeque<>();
+    private final LinkedBlockingDeque<Message> datagramsQueue = new LinkedBlockingDeque<>();
 }

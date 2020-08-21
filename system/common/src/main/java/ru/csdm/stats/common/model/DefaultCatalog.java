@@ -4,12 +4,14 @@
 package ru.csdm.stats.common.model;
 
 
+import org.jooq.Schema;
+import org.jooq.impl.CatalogImpl;
+import ru.csdm.stats.common.model.collector.Collector;
+import ru.csdm.stats.common.model.csstats.Csstats;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-
-import org.jooq.Schema;
-import org.jooq.impl.CatalogImpl;
 
 
 /**
@@ -18,7 +20,7 @@ import org.jooq.impl.CatalogImpl;
 @SuppressWarnings({ "all", "unchecked", "rawtypes" })
 public class DefaultCatalog extends CatalogImpl {
 
-    private static final long serialVersionUID = -2105344248;
+    private static final long serialVersionUID = -75163028;
 
     /**
      * The reference instance of <code></code>
@@ -28,7 +30,12 @@ public class DefaultCatalog extends CatalogImpl {
     /**
      * The schema <code>csstats</code>.
      */
-    public final Csstats CSSTATS = ru.csdm.stats.common.model.Csstats.CSSTATS;
+    public final Csstats CSSTATS = ru.csdm.stats.common.model.csstats.Csstats.CSSTATS;
+
+    /**
+     * The schema <code>collector</code>.
+     */
+    public final Collector COLLECTOR = ru.csdm.stats.common.model.collector.Collector.COLLECTOR;
 
     /**
      * No further instances allowed
@@ -46,6 +53,7 @@ public class DefaultCatalog extends CatalogImpl {
 
     private final List<Schema> getSchemas0() {
         return Arrays.<Schema>asList(
-            Csstats.CSSTATS);
+            Csstats.CSSTATS,
+            Collector.COLLECTOR);
     }
 }

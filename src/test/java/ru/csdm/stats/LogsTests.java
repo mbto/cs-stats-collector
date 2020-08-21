@@ -17,11 +17,11 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.DependsOn;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
-import ru.csdm.stats.common.model.tables.pojos.Player;
-import ru.csdm.stats.common.model.tables.pojos.PlayerIp;
-import ru.csdm.stats.common.model.tables.pojos.PlayerSteamid;
-import ru.csdm.stats.common.model.tables.records.KnownServerRecord;
-import ru.csdm.stats.modules.collector.endpoints.StatsEndpoint;
+import ru.csdm.stats.common.model.collector.tables.records.KnownServerRecord;
+import ru.csdm.stats.common.model.csstats.tables.pojos.Player;
+import ru.csdm.stats.common.model.csstats.tables.pojos.PlayerIp;
+import ru.csdm.stats.common.model.csstats.tables.pojos.PlayerSteamid;
+import ru.csdm.stats.modules.collector.endpoints.CollectorEndpoint;
 import ru.csdm.stats.modules.collector.service.SettingsService;
 
 import java.io.BufferedReader;
@@ -41,11 +41,11 @@ import java.util.stream.Stream;
 import static org.junit.Assert.assertEquals;
 import static org.springframework.boot.autoconfigure.task.TaskExecutionAutoConfiguration.APPLICATION_TASK_EXECUTOR_BEAN_NAME;
 import static ru.csdm.stats.common.Constants.YYYYMMDD_HHMMSS_PATTERN;
-import static ru.csdm.stats.common.model.tables.History.HISTORY;
-import static ru.csdm.stats.common.model.tables.KnownServer.KNOWN_SERVER;
-import static ru.csdm.stats.common.model.tables.Player.PLAYER;
-import static ru.csdm.stats.common.model.tables.PlayerIp.PLAYER_IP;
-import static ru.csdm.stats.common.model.tables.PlayerSteamid.PLAYER_STEAMID;
+import static ru.csdm.stats.common.model.collector.tables.KnownServer.KNOWN_SERVER;
+import static ru.csdm.stats.common.model.csstats.tables.History.HISTORY;
+import static ru.csdm.stats.common.model.csstats.tables.Player.PLAYER;
+import static ru.csdm.stats.common.model.csstats.tables.PlayerIp.PLAYER_IP;
+import static ru.csdm.stats.common.model.csstats.tables.PlayerSteamid.PLAYER_STEAMID;
 
 @SpringBootTest
 @RunWith(SpringRunner.class)
@@ -56,10 +56,10 @@ public class LogsTests {
     @Autowired
     private SettingsService settingsService;
     @Autowired
-    private StatsEndpoint statsEndpoint;
+    private CollectorEndpoint collectorEndpoint;
     @Autowired
-    private DSLContext adminDsl;
-    @Value("${stats.listener.port:8888}")
+    private DSLContext collectorAdminDsl;
+    @Value("${collector.listener.port:8888}")
     private int listenerPort;
 
     @BeforeClass
@@ -90,11 +90,11 @@ public class LogsTests {
     public void server1_27015_27015() throws Exception {
         addKnownServer(27015, 27015, true, true, false, true);
         sendLogs("server1.log", 27015, 27015);
-        ActualDB actualDB = new ActualDB(adminDsl);
+        ActualDB actualDB = new ActualDB(collectorAdminDsl);
         
         assertPlayers(actualDB, new String[][] {
-                {"2", "Name2", "0", "11", "66", "1", "2020-01-01 13:16:08", "1"}, // 1m 6s
-                {"1", "Name1", "10", "1", "10", "1", "2020-01-01 13:16:07", "1"} // 10s
+                {"2", "Name2", "0", "11", "66", "1", "2020-01-01 13:16:08", "Default server"}, // 1m 6s
+                {"1", "Name1", "10", "1", "10", "1", "2020-01-01 13:16:07", "Default server"} // 10s
         });
         assertPlayersIps(actualDB, new String[][] {
                 {"1", "1", "12.12.12.12", "2020-01-01 13:16:07"}
@@ -107,13 +107,13 @@ public class LogsTests {
     public void server1_27015_27015_with_changing_names() throws Exception {
         addKnownServer(27015, 27015, true, true, false, false);
         sendLogs("server1_changing_names.log", 27015, 27015);
-        ActualDB actualDB = new ActualDB(adminDsl);
+        ActualDB actualDB = new ActualDB(collectorAdminDsl);
 
         assertPlayers(actualDB, new String[][] {
-                {"2", "Name2", "0", "12", "69", "1", "2020-01-01 13:16:11", "1"}, // 1m 9s
-                {"1", "Name1", "5", "0", "10", "1", "2020-01-01 13:16:10", "1"}, // 10s
-                {"4", "Name9", "4", "0", "6", "1", "2020-01-01 13:16:08", "1"}, // 6s
-                {"3", "Name5", "2", "1", "4", "1", "2020-01-01 13:15:08", "1"} // 4s
+                {"2", "Name2", "0", "12", "69", "1", "2020-01-01 13:16:11", "Default server"}, // 1m 9s
+                {"1", "Name1", "5", "0", "10", "1", "2020-01-01 13:16:10", "Default server"}, // 10s
+                {"4", "Name9", "4", "0", "6", "1", "2020-01-01 13:16:08", "Default server"}, // 6s
+                {"3", "Name5", "2", "1", "4", "1", "2020-01-01 13:15:08", "Default server"} // 4s
         });
         assertPlayersIps(actualDB, new String[][] {
                 {"1", "1", "24.24.24.24", "2020-01-01 13:16:10"},
@@ -136,10 +136,10 @@ public class LogsTests {
     public void server1_27015_27015_max_ips_steamids() throws Exception {
         addKnownServer(27015, 27015, true, true, false, false);
         sendLogs("server1_max_ips_steamids.log", 27015, 27015);
-        ActualDB actualDB = new ActualDB(adminDsl);
+        ActualDB actualDB = new ActualDB(collectorAdminDsl);
 
         assertPlayers(actualDB, new String[][] {
-                {"1", "Name1", "0", "0", "34", "1", "2020-01-01 13:15:50", "1"} // 34s
+                {"1", "Name1", "0", "0", "34", "1", "2020-01-01 13:15:50", "Default server"} // 34s
         });
         assertPlayersIps(actualDB, new String[][] {
                 {"3", "1", "127.0.0.10", "2020-01-01 13:15:50"},
@@ -181,25 +181,25 @@ public class LogsTests {
     public void server4_27016_27016() throws Exception {
         addKnownServer(27016, 27016, true, true, false, true);
         sendLogs("server4.log", 27016, 27016);
-        ActualDB actualDB = new ActualDB(adminDsl);
+        ActualDB actualDB = new ActualDB(collectorAdminDsl);
         
         assertPlayers(actualDB, new String[][] {
-                {"1", "Admin", "17", "11", "449", "1", "2020-01-01 21:25:07", "1"}, // 7m 29s
-                {"4", "yeppi", "11", "21", "443", "1", "2020-01-01 21:24:58", "1"}, // 7m 23s
-                {"5", "sonic", "10", "16", "443", "1", "2020-01-01 21:24:58", "1"}, // 7m 23s
-                {"8", "wRa1 wRa1", "13", "17", "440", "1", "2020-01-01 21:24:58", "1"}, // 7m 20s
-                {"9", "showw", "21", "14", "438", "1", "2020-01-01 21:24:58", "1"}, // 7m 18s
-                {"2", "pravwOw~", "8", "22", "438", "1", "2020-01-01 21:24:58", "1"}, // 7m 18s
-                {"15", "BoBka’)", "8", "11", "438", "1", "2020-01-01 21:24:58", "1"}, // 7m 18s
-                {"10", "haaimbat", "14", "19", "435", "1", "2020-01-01 21:24:58", "1"}, // 7m 15s
-                {"7", "BatalOOl", "12", "10", "435", "1", "2020-01-01 21:24:58", "1"}, // 7m 15s
-                {"14", "KaRJlSoH", "20", "10", "434", "1", "2020-01-01 21:24:58", "1"}, // 7m 14s
-                {"16", "nameasd", "18", "10", "434", "1", "2020-01-01 21:24:58", "1"}, // 7m 14s
-                {"13", "[52 xemaike2h blanil", "14", "17", "422", "1", "2020-01-01 21:24:58", "1"}, // 7m 2s
-                {"11", "Currv", "20", "16", "417", "1", "2020-01-01 21:24:58", "1"}, // 6m 57s
-                {"3", "aromaken1", "14", "16", "415", "1", "2020-01-01 21:24:58", "1"}, // 6m 55s
-                {"12", "~kewAw0w~~", "13", "17", "400", "1", "2020-01-01 21:24:58", "1"}, // 6m 40s
-                {"6", "castzOr", "14", "16", "395", "1", "2020-01-01 21:24:58", "1"} // 6m 35s
+                {"1", "Admin", "17", "11", "449", "1", "2020-01-01 21:25:07", "Default server"}, // 7m 29s
+                {"4", "yeppi", "11", "21", "443", "1", "2020-01-01 21:24:58", "Default server"}, // 7m 23s
+                {"5", "sonic", "10", "16", "443", "1", "2020-01-01 21:24:58", "Default server"}, // 7m 23s
+                {"8", "wRa1 wRa1", "13", "17", "440", "1", "2020-01-01 21:24:58", "Default server"}, // 7m 20s
+                {"9", "showw", "21", "14", "438", "1", "2020-01-01 21:24:58", "Default server"}, // 7m 18s
+                {"2", "pravwOw~", "8", "22", "438", "1", "2020-01-01 21:24:58", "Default server"}, // 7m 18s
+                {"15", "BoBka’)", "8", "11", "438", "1", "2020-01-01 21:24:58", "Default server"}, // 7m 18s
+                {"10", "haaimbat", "14", "19", "435", "1", "2020-01-01 21:24:58", "Default server"}, // 7m 15s
+                {"7", "BatalOOl", "12", "10", "435", "1", "2020-01-01 21:24:58", "Default server"}, // 7m 15s
+                {"14", "KaRJlSoH", "20", "10", "434", "1", "2020-01-01 21:24:58", "Default server"}, // 7m 14s
+                {"16", "nameasd", "18", "10", "434", "1", "2020-01-01 21:24:58", "Default server"}, // 7m 14s
+                {"13", "[52 xemaike2h blanil", "14", "17", "422", "1", "2020-01-01 21:24:58", "Default server"}, // 7m 2s
+                {"11", "Currv", "20", "16", "417", "1", "2020-01-01 21:24:58", "Default server"}, // 6m 57s
+                {"3", "aromaken1", "14", "16", "415", "1", "2020-01-01 21:24:58", "Default server"}, // 6m 55s
+                {"12", "~kewAw0w~~", "13", "17", "400", "1", "2020-01-01 21:24:58", "Default server"}, // 6m 40s
+                {"6", "castzOr", "14", "16", "395", "1", "2020-01-01 21:24:58", "Default server"} // 6m 35s
         });
         assertPlayersIps(actualDB, new String[][] {
         });
@@ -213,9 +213,9 @@ public class LogsTests {
         sendLogs("server1.log", 27015, 27016);
 
         Map<Table<?>, List<Field<?>>> excludeColumns = new HashMap<>();
-        /* logs sends in parallel, so PLAYER.LAST_SERVER_ID is undefined */
-        excludeColumns.put(PLAYER, Arrays.asList(PLAYER.LAST_SERVER_ID));
-        ActualDB actualDB = new ActualDB(adminDsl, excludeColumns);
+        /* logs sends in parallel, so PLAYER.LAST_SERVER_NAME is undefined */
+        excludeColumns.put(PLAYER, Arrays.asList(PLAYER.LAST_SERVER_NAME));
+        ActualDB actualDB = new ActualDB(collectorAdminDsl, excludeColumns);
         
         assertPlayers(actualDB, new String[][] {
                 {"2", "Name2", "0", "22", "132", "1", "2020-01-01 13:16:08", null}, // 2m 12s
@@ -234,9 +234,9 @@ public class LogsTests {
         sendLogs("server1.log", 27015, 27016);
 
         Map<Table<?>, List<Field<?>>> excludeColumns = new HashMap<>();
-        /* logs sends in parallel, so PLAYER.LAST_SERVER_ID is undefined */
-        excludeColumns.put(PLAYER, Arrays.asList(PLAYER.LAST_SERVER_ID));
-        ActualDB actualDB = new ActualDB(adminDsl, excludeColumns);
+        /* logs sends in parallel, so PLAYER.LAST_SERVER_NAME is undefined */
+        excludeColumns.put(PLAYER, Arrays.asList(PLAYER.LAST_SERVER_NAME));
+        ActualDB actualDB = new ActualDB(collectorAdminDsl, excludeColumns);
 
         assertPlayers(actualDB, new String[][] {
                 {"2", "Name2", "0", "22", "132", "1", "2020-01-01 13:16:08", null}, // 2m 12s
@@ -253,13 +253,13 @@ public class LogsTests {
     public void server2_27015_27015_start_session_on_action() throws Exception {
         addKnownServer(27015, 27015, true, true, false, true);
         sendLogs("server2.log", 27015, 27015);
-        ActualDB actualDB = new ActualDB(adminDsl);
+        ActualDB actualDB = new ActualDB(collectorAdminDsl);
         
         assertPlayers(actualDB, new String[][] {
-                {"1", "Admin", "7", "5", "103", "1", "2020-01-01 20:58:38", "1"}, // 1m 43s
-                {"4", "cusoma", "0", "8", "89", "1", "2020-01-01 20:52:10", "1"}, // 1m 29s
-                {"3", "timoxatw", "5", "1", "76", "1", "2020-01-01 20:52:10", "1"}, // 1m 16s
-                {"2", "no kill", "3", "2", "51", "1", "2020-01-01 20:52:10", "1"} // 51s
+                {"1", "Admin", "7", "5", "103", "1", "2020-01-01 20:58:38", "Default server"}, // 1m 43s
+                {"4", "cusoma", "0", "8", "89", "1", "2020-01-01 20:52:10", "Default server"}, // 1m 29s
+                {"3", "timoxatw", "5", "1", "76", "1", "2020-01-01 20:52:10", "Default server"}, // 1m 16s
+                {"2", "no kill", "3", "2", "51", "1", "2020-01-01 20:52:10", "Default server"} // 51s
         });
         assertPlayersIps(actualDB, new String[][] {
         });
@@ -271,13 +271,13 @@ public class LogsTests {
     public void server2_27015_27015_dont_start_session_on_action() throws Exception {
         addKnownServer(27015, 27015, true, true, false, false);
         sendLogs("server2.log", 27015, 27015);
-        ActualDB actualDB = new ActualDB(adminDsl);
+        ActualDB actualDB = new ActualDB(collectorAdminDsl);
         
         assertPlayers(actualDB, new String[][] {
-                {"1", "Admin", "7", "5", "221", "1", "2020-01-01 20:58:38", "1"}, // 3m 41s
-                {"2", "no kill", "3", "2", "113", "1", "2020-01-01 20:52:10", "1"}, // 1m 53s
-                {"3", "timoxatw", "5", "1", "110", "1", "2020-01-01 20:52:10", "1"}, // 1m 50s
-                {"4", "cusoma", "0", "8", "104", "1", "2020-01-01 20:52:10", "1"} // 1m 44s
+                {"1", "Admin", "7", "5", "221", "1", "2020-01-01 20:58:38", "Default server"}, // 3m 41s
+                {"2", "no kill", "3", "2", "113", "1", "2020-01-01 20:52:10", "Default server"}, // 1m 53s
+                {"3", "timoxatw", "5", "1", "110", "1", "2020-01-01 20:52:10", "Default server"}, // 1m 50s
+                {"4", "cusoma", "0", "8", "104", "1", "2020-01-01 20:52:10", "Default server"} // 1m 44s
         });
         assertPlayersIps(actualDB, new String[][] {
         });
@@ -289,11 +289,11 @@ public class LogsTests {
     public void server3_27015_27015_start_session_on_action() throws Exception {
         addKnownServer(27015, 27015, true, true, false, true);
         sendLogs("server3.log", 27015, 27015);
-        ActualDB actualDB = new ActualDB(adminDsl);
+        ActualDB actualDB = new ActualDB(collectorAdminDsl);
         
         assertPlayers(actualDB, new String[][] {
-                {"2", "cusoma", "0", "1", "95", "1", "2020-01-01 20:50:41", "1"}, // 1m 35s
-                {"1", "Admin", "1", "0", "94", "1", "2020-01-01 20:52:15", "1"} // 1m 34s
+                {"2", "cusoma", "0", "1", "95", "1", "2020-01-01 20:50:41", "Default server"}, // 1m 35s
+                {"1", "Admin", "1", "0", "94", "1", "2020-01-01 20:52:15", "Default server"} // 1m 34s
         });
         assertPlayersIps(actualDB, new String[][] {
         });
@@ -305,13 +305,13 @@ public class LogsTests {
     public void server3_27015_27015_dont_start_session_on_action() throws Exception {
         addKnownServer(27015, 27015, true, true, false, false);
         sendLogs("server3.log", 27015, 27015);
-        ActualDB actualDB = new ActualDB(adminDsl);
+        ActualDB actualDB = new ActualDB(collectorAdminDsl);
         
         assertPlayers(actualDB, new String[][] {
-                {"1", "Admin", "1", "0", "127", "1", "2020-01-01 20:52:15", "1"}, // 2m 7s
-                {"2", "no kill", "0", "0", "119", "1", "2020-01-01 20:50:17", "1"}, // 1m 59s
-                {"3", "timoxatw", "0", "0", "116", "1", "2020-01-01 20:50:20", "1"}, // 1m 56s
-                {"4", "cusoma", "0", "1", "110", "1", "2020-01-01 20:50:41", "1"} // 1m 50s
+                {"1", "Admin", "1", "0", "127", "1", "2020-01-01 20:52:15", "Default server"}, // 2m 7s
+                {"2", "no kill", "0", "0", "119", "1", "2020-01-01 20:50:17", "Default server"}, // 1m 59s
+                {"3", "timoxatw", "0", "0", "116", "1", "2020-01-01 20:50:20", "Default server"}, // 1m 56s
+                {"4", "cusoma", "0", "1", "110", "1", "2020-01-01 20:50:41", "Default server"} // 1m 50s
         });
         assertPlayersIps(actualDB, new String[][] {
         });
@@ -323,25 +323,25 @@ public class LogsTests {
     public void server4_27015_27015() throws Exception {
         addKnownServer(27015, 27015, true, true, false, true);
         sendLogs("server4.log", 27015, 27015);
-        ActualDB actualDB = new ActualDB(adminDsl);
+        ActualDB actualDB = new ActualDB(collectorAdminDsl);
         
         assertPlayers(actualDB, new String[][] {
-                {"1", "Admin", "17", "11", "449", "1", "2020-01-01 21:25:07", "1"}, // 7m 29s
-                {"4", "yeppi", "11", "21", "443", "1", "2020-01-01 21:24:58", "1"}, // 7m 23s
-                {"5", "sonic", "10", "16", "443", "1", "2020-01-01 21:24:58", "1"}, // 7m 23s
-                {"8", "wRa1 wRa1", "13", "17", "440", "1", "2020-01-01 21:24:58", "1"}, // 7m 20s
-                {"9", "showw", "21", "14", "438", "1", "2020-01-01 21:24:58", "1"}, // 7m 18s
-                {"2", "pravwOw~", "8", "22", "438", "1", "2020-01-01 21:24:58", "1"}, // 7m 18s
-                {"15", "BoBka’)", "8", "11", "438", "1", "2020-01-01 21:24:58", "1"}, // 7m 18s
-                {"10", "haaimbat", "14", "19", "435", "1", "2020-01-01 21:24:58", "1"}, // 7m 15s
-                {"7", "BatalOOl", "12", "10", "435", "1", "2020-01-01 21:24:58", "1"}, // 7m 15s
-                {"14", "KaRJlSoH", "20", "10", "434", "1", "2020-01-01 21:24:58", "1"}, // 7m 14s
-                {"16", "nameasd", "18", "10", "434", "1", "2020-01-01 21:24:58", "1"}, // 7m 14s
-                {"13", "[52 xemaike2h blanil", "14", "17", "422", "1", "2020-01-01 21:24:58", "1"}, // 7m 2s
-                {"11", "Currv", "20", "16", "417", "1", "2020-01-01 21:24:58", "1"}, // 6m 57s
-                {"3", "aromaken1", "14", "16", "415", "1", "2020-01-01 21:24:58", "1"}, // 6m 55s
-                {"12", "~kewAw0w~~", "13", "17", "400", "1", "2020-01-01 21:24:58", "1"}, // 6m 40s
-                {"6", "castzOr", "14", "16", "395", "1", "2020-01-01 21:24:58", "1"} // 6m 35s
+                {"1", "Admin", "17", "11", "449", "1", "2020-01-01 21:25:07", "Default server"}, // 7m 29s
+                {"4", "yeppi", "11", "21", "443", "1", "2020-01-01 21:24:58", "Default server"}, // 7m 23s
+                {"5", "sonic", "10", "16", "443", "1", "2020-01-01 21:24:58", "Default server"}, // 7m 23s
+                {"8", "wRa1 wRa1", "13", "17", "440", "1", "2020-01-01 21:24:58", "Default server"}, // 7m 20s
+                {"9", "showw", "21", "14", "438", "1", "2020-01-01 21:24:58", "Default server"}, // 7m 18s
+                {"2", "pravwOw~", "8", "22", "438", "1", "2020-01-01 21:24:58", "Default server"}, // 7m 18s
+                {"15", "BoBka’)", "8", "11", "438", "1", "2020-01-01 21:24:58", "Default server"}, // 7m 18s
+                {"10", "haaimbat", "14", "19", "435", "1", "2020-01-01 21:24:58", "Default server"}, // 7m 15s
+                {"7", "BatalOOl", "12", "10", "435", "1", "2020-01-01 21:24:58", "Default server"}, // 7m 15s
+                {"14", "KaRJlSoH", "20", "10", "434", "1", "2020-01-01 21:24:58", "Default server"}, // 7m 14s
+                {"16", "nameasd", "18", "10", "434", "1", "2020-01-01 21:24:58", "Default server"}, // 7m 14s
+                {"13", "[52 xemaike2h blanil", "14", "17", "422", "1", "2020-01-01 21:24:58", "Default server"}, // 7m 2s
+                {"11", "Currv", "20", "16", "417", "1", "2020-01-01 21:24:58", "Default server"}, // 6m 57s
+                {"3", "aromaken1", "14", "16", "415", "1", "2020-01-01 21:24:58", "Default server"}, // 6m 55s
+                {"12", "~kewAw0w~~", "13", "17", "400", "1", "2020-01-01 21:24:58", "Default server"}, // 6m 40s
+                {"6", "castzOr", "14", "16", "395", "1", "2020-01-01 21:24:58", "Default server"} // 6m 35s
         });
         assertPlayersIps(actualDB, new String[][] {
         });
@@ -355,9 +355,9 @@ public class LogsTests {
         sendLogs("server4.log", 27015, 27025);
 
         Map<Table<?>, List<Field<?>>> excludeColumns = new HashMap<>();
-        /* logs sends in parallel, so PLAYER.LAST_SERVER_ID is undefined */
-        excludeColumns.put(PLAYER, Arrays.asList(PLAYER.LAST_SERVER_ID));
-        ActualDB actualDB = new ActualDB(adminDsl, excludeColumns);
+        /* logs sends in parallel, so PLAYER.LAST_SERVER_NAME is undefined */
+        excludeColumns.put(PLAYER, Arrays.asList(PLAYER.LAST_SERVER_NAME));
+        ActualDB actualDB = new ActualDB(collectorAdminDsl, excludeColumns);
         
         assertPlayers(actualDB, new String[][] {
                 {"1", "Admin", "187", "121", "4939", "3", "2020-01-01 21:25:07", null}, // 1h 22m 19s
@@ -387,11 +387,11 @@ public class LogsTests {
     public void ffa_27015_27015_start_session_on_action() throws Exception {
         addKnownServer(27015, 27015, true, true, false, true);
         sendLogs("ffa.log", 27015, 27015);
-        ActualDB actualDB = new ActualDB(adminDsl);
+        ActualDB actualDB = new ActualDB(collectorAdminDsl);
         
         assertPlayers(actualDB, new String[][] {
-                {"1", "Admin", "2", "0", "20", "1", "2020-01-01 23:42:21", "1"}, // 20s
-                {"2", "CeHb^Oaa", "0", "2", "20", "1", "2020-01-01 23:42:21", "1"} // 20s
+                {"1", "Admin", "2", "0", "20", "1", "2020-01-01 23:42:21", "Default server"}, // 20s
+                {"2", "CeHb^Oaa", "0", "2", "20", "1", "2020-01-01 23:42:21", "Default server"} // 20s
         });
         assertPlayersIps(actualDB, new String[][] {
         });
@@ -404,13 +404,13 @@ public class LogsTests {
     public void ffa_27015_27015_dont_start_session_on_action() throws Exception {
         addKnownServer(27015, 27015, true, true, false, false);
         sendLogs("ffa.log", 27015, 27015);
-        ActualDB actualDB = new ActualDB(adminDsl);
+        ActualDB actualDB = new ActualDB(collectorAdminDsl);
         
         assertPlayers(actualDB, new String[][] {
-                {"1", "Admin", "2", "0", "76", "1", "2020-01-01 23:42:21", "1"}, // 1m 16s
-                {"4", "CeHb^Oaa", "0", "2", "51", "1", "2020-01-01 23:42:21", "1"}, // 51s
-                {"2", "FENIX2H", "0", "0", "8", "1", "2020-01-01 23:41:22", "1"}, // 8s
-                {"3", "relish -w 800", "0", "0", "3", "1", "2020-01-01 23:41:27", "1"} // 3s
+                {"1", "Admin", "2", "0", "76", "1", "2020-01-01 23:42:21", "Default server"}, // 1m 16s
+                {"4", "CeHb^Oaa", "0", "2", "51", "1", "2020-01-01 23:42:21", "Default server"}, // 51s
+                {"2", "FENIX2H", "0", "0", "8", "1", "2020-01-01 23:41:22", "Default server"}, // 8s
+                {"3", "relish -w 800", "0", "0", "3", "1", "2020-01-01 23:41:27", "Default server"} // 3s
         });
         assertPlayersIps(actualDB, new String[][] {
         });
@@ -423,7 +423,7 @@ public class LogsTests {
     public void ffa_27015_27015_start_session_on_action_no_ffa() throws Exception {
         addKnownServer(27015, 27015, true, false, false, true);
         sendLogs("ffa.log", 27015, 27015);
-        ActualDB actualDB = new ActualDB(adminDsl);
+        ActualDB actualDB = new ActualDB(collectorAdminDsl);
         
         assertPlayers(actualDB, new String[][] {
         });
@@ -437,13 +437,13 @@ public class LogsTests {
     public void ffa_27015_27015_dont_start_session_on_action_no_ffa() throws Exception {
         addKnownServer(27015, 27015, true, false, false, false);
         sendLogs("ffa.log", 27015, 27015);
-        ActualDB actualDB = new ActualDB(adminDsl);
+        ActualDB actualDB = new ActualDB(collectorAdminDsl);
         
         assertPlayers(actualDB, new String[][] {
-                {"1", "Admin", "0", "0", "76", "1", "2020-01-01 23:42:21", "1"}, // 1m 16s
-                {"4", "CeHb^Oaa", "0", "0", "51", "1", "2020-01-01 23:42:21", "1"}, // 51s
-                {"2", "FENIX2H", "0", "0", "8", "1", "2020-01-01 23:41:22", "1"}, // 8s
-                {"3", "relish -w 800", "0", "0", "3", "1", "2020-01-01 23:41:27", "1"} // 3s
+                {"1", "Admin", "0", "0", "76", "1", "2020-01-01 23:42:21", "Default server"}, // 1m 16s
+                {"4", "CeHb^Oaa", "0", "0", "51", "1", "2020-01-01 23:42:21", "Default server"}, // 51s
+                {"2", "FENIX2H", "0", "0", "8", "1", "2020-01-01 23:41:22", "Default server"}, // 8s
+                {"3", "relish -w 800", "0", "0", "3", "1", "2020-01-01 23:41:27", "Default server"} // 3s
         });
         assertPlayersIps(actualDB, new String[][] {
         });
@@ -456,11 +456,11 @@ public class LogsTests {
     public void no_ffa_27015_27015_start_session_on_action() throws Exception {
         addKnownServer(27015, 27015, true, true, false, true);
         sendLogs("no_ffa.log", 27015, 27015);
-        ActualDB actualDB = new ActualDB(adminDsl);
+        ActualDB actualDB = new ActualDB(collectorAdminDsl);
         
         assertPlayers(actualDB, new String[][] {
-                {"1", "Admin", "4", "0", "46", "1", "2020-01-01 23:45:56", "1"}, // 46s
-                {"2", "desch", "0", "4", "46", "1", "2020-01-01 23:45:56", "1"} // 46s
+                {"1", "Admin", "4", "0", "46", "1", "2020-01-01 23:45:56", "Default server"}, // 46s
+                {"2", "desch", "0", "4", "46", "1", "2020-01-01 23:45:56", "Default server"} // 46s
         });
         assertPlayersIps(actualDB, new String[][] {
                 {"1", "1", "255.0.0.142", "2020-01-01 23:45:56"}
@@ -474,11 +474,11 @@ public class LogsTests {
     public void no_ffa_27015_27015_dont_start_session_on_action() throws Exception {
         addKnownServer(27015, 27015, true, true, false, false);
         sendLogs("no_ffa.log", 27015, 27015);
-        ActualDB actualDB = new ActualDB(adminDsl);
+        ActualDB actualDB = new ActualDB(collectorAdminDsl);
         
         assertPlayers(actualDB, new String[][] {
-                {"1", "Admin", "4", "0", "101", "1", "2020-01-01 23:45:56", "1"}, // 1m 41s
-                {"2", "desch", "0", "4", "88", "1", "2020-01-01 23:45:56", "1"} // 1m 28s
+                {"1", "Admin", "4", "0", "101", "1", "2020-01-01 23:45:56", "Default server"}, // 1m 41s
+                {"2", "desch", "0", "4", "88", "1", "2020-01-01 23:45:56", "Default server"} // 1m 28s
         });
         assertPlayersIps(actualDB, new String[][] {
                 {"1", "1", "255.0.0.142", "2020-01-01 23:45:56"}
@@ -492,7 +492,7 @@ public class LogsTests {
     public void no_ffa_27015_27015_start_session_on_action_no_ffa() throws Exception {
         addKnownServer(27015, 27015, true, false, false, true);
         sendLogs("no_ffa.log", 27015, 27015);
-        ActualDB actualDB = new ActualDB(adminDsl);
+        ActualDB actualDB = new ActualDB(collectorAdminDsl);
         
         assertPlayers(actualDB, new String[][] {
         });
@@ -506,11 +506,11 @@ public class LogsTests {
     public void no_ffa_27015_27015_dont_start_session_on_action_no_ffa() throws Exception {
         addKnownServer(27015, 27015, true, false, false, false);
         sendLogs("no_ffa.log", 27015, 27015);
-        ActualDB actualDB = new ActualDB(adminDsl);
+        ActualDB actualDB = new ActualDB(collectorAdminDsl);
         
         assertPlayers(actualDB, new String[][] {
-                {"1", "Admin", "0", "0", "101", "1", "2020-01-01 23:45:56", "1"}, // 1m 41s
-                {"2", "desch", "0", "0", "88", "1", "2020-01-01 23:45:56", "1"} // 1m 28s
+                {"1", "Admin", "0", "0", "101", "1", "2020-01-01 23:45:56", "Default server"}, // 1m 41s
+                {"2", "desch", "0", "0", "88", "1", "2020-01-01 23:45:56", "Default server"} // 1m 28s
         });
         assertPlayersIps(actualDB, new String[][] {
                 {"1", "1", "255.0.0.142", "2020-01-01 23:45:56"}
@@ -524,7 +524,7 @@ public class LogsTests {
     public void server4_27015_27017_start_session_on_action_ignore_bots() throws Exception {
         addKnownServer(27015, 27025, true, true, true, true);
         sendLogs("server4.log", 27015, 27017);
-        ActualDB actualDB = new ActualDB(adminDsl);
+        ActualDB actualDB = new ActualDB(collectorAdminDsl);
         
         assertPlayers(actualDB, new String[][] {
         });
@@ -538,10 +538,10 @@ public class LogsTests {
     public void server4_27015_27015_dont_start_session_on_action_ignore_bots() throws Exception {
         addKnownServer(27015, 27015, true, true, true, false);
         sendLogs("server4.log", 27015, 27015);
-        ActualDB actualDB = new ActualDB(adminDsl);
+        ActualDB actualDB = new ActualDB(collectorAdminDsl);
         
         assertPlayers(actualDB, new String[][] {
-                {"1", "Admin", "0", "0", "598", "1", "2020-01-01 21:25:07", "1"} // 9m 58s
+                {"1", "Admin", "0", "0", "598", "1", "2020-01-01 21:25:07", "Default server"} // 9m 58s
         });
         assertPlayersIps(actualDB, new String[][] {
         });
@@ -555,9 +555,9 @@ public class LogsTests {
         sendLogs("server4.log", 27015, 27017);
 
         Map<Table<?>, List<Field<?>>> excludeColumns = new HashMap<>();
-        /* logs sends in parallel, so PLAYER.LAST_SERVER_ID is undefined */
-        excludeColumns.put(PLAYER, Arrays.asList(PLAYER.LAST_SERVER_ID));
-        ActualDB actualDB = new ActualDB(adminDsl, excludeColumns);
+        /* logs sends in parallel, so PLAYER.LAST_SERVER_NAME is undefined */
+        excludeColumns.put(PLAYER, Arrays.asList(PLAYER.LAST_SERVER_NAME));
+        ActualDB actualDB = new ActualDB(collectorAdminDsl, excludeColumns);
         
         assertPlayers(actualDB, new String[][] {
                 {"1", "Admin", "0", "0", "1794", "1", "2020-01-01 21:25:07", null} // 29m 54s
@@ -573,15 +573,15 @@ public class LogsTests {
         addKnownServer(27015, 27017, true, true, false, false);
         sendLogs("server4_only_load.log", 27014, 27018);
 
-        Map<String, String> results = statsEndpoint.flush(new UserPrincipal("tester"));
+        Map<String, String> results = collectorEndpoint.flush(new UserPrincipal("tester"));
         log.info("statsEndpoint results: " + results.toString());
 
         Thread.sleep(1000);
 
         Map<Table<?>, List<Field<?>>> excludeColumns = new HashMap<>();
-        /* logs sends in parallel, so PLAYER.LAST_SERVER_ID is undefined */
-        excludeColumns.put(PLAYER, Arrays.asList(PLAYER.LAST_SERVER_ID));
-        ActualDB actualDB = new ActualDB(adminDsl, excludeColumns);
+        /* logs sends in parallel, so PLAYER.LAST_SERVER_NAME is undefined */
+        excludeColumns.put(PLAYER, Arrays.asList(PLAYER.LAST_SERVER_NAME));
+        ActualDB actualDB = new ActualDB(collectorAdminDsl, excludeColumns);
         
         assertPlayers(actualDB, new String[][] {
                 {"1", "Admin", "51", "33", "1767", "1", "2020-01-01 21:23:52", null}, // 29m 27s
@@ -711,7 +711,7 @@ public class LogsTests {
             insertSteps.add(insertStep);
         }
 
-        adminDsl.transaction(config -> {
+        collectorAdminDsl.transaction(config -> {
             DSLContext transactionalDsl = DSL.using(config);
             transactionalDsl.batch(insertSteps).execute();
         });
@@ -720,7 +720,7 @@ public class LogsTests {
     }
 
     public void truncateTables() {
-        adminDsl.transaction(config -> {
+        collectorAdminDsl.transaction(config -> {
             DSLContext transactionalDsl = DSL.using(config);
             try {
                 transactionalDsl.execute("SET FOREIGN_KEY_CHECKS = 0;");
@@ -736,8 +736,8 @@ public class LogsTests {
     }
 
     /**
-     * {"2", "Name2", "0", "11", "66", "1", "2020-01-01 13:16:08", "1"}, // 1m 6s
-     * {"1", "Name1", "10", "1", "10", "1", "2020-01-01 13:16:07", "1"} // 10s
+     * {"2", "Name2", "0", "11", "66", "1", "2020-01-01 13:16:08", "Default server"}, // 1m 6s
+     * {"1", "Name1", "10", "1", "10", "1", "2020-01-01 13:16:07", "Default server"} // 10s
      */
     private Player makePlayerFromRaw(String[] sourceRaw) {
         Player player = new Player();
@@ -754,7 +754,7 @@ public class LogsTests {
             player.setLastseenDatetime(LocalDateTime.parse(sourceRaw[6], YYYYMMDD_HHMMSS_PATTERN));
 
         if(StringUtils.isNoneBlank(sourceRaw[7]))
-            player.setLastServerId(UInteger.valueOf(sourceRaw[7]));
+            player.setLastServerName(sourceRaw[7]);
 
         return player;
     }

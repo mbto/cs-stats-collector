@@ -12,6 +12,7 @@ import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.DependsOn;
 import org.springframework.scheduling.annotation.EnableAsync;
+import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import ru.csdm.stats.common.dto.CollectedPlayer;
 import ru.csdm.stats.common.dto.DatagramsQueue;
@@ -28,6 +29,7 @@ import static org.springframework.boot.autoconfigure.task.TaskExecutionAutoConfi
 @SpringBootApplication(exclude = {JooqAutoConfiguration.class, TaskExecutionAutoConfiguration.class})
 @EnableAsync(proxyTargetClass = true)
 @EnableCaching
+@EnableScheduling
 public class Application {
     static {
         System.getProperties().setProperty("org.jooq.no-logo", "true");
@@ -88,7 +90,7 @@ public class Application {
         executor.setThreadNamePrefix("consumer-");
         executor.setAllowCoreThreadTimeOut(true);
         executor.setWaitForTasksToCompleteOnShutdown(true);
-        executor.setAwaitTerminationSeconds(10);
+        executor.setAwaitTerminationSeconds(120);
         executor.setRejectedExecutionHandler(new ThreadPoolExecutor.DiscardPolicy());
         executor.initialize();
         return executor;
@@ -98,9 +100,9 @@ public class Application {
      * Pool used, when merging players into the csstats.* tables.
      */
     @Bean
-    @DependsOn("statsDataSource")
+    @DependsOn("collectorDataSource")
     public ThreadPoolTaskExecutor playersSenderTaskExecutor(
-            @Value("${stats.datasource.maximumPoolSize}") int datasourceMaximumPoolSize
+            @Value("${collector.datasource.maximumPoolSize}") int datasourceMaximumPoolSize
     ) {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
 
@@ -114,7 +116,7 @@ public class Application {
         executor.setThreadNamePrefix("playerSender-");
         executor.setAllowCoreThreadTimeOut(true);
         executor.setWaitForTasksToCompleteOnShutdown(true);
-        executor.setAwaitTerminationSeconds(10);
+        executor.setAwaitTerminationSeconds(120);
         executor.setRejectedExecutionHandler(new ThreadPoolExecutor.DiscardPolicy());
         executor.initialize();
         return executor;
@@ -128,13 +130,14 @@ public class Application {
            from auto-configuration org.springframework.boot.autoconfigure.task.TaskExecutionAutoConfiguration
            org.springframework.boot.autoconfigure.task.TaskExecutionProperties.Pool#maxSize = Integer.MAX_VALUE */
         int poolSize = 2; /* 1-spring-boot framework; 2-for main listener; */
+        // todo: +1 scheduler
         executor.setCorePoolSize(poolSize);
         executor.setMaxPoolSize(poolSize);
 
         executor.setThreadNamePrefix("appExecutor-");
         executor.setAllowCoreThreadTimeOut(true);
         executor.setWaitForTasksToCompleteOnShutdown(true);
-        executor.setAwaitTerminationSeconds(10);
+        executor.setAwaitTerminationSeconds(120);
         executor.setRejectedExecutionHandler(new ThreadPoolExecutor.DiscardPolicy());
         executor.initialize();
         return executor;

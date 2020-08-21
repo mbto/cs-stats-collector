@@ -3,7 +3,6 @@ package ru.csdm.stats.common.dto;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Getter;
 import lombok.Setter;
-import org.jooq.types.UInteger;
 import ru.csdm.stats.common.utils.SomeUtils;
 
 import java.time.LocalDateTime;
@@ -20,7 +19,7 @@ public class CollectedPlayer {
     @Setter
     private LocalDateTime lastseenDatetime;
     @Setter
-    private UInteger lastServerId;
+    private String lastServerName;
 
     public CollectedPlayer(String name) {
         this.name = name;

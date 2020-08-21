@@ -42,7 +42,7 @@ public class Listener {
     @Autowired
     private DatagramsConsumer datagramsConsumer;
 
-    @Value("${stats.listener.port:8888}")
+    @Value("${collector.listener.port:8888}")
     private int listenerPort;
 
     private DatagramSocket datagramSocket;

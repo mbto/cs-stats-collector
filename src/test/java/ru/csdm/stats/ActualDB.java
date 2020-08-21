@@ -5,9 +5,9 @@ import org.jooq.DSLContext;
 import org.jooq.Field;
 import org.jooq.Table;
 import org.jooq.impl.DSL;
-import ru.csdm.stats.common.model.tables.pojos.Player;
-import ru.csdm.stats.common.model.tables.pojos.PlayerIp;
-import ru.csdm.stats.common.model.tables.pojos.PlayerSteamid;
+import ru.csdm.stats.common.model.csstats.tables.pojos.Player;
+import ru.csdm.stats.common.model.csstats.tables.pojos.PlayerIp;
+import ru.csdm.stats.common.model.csstats.tables.pojos.PlayerSteamid;
 import ru.csdm.stats.common.utils.SomeUtils;
 
 import java.time.LocalDateTime;
@@ -19,9 +19,9 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 
 import static ru.csdm.stats.common.Constants.YYYYMMDD_HHMMSS_PATTERN;
-import static ru.csdm.stats.common.model.tables.Player.PLAYER;
-import static ru.csdm.stats.common.model.tables.PlayerIp.PLAYER_IP;
-import static ru.csdm.stats.common.model.tables.PlayerSteamid.PLAYER_STEAMID;
+import static ru.csdm.stats.common.model.csstats.tables.Player.PLAYER;
+import static ru.csdm.stats.common.model.csstats.tables.PlayerIp.PLAYER_IP;
+import static ru.csdm.stats.common.model.csstats.tables.PlayerSteamid.PLAYER_STEAMID;
 
 @Getter
 public class ActualDB {
@@ -69,7 +69,7 @@ public class ActualDB {
                         quote(player.getTimeSecs()),
                         quote(player.getRankId()),
                         quote(player.getLastseenDatetime(), YYYYMMDD_HHMMSS_PATTERN),
-                        quote(player.getLastServerId())
+                        quote(player.getLastServerName())
                     ) + "}" + (i + 1 < players.size() ? "," : "")
                     + " // " + SomeUtils.humanLifetime(player.getTimeSecs().longValue() * 1000)
             );

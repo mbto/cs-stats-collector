@@ -1,10 +1,25 @@
 package ru.csdm.stats.common.utils;
 
+import com.zaxxer.hikari.HikariDataSource;
 import org.apache.commons.lang3.StringUtils;
-import ru.csdm.stats.common.model.tables.pojos.KnownServer;
-import ru.csdm.stats.common.model.tables.pojos.Player;
-import ru.csdm.stats.common.model.tables.records.PlayerRecord;
+import org.jooq.SQLDialect;
+import org.jooq.conf.MappedSchema;
+import org.jooq.conf.RenderMapping;
+import org.jooq.impl.DataSourceConnectionProvider;
+import org.jooq.impl.DefaultConfiguration;
+import org.jooq.impl.DefaultDSLContext;
+import org.jooq.impl.DefaultExecuteListenerProvider;
+import org.springframework.boot.autoconfigure.jooq.JooqExceptionTranslator;
+import org.springframework.boot.autoconfigure.jooq.SpringTransactionProvider;
+import org.springframework.boot.jdbc.DataSourceBuilder;
+import org.springframework.jdbc.datasource.DataSourceTransactionManager;
+import org.springframework.jdbc.datasource.TransactionAwareDataSourceProxy;
+import ru.csdm.stats.common.dto.ServerData;
+import ru.csdm.stats.common.model.collector.tables.pojos.KnownServer;
+import ru.csdm.stats.common.model.csstats.tables.pojos.Player;
+import ru.csdm.stats.common.model.csstats.tables.records.PlayerRecord;
 
+import javax.sql.DataSource;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.sql.Timestamp;
@@ -19,6 +34,7 @@ import java.util.regex.Matcher;
 
 import static ru.csdm.stats.common.Constants.IPADDRESS_PATTERN;
 import static ru.csdm.stats.common.Constants.STEAMID_PATTERN;
+import static ru.csdm.stats.common.model.csstats.Csstats.CSSTATS;
 
 public class SomeUtils {
 
@@ -46,10 +62,43 @@ public class SomeUtils {
         return null;
     }
 
-    public static String knownServerToString(KnownServer knownServer) {
+    public static DefaultDSLContext configJooqContext(DataSource dataSource, SQLDialect dialect, String schema) {
+        DefaultConfiguration config = new DefaultConfiguration();
+        config.set(new DataSourceConnectionProvider(new TransactionAwareDataSourceProxy(dataSource)));
+        config.set(new DefaultExecuteListenerProvider(new JooqExceptionTranslator()));
+        config.set(new SpringTransactionProvider(new DataSourceTransactionManager(dataSource)));
+        config.setSQLDialect(dialect);
+
+        if(Objects.nonNull(schema) && !StringUtils.equalsIgnoreCase(schema, CSSTATS.getName())) {
+            config.settings().withRenderMapping(new RenderMapping()
+                    .withSchemata(
+                            new MappedSchema()
+                                    .withInput(CSSTATS.getName())
+                                    .withOutput(schema)
+                    )
+            );
+        }
+
+        return new DefaultDSLContext(config);
+    }
+
+    public static HikariDataSource buildHikariDataSource(String poolName) {
+        HikariDataSource ds = DataSourceBuilder.create()
+                .driverClassName("com.mysql.cj.jdbc.Driver")
+                .type(HikariDataSource.class)
+                .build();
+
+        ds.setPoolName(poolName);
+        return ds;
+    }
+
+    public static String serverDataToString(ServerData serverData) {
+        KnownServer knownServer = serverData.getKnownServer();
         return knownServer.getIpport() + ": ffa=" + knownServer.getFfa()
                 + ", ignore_bots=" + knownServer.getIgnoreBots()
-                + ", start_session_on_action=" + knownServer.getStartSessionOnAction();
+                + ", start_session_on_action=" + knownServer.getStartSessionOnAction()
+                + ", server_name=" + knownServer.getName()
+                + ", project_name=" + serverData.getProject().getName();
     }
 
     public static String playerToString(Player player) {
