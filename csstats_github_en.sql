@@ -829,13 +829,12 @@ select `player`.`id`,
        `build_human_time`(`player`.`time_secs`) as `gaming_time`,
        `rank`.`name` as `rank_name`,
        `build_stars`(`rank`.`level`, (select count(*) from `rank`)) as `stars`,
-       `known_server`.`name` as `last_server_name`,
+       `player`.`last_server_name`,
        `player`.`lastseen_datetime` as `lastseen_datetime`,
        `ips`.`grouped` as `ips`,
        `steamids`.`grouped` as `steamids`
 from `player`
          left outer join `rank` on `player`.`rank_id` = `rank`.`id`
-		 left outer join `known_server` on `player`.`last_server_id` = `known_server`.`id`
          left outer join `player_ip` on `player`.`id` = `player_ip`.`player_id`
          left outer join `player_steamid` on `player`.`id` = `player_steamid`.`player_id`,
          lateral (select substring_index(group_concat(distinct `player_ip`.`ip` 
@@ -878,13 +877,12 @@ select `player`.`id`,
        `build_human_time`(`player`.`time_secs`) as `gaming_time`,
        `rank`.`name` as `rank_name`,
        `build_stars`(`rank`.`level`, (select count(*) from `rank`)) as `stars`,
-       `known_server`.`name` as `last_server_name`,
+       `player`.`last_server_name`,
        `player`.`lastseen_datetime` as `lastseen_datetime`,
        `ips`.`grouped` as `ips`,
        `steamids`.`grouped` as `steamids`
 from `player`
          left outer join `rank` on `player`.`rank_id` = `rank`.`id`
-		 left outer join `known_server` on `player`.`last_server_id` = `known_server`.`id`
          left outer join `player_ip` on `player`.`id` = `player_ip`.`player_id`
          left outer join `player_steamid` on `player`.`id` = `player_steamid`.`player_id`,
          lateral (select cast(concat('[', substring_index(group_concat(distinct concat('"', `player_ip`.`ip`, '"')
@@ -928,13 +926,12 @@ with sub as (select count(*) over() as count_total,
 		'gaming_time', `build_human_time`(`player`.`time_secs`),
 		'rank_name', `rank`.`name`,
 		'stars', `build_stars`(`rank`.`level`, (select count(*) from `rank`)),
-		'last_server_name', `known_server`.`name`,
+		'last_server_name', `player`.`last_server_name`,
 		'lastseen_datetime', DATE_FORMAT(`player`.`lastseen_datetime`, '%Y-%m-%d %H:%i:%s'),
 		'ips', ips.grouped,
 		'steamids', steamids.grouped) as results
 from `player`
          left outer join `rank` on `player`.`rank_id` = `rank`.`id`
-		 left outer join `known_server` on `player`.`last_server_id` = `known_server`.`id`
          left outer join `player_ip` on `player`.`id` = `player_ip`.`player_id`
          left outer join `player_steamid` on `player`.`id` = `player_steamid`.`player_id`,
          lateral (select cast(concat('[', substring_index(group_concat(distinct concat('"', `player_ip`.`ip`, '"')
@@ -984,13 +981,12 @@ with sub as (select count(*) over() as count_total,
 		'gaming_time', `build_human_time`(`player`.`time_secs`),
 		'rank_name', `rank`.`name`,
 		'stars', `build_stars`(`rank`.`level`, (select count(*) from `rank`)),
-		'last_server_name', `known_server`.`name`,
+		'last_server_name', `player`.`last_server_name`,
 		'lastseen_datetime', DATE_FORMAT(`player`.`lastseen_datetime`, '%Y-%m-%d %H:%i:%s'),
 		'ips', ips.grouped,
 		'steamids', steamids.grouped) as results
 from `player`
          left outer join `rank` on `player`.`rank_id` = `rank`.`id`
-		 left outer join `known_server` on `player`.`last_server_id` = `known_server`.`id`
          left outer join `player_ip` on `player`.`id` = `player_ip`.`player_id`
          left outer join `player_steamid` on `player`.`id` = `player_steamid`.`player_id`,
          lateral (select cast(concat('[', substring_index(group_concat(distinct concat('"', `player_ip`.`ip`, '"')
@@ -1040,13 +1036,12 @@ with sub as (select count(*) over() as count_total,
 		'gaming_time', `build_human_time`(`player`.`time_secs`),
 		'rank_name', `rank`.`name`,
 		'stars', `build_stars`(`rank`.`level`, (select count(*) from `rank`)),
-		'last_server_name', `known_server`.`name`,
+		'last_server_name', `player`.`last_server_name`,
 		'lastseen_datetime', DATE_FORMAT(`player`.`lastseen_datetime`, '%Y-%m-%d %H:%i:%s'),
 		'ips', ips.grouped,
 		'steamids', steamids.grouped) as results
 from `player`
          left outer join `rank` on `player`.`rank_id` = `rank`.`id`
-		 left outer join `known_server` on `player`.`last_server_id` = `known_server`.`id`
          left outer join `player_ip` on `player`.`id` = `player_ip`.`player_id`
          left outer join `player_steamid` on `player`.`id` = `player_steamid`.`player_id`,
          lateral (select substring_index(group_concat(distinct `player_ip`.`ip` 
@@ -1096,13 +1091,12 @@ with sub as (select count(*) over() as count_total,
 		'gaming_time', `build_human_time`(`player`.`time_secs`),
 		'rank_name', `rank`.`name`,
 		'stars', `build_stars`(`rank`.`level`, (select count(*) from `rank`)),
-		'last_server_name', `known_server`.`name`,
+		'last_server_name', `player`.`last_server_name`,
 		'lastseen_datetime', DATE_FORMAT(`player`.`lastseen_datetime`, '%Y-%m-%d %H:%i:%s'),
 		'ips', ips.grouped,
 		'steamids', steamids.grouped) as results
 from `player`
          left outer join `rank` on `player`.`rank_id` = `rank`.`id`
-		 left outer join `known_server` on `player`.`last_server_id` = `known_server`.`id`
          left outer join `player_ip` on `player`.`id` = `player_ip`.`player_id`
          left outer join `player_steamid` on `player`.`id` = `player_steamid`.`player_id`,
          lateral (select substring_index(group_concat(distinct `player_ip`.`ip` 
@@ -1180,7 +1174,7 @@ limit page, per_page -- #limitation per players
   then json_object('count_total', sub.count_total, 'results', json_arrayagg(json_object(sub.player_name, sub.player)) over(order by sub.player_level desc))
 --  else json_object('count_total', 0, 'results', cast('[]' as json)) -- not working
  end as results
-from sub order by sub.player_level asc limit 1 #trick for sorting in json_arrayagg with over() =/
+from sub order by sub.player_level asc limit 1 #trick for sorting in json_arrayagg with over() =/ if you may rewrite this sql without over() with sorting - welcome
 ;
 END ;;
 DELIMITER ;
@@ -1317,4 +1311,4 @@ DELIMITER ;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2020-08-22  4:20:39
+-- Dump completed on 2020-08-22 21:20:55
