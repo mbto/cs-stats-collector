@@ -1,7 +1,6 @@
 package ru.csdm.stats.modules.collector.service;
 
 import lombok.extern.slf4j.Slf4j;
-import org.jooq.exception.DataAccessException;
 import org.jooq.types.UInteger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -13,7 +12,6 @@ import ru.csdm.stats.common.dto.ServerData;
 import ru.csdm.stats.common.model.collector.tables.pojos.DriverProperty;
 import ru.csdm.stats.common.model.collector.tables.pojos.KnownServer;
 import ru.csdm.stats.common.model.collector.tables.pojos.Project;
-import ru.csdm.stats.common.utils.SomeUtils;
 import ru.csdm.stats.dao.CollectorDao;
 
 import java.time.LocalDateTime;
@@ -43,7 +41,7 @@ public class SettingsService {
         CollectorData collectorData = null;
         try {
             collectorData = collectorDao.fetchCollectorData(collectorInstanceName);
-        } catch (DataAccessException e) {
+        } catch (Throwable e) {
             log.warn("Unable to fetch collector data from database", e);
         }
 
@@ -68,13 +66,13 @@ public class SettingsService {
                     }));
 
             if(!firstLoading) { // deactivate existed serverDataByIpport on 2-nd and further loading
-                for (Map.Entry<String, ServerData> entry : availableAddresses.entrySet()) {
-                    ServerData serverData = entry.getValue();
+                for (Map.Entry<String, ServerData> serverDataEntry : availableAddresses.entrySet()) {
+                    ServerData serverData = serverDataEntry.getValue();
 
                     if(!serverData.isListening())
                         continue;
 
-                    String address = entry.getKey();
+                    String address = serverDataEntry.getKey();
 
                     if(!serverDataByIpport.containsKey(address)) { // address removed from current table state
                         serverData.setListening(false);
@@ -145,8 +143,7 @@ public class SettingsService {
                     " server" + (availableAddresses.size() > 1 ? "s" : "") +" with settings:");
 
             for (ServerData serverData : availableAddresses.values()) {
-                log.info(String.format("%-15s", serverData.isListening() ? "[LISTENING]" : "[NOT LISTENING]")
-                        + " " + SomeUtils.serverDataToString(serverData));
+                log.info(serverData.toString());
             }
         }
     }

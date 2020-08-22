@@ -4,7 +4,6 @@ import com.zaxxer.hikari.HikariDataSource;
 import lombok.extern.slf4j.Slf4j;
 import org.jooq.*;
 import org.jooq.impl.DSL;
-import org.jooq.impl.DefaultDSLContext;
 import org.jooq.types.UInteger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
@@ -23,7 +22,6 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
-import static ru.csdm.stats.common.model.collector.tables.KnownServer.KNOWN_SERVER;
 import static ru.csdm.stats.common.model.csstats.tables.Player.PLAYER;
 import static ru.csdm.stats.common.model.csstats.tables.PlayerIp.PLAYER_IP;
 import static ru.csdm.stats.common.model.csstats.tables.PlayerSteamid.PLAYER_STEAMID;
@@ -45,7 +43,7 @@ public class CsStatsDao {
         ServerData serverData = availableAddresses.get(address);
         Project project = serverData.getProject();
 
-        try(HikariDataSource hds = buildHikariDataSource("stats-pool-" + project.getId())) {
+        try(HikariDataSource hds = buildHikariDataSource(project.getDatabaseSchema() + "-connection-project-#" + project.getId())) {
             hds.setJdbcUrl("jdbc:mysql://" + project.getDatabaseHostport() + "/" + project.getDatabaseSchema());
             hds.setSchema(project.getDatabaseSchema());
             hds.setUsername(project.getDatabaseUsername());
@@ -67,10 +65,10 @@ public class CsStatsDao {
 
             hds.setConnectionTimeout(SECONDS.toMillis(10));
             hds.setValidationTimeout(SECONDS.toMillis(5));
-            hds.setIdleTimeout(SECONDS.toMillis(20));
-            hds.setMaxLifetime(SECONDS.toMillis(20));
+            hds.setIdleTimeout(SECONDS.toMillis(29));
+            hds.setMaxLifetime(SECONDS.toMillis(30));
 
-            DefaultDSLContext statsDsl = configJooqContext(hds, SQLDialect.MYSQL, project.getDatabaseSchema());
+            DSLContext statsDsl = configJooqContext(hds, SQLDialect.MYSQL, project.getDatabaseSchema(), 15);
 
             statsDsl.transaction(config -> {
                 DSLContext transactionalDsl = DSL.using(config);
@@ -80,8 +78,7 @@ public class CsStatsDao {
                             String.join(", ",
                                     PLAYER.getName() + " WRITE",
                                     PLAYER_IP.getName() + " WRITE",
-                                    PLAYER_STEAMID.getName() + " WRITE",
-                                    KNOWN_SERVER.getName() + " READ"
+                                    PLAYER_STEAMID.getName() + " WRITE"
                             )
                     );
 

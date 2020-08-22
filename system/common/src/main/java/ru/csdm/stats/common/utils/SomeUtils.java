@@ -14,8 +14,8 @@ import org.springframework.boot.autoconfigure.jooq.SpringTransactionProvider;
 import org.springframework.boot.jdbc.DataSourceBuilder;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.jdbc.datasource.TransactionAwareDataSourceProxy;
-import ru.csdm.stats.common.dto.ServerData;
-import ru.csdm.stats.common.model.collector.tables.pojos.KnownServer;
+import org.springframework.util.LinkedCaseInsensitiveMap;
+import ru.csdm.stats.common.model.collector.enums.ProjectDatabaseServerTimezone;
 import ru.csdm.stats.common.model.csstats.tables.pojos.Player;
 import ru.csdm.stats.common.model.csstats.tables.records.PlayerRecord;
 
@@ -25,10 +25,7 @@ import java.net.SocketAddress;
 import java.sql.Timestamp;
 import java.time.Duration;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 
@@ -62,7 +59,18 @@ public class SomeUtils {
         return null;
     }
 
-    public static DefaultDSLContext configJooqContext(DataSource dataSource, SQLDialect dialect, String schema) {
+    public static final Map<String, ProjectDatabaseServerTimezone> timezoneEnumByLiteral = new LinkedCaseInsensitiveMap<>();
+
+    static {
+        for (ProjectDatabaseServerTimezone timezoneEnum : ProjectDatabaseServerTimezone.values()) {
+            timezoneEnumByLiteral.put(timezoneEnum.getLiteral(), timezoneEnum);
+        }
+    }
+
+    public static DefaultDSLContext configJooqContext(DataSource dataSource,
+                                                      SQLDialect dialect,
+                                                      String schema,
+                                                      int queryTimeoutSec) {
         DefaultConfiguration config = new DefaultConfiguration();
         config.set(new DataSourceConnectionProvider(new TransactionAwareDataSourceProxy(dataSource)));
         config.set(new DefaultExecuteListenerProvider(new JooqExceptionTranslator()));
@@ -79,6 +87,8 @@ public class SomeUtils {
             );
         }
 
+        config.settings().setQueryTimeout(queryTimeoutSec);
+
         return new DefaultDSLContext(config);
     }
 
@@ -90,15 +100,6 @@ public class SomeUtils {
 
         ds.setPoolName(poolName);
         return ds;
-    }
-
-    public static String serverDataToString(ServerData serverData) {
-        KnownServer knownServer = serverData.getKnownServer();
-        return knownServer.getIpport() + ": ffa=" + knownServer.getFfa()
-                + ", ignore_bots=" + knownServer.getIgnoreBots()
-                + ", start_session_on_action=" + knownServer.getStartSessionOnAction()
-                + ", server_name=" + knownServer.getName()
-                + ", project_name=" + serverData.getProject().getName();
     }
 
     public static String playerToString(Player player) {

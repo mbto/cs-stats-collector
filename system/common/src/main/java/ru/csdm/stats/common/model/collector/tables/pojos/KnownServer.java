@@ -17,11 +17,11 @@ import java.io.Serializable;
 @SuppressWarnings({ "all", "unchecked", "rawtypes" })
 public class KnownServer implements Serializable {
 
-    private static final long serialVersionUID = -1421953127;
+    private static final long serialVersionUID = -924600695;
 
     private UInteger id;
-    private UInteger projectId;
     private UInteger instanceId;
+    private UInteger projectId;
     private String   ipport;
     private String   name;
     private Boolean  active;
@@ -33,8 +33,8 @@ public class KnownServer implements Serializable {
 
     public KnownServer(KnownServer value) {
         this.id = value.id;
-        this.projectId = value.projectId;
         this.instanceId = value.instanceId;
+        this.projectId = value.projectId;
         this.ipport = value.ipport;
         this.name = value.name;
         this.active = value.active;
@@ -45,8 +45,8 @@ public class KnownServer implements Serializable {
 
     public KnownServer(
         UInteger id,
-        UInteger projectId,
         UInteger instanceId,
+        UInteger projectId,
         String   ipport,
         String   name,
         Boolean  active,
@@ -55,8 +55,8 @@ public class KnownServer implements Serializable {
         Boolean  startSessionOnAction
     ) {
         this.id = id;
-        this.projectId = projectId;
         this.instanceId = instanceId;
+        this.projectId = projectId;
         this.ipport = ipport;
         this.name = name;
         this.active = active;
@@ -74,21 +74,21 @@ public class KnownServer implements Serializable {
     }
 
     @NotNull
-    public UInteger getProjectId() {
-        return this.projectId;
-    }
-
-    public void setProjectId(UInteger projectId) {
-        this.projectId = projectId;
-    }
-
-    @NotNull
     public UInteger getInstanceId() {
         return this.instanceId;
     }
 
     public void setInstanceId(UInteger instanceId) {
         this.instanceId = instanceId;
+    }
+
+    @NotNull
+    public UInteger getProjectId() {
+        return this.projectId;
+    }
+
+    public void setProjectId(UInteger projectId) {
+        this.projectId = projectId;
     }
 
     @NotNull
@@ -158,17 +158,17 @@ public class KnownServer implements Serializable {
         }
         else if (!id.equals(other.id))
             return false;
-        if (projectId == null) {
-            if (other.projectId != null)
-                return false;
-        }
-        else if (!projectId.equals(other.projectId))
-            return false;
         if (instanceId == null) {
             if (other.instanceId != null)
                 return false;
         }
         else if (!instanceId.equals(other.instanceId))
+            return false;
+        if (projectId == null) {
+            if (other.projectId != null)
+                return false;
+        }
+        else if (!projectId.equals(other.projectId))
             return false;
         if (ipport == null) {
             if (other.ipport != null)
@@ -214,8 +214,8 @@ public class KnownServer implements Serializable {
         final int prime = 31;
         int result = 1;
         result = prime * result + ((this.id == null) ? 0 : this.id.hashCode());
-        result = prime * result + ((this.projectId == null) ? 0 : this.projectId.hashCode());
         result = prime * result + ((this.instanceId == null) ? 0 : this.instanceId.hashCode());
+        result = prime * result + ((this.projectId == null) ? 0 : this.projectId.hashCode());
         result = prime * result + ((this.ipport == null) ? 0 : this.ipport.hashCode());
         result = prime * result + ((this.name == null) ? 0 : this.name.hashCode());
         result = prime * result + ((this.active == null) ? 0 : this.active.hashCode());
@@ -230,8 +230,8 @@ public class KnownServer implements Serializable {
         StringBuilder sb = new StringBuilder("KnownServer (");
 
         sb.append(id);
-        sb.append(", ").append(projectId);
         sb.append(", ").append(instanceId);
+        sb.append(", ").append(projectId);
         sb.append(", ").append(ipport);
         sb.append(", ").append(name);
         sb.append(", ").append(active);

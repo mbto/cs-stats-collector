@@ -23,7 +23,7 @@ import java.util.List;
 @SuppressWarnings({ "all", "unchecked", "rawtypes" })
 public class KnownServer extends TableImpl<KnownServerRecord> {
 
-    private static final long serialVersionUID = -939010044;
+    private static final long serialVersionUID = 175673994;
 
     /**
      * The reference instance of <code>collector.known_server</code>
@@ -44,14 +44,14 @@ public class KnownServer extends TableImpl<KnownServerRecord> {
     public final TableField<KnownServerRecord, UInteger> ID = createField("id", org.jooq.impl.SQLDataType.INTEGERUNSIGNED.nullable(false).identity(true), this, "");
 
     /**
-     * The column <code>collector.known_server.project_id</code>.
-     */
-    public final TableField<KnownServerRecord, UInteger> PROJECT_ID = createField("project_id", org.jooq.impl.SQLDataType.INTEGERUNSIGNED.nullable(false), this, "");
-
-    /**
      * The column <code>collector.known_server.instance_id</code>.
      */
     public final TableField<KnownServerRecord, UInteger> INSTANCE_ID = createField("instance_id", org.jooq.impl.SQLDataType.INTEGERUNSIGNED.nullable(false), this, "");
+
+    /**
+     * The column <code>collector.known_server.project_id</code>.
+     */
+    public final TableField<KnownServerRecord, UInteger> PROJECT_ID = createField("project_id", org.jooq.impl.SQLDataType.INTEGERUNSIGNED.nullable(false), this, "");
 
     /**
      * The column <code>collector.known_server.ipport</code>. ip:port of the server from which the logs will be expected
@@ -161,15 +161,15 @@ public class KnownServer extends TableImpl<KnownServerRecord> {
      */
     @Override
     public List<ForeignKey<KnownServerRecord, ?>> getReferences() {
-        return Arrays.<ForeignKey<KnownServerRecord, ?>>asList(Keys.KNOWN_SERVER_PROJECT_ID_FK, Keys.KNOWN_SERVER_INSTANCE_ID_FK);
-    }
-
-    public Project project() {
-        return new Project(this, Keys.KNOWN_SERVER_PROJECT_ID_FK);
+        return Arrays.<ForeignKey<KnownServerRecord, ?>>asList(Keys.KNOWN_SERVER_INSTANCE_ID_FK, Keys.KNOWN_SERVER_PROJECT_ID_FK);
     }
 
     public Instance instance() {
         return new Instance(this, Keys.KNOWN_SERVER_INSTANCE_ID_FK);
+    }
+
+    public Project project() {
+        return new Project(this, Keys.KNOWN_SERVER_PROJECT_ID_FK);
     }
 
     /**

@@ -16,50 +16,6 @@
 /*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
 
 --
--- Current Database: `csstats`
---
-
-/*!40000 DROP DATABASE IF EXISTS `csstats`*/;
-
-CREATE DATABASE /*!32312 IF NOT EXISTS*/ `csstats` /*!40100 DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci */ /*!80016 DEFAULT ENCRYPTION='N' */;
-
-USE `csstats`;
-
---
--- Table structure for table `api_user`
---
-
-DROP TABLE IF EXISTS `api_user`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `api_user` (
-  `id` int unsigned NOT NULL AUTO_INCREMENT,
-  `active` tinyint unsigned NOT NULL DEFAULT '1',
-  `username` varchar(31) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
-  `password` char(60) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL COMMENT 'https://www.browserling.com/tools/bcrypt',
-  `manage` tinyint unsigned NOT NULL DEFAULT '1' COMMENT '1-can invoke ''managers'' endpoints (/stats/updateSettings, /stats/flush, /stats/, etc...);0-can''t invoke ''managers'' endpoints',
-  `view` tinyint unsigned NOT NULL DEFAULT '1' COMMENT '1-can invoke ''views'' endpoints (/stats/player, etc...);0-can''t invoke ''views'' endpoints',
-  `reg_datetime` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `id_UNIQUE` (`id`),
-  UNIQUE KEY `username_UNIQUE` (`username`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Who to share API access to endpoints /stats/*';
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Dumping data for table `api_user`
---
-
-LOCK TABLES `api_user` WRITE;
-/*!40000 ALTER TABLE `api_user` DISABLE KEYS */;
-set autocommit=0;
-INSERT INTO `api_user` VALUES (1,1,'admin','$2a$10$H92uR9r46g85blB3GTY2veEAtsSQjJulSMN3PvrJD73ZsiE8RES3K',1,1,'2020-01-01 00:00:00');
-INSERT INTO `api_user` VALUES (2,1,'viewer','$2a$10$DLrXdR4LwJmZIjo9BrUBtuQJVtxX2TGvGb.qFigBydYvAhxTlPeDu',0,1,'2020-01-01 00:00:00');
-/*!40000 ALTER TABLE `api_user` ENABLE KEYS */;
-UNLOCK TABLES;
-commit;
-
---
 -- Table structure for table `history`
 --
 
@@ -95,86 +51,6 @@ UNLOCK TABLES;
 commit;
 
 --
--- Table structure for table `known_server`
---
-
-DROP TABLE IF EXISTS `known_server`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `known_server` (
-  `id` int unsigned NOT NULL AUTO_INCREMENT,
-  `ipport` varchar(21) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'ip:port of the server from which the logs will be expected',
-  `name` varchar(31) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
-  `active` tinyint unsigned NOT NULL DEFAULT '0' COMMENT 'Are ip:port allowed?: 1-allowed; 0-not allowed (logs/stats from this ip:port will be ignored)',
-  `ffa` tinyint unsigned NOT NULL DEFAULT '0' COMMENT 'game server is FREE-FOR-ALL mode (Example: CS-DeathMatch): 1-true; 0-false',
-  `ignore_bots` tinyint unsigned NOT NULL DEFAULT '0' COMMENT '1-ignore statistics, when killer or victim is BOT; 0-don''t ignore (include all player''s)',
-  `start_session_on_action` tinyint unsigned NOT NULL DEFAULT '0' COMMENT '1-start player''s session on event "... killed ... with ..." (not for kreedz servers); 0-start player''s session on event "... connected, address ..." or "... entered the game"',
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `id_UNIQUE` (`id`),
-  UNIQUE KEY `ipport_UNIQUE` (`ipport`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Dumping data for table `known_server`
---
-
-LOCK TABLES `known_server` WRITE;
-/*!40000 ALTER TABLE `known_server` DISABLE KEYS */;
-set autocommit=0;
-/*!40000 ALTER TABLE `known_server` ENABLE KEYS */;
-UNLOCK TABLES;
-commit;
-/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
-/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
-/*!50003 SET @saved_col_connection = @@collation_connection */ ;
-/*!50003 SET character_set_client  = utf8mb4 */ ;
-/*!50003 SET character_set_results = utf8mb4 */ ;
-/*!50003 SET collation_connection  = utf8mb4_0900_ai_ci */ ;
-/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
-/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,NO_ENGINE_SUBSTITUTION' */ ;
-/*!50032 DROP TRIGGER IF EXISTS known_server_BEFORE_INSERT */;
-DELIMITER ;;
-/*!50003 CREATE*/ /*!50017 DEFINER=`root`@`%`*/ /*!50003 TRIGGER `known_server_BEFORE_INSERT` BEFORE INSERT ON `known_server` FOR EACH ROW BEGIN
-	declare error_msg VARCHAR(36);
-    
-	if( !is_valid_ip(NEW.ipport, false, true)) then
-		/* Invalid ipport=255.255.255.255:12345 @ len=36 */
-		set error_msg = concat('Invalid ipport=', ifnull(NEW.ipport, ''));
-		SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = error_msg;
-    end if;
-END */;;
-DELIMITER ;
-/*!50003 SET sql_mode              = @saved_sql_mode */ ;
-/*!50003 SET character_set_client  = @saved_cs_client */ ;
-/*!50003 SET character_set_results = @saved_cs_results */ ;
-/*!50003 SET collation_connection  = @saved_col_connection */ ;
-/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
-/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
-/*!50003 SET @saved_col_connection = @@collation_connection */ ;
-/*!50003 SET character_set_client  = utf8mb4 */ ;
-/*!50003 SET character_set_results = utf8mb4 */ ;
-/*!50003 SET collation_connection  = utf8mb4_0900_ai_ci */ ;
-/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
-/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,NO_ENGINE_SUBSTITUTION' */ ;
-/*!50032 DROP TRIGGER IF EXISTS known_server_BEFORE_UPDATE */;
-DELIMITER ;;
-/*!50003 CREATE*/ /*!50017 DEFINER=`root`@`%`*/ /*!50003 TRIGGER `known_server_BEFORE_UPDATE` BEFORE UPDATE ON `known_server` FOR EACH ROW BEGIN
-	declare error_msg VARCHAR(36);
-    
-    if( !is_valid_ip(NEW.ipport, false, true)) then
-		/* Invalid ipport=255.255.255.255:12345 @ len=36 */
-		set error_msg = concat('Invalid ipport=', ifnull(NEW.ipport, ''));
-		SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = error_msg;
-    end if;
-END */;;
-DELIMITER ;
-/*!50003 SET sql_mode              = @saved_sql_mode */ ;
-/*!50003 SET character_set_client  = @saved_cs_client */ ;
-/*!50003 SET character_set_results = @saved_cs_results */ ;
-/*!50003 SET collation_connection  = @saved_col_connection */ ;
-
---
 -- Table structure for table `player`
 --
 
@@ -189,13 +65,11 @@ CREATE TABLE `player` (
   `time_secs` int unsigned NOT NULL DEFAULT '0',
   `rank_id` int unsigned DEFAULT NULL,
   `lastseen_datetime` datetime DEFAULT NULL,
-  `last_server_id` int unsigned DEFAULT NULL,
+  `last_server_name` varchar(31) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `id_UNIQUE` (`id`),
   UNIQUE KEY `name_UNIQUE` (`name`),
   KEY `player_rank_id_idx` (`rank_id`),
-  KEY `player_last_server_id_idx` (`last_server_id`),
-  CONSTRAINT `player_last_server_id_fk` FOREIGN KEY (`last_server_id`) REFERENCES `known_server` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
   CONSTRAINT `player_rank_id_fk` FOREIGN KEY (`rank_id`) REFERENCES `rank` (`id`) ON DELETE SET NULL ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
@@ -245,8 +119,8 @@ DELIMITER ;;
 		set NEW.rank_id = calculate_rank_id(NEW.kills, NEW.deaths, NEW.time_secs);
         
 		if (!(OLD.rank_id <=> NEW.rank_id)) then
-			insert into history (player_id, old_rank_id, new_rank_id, reg_datetime)
-			values (NEW.id, OLD.rank_id, NEW.rank_id, current_timestamp());
+			insert into history (player_id, old_rank_id, new_rank_id)
+			values (NEW.id, OLD.rank_id, NEW.rank_id);
 		end if;
 	END IF;
 END */;;
@@ -1443,4 +1317,4 @@ DELIMITER ;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2020-08-16  6:02:58
+-- Dump completed on 2020-08-22  4:20:39

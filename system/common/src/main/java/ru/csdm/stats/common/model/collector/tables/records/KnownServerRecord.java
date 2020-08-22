@@ -22,7 +22,7 @@ import javax.validation.constraints.Size;
 @SuppressWarnings({ "all", "unchecked", "rawtypes" })
 public class KnownServerRecord extends UpdatableRecordImpl<KnownServerRecord> implements Record9<UInteger, UInteger, UInteger, String, String, Boolean, Boolean, Boolean, Boolean> {
 
-    private static final long serialVersionUID = -1716059280;
+    private static final long serialVersionUID = 1788141626;
 
     /**
      * Setter for <code>collector.known_server.id</code>.
@@ -39,25 +39,10 @@ public class KnownServerRecord extends UpdatableRecordImpl<KnownServerRecord> im
     }
 
     /**
-     * Setter for <code>collector.known_server.project_id</code>.
-     */
-    public void setProjectId(UInteger value) {
-        set(1, value);
-    }
-
-    /**
-     * Getter for <code>collector.known_server.project_id</code>.
-     */
-    @NotNull
-    public UInteger getProjectId() {
-        return (UInteger) get(1);
-    }
-
-    /**
      * Setter for <code>collector.known_server.instance_id</code>.
      */
     public void setInstanceId(UInteger value) {
-        set(2, value);
+        set(1, value);
     }
 
     /**
@@ -65,6 +50,21 @@ public class KnownServerRecord extends UpdatableRecordImpl<KnownServerRecord> im
      */
     @NotNull
     public UInteger getInstanceId() {
+        return (UInteger) get(1);
+    }
+
+    /**
+     * Setter for <code>collector.known_server.project_id</code>.
+     */
+    public void setProjectId(UInteger value) {
+        set(2, value);
+    }
+
+    /**
+     * Getter for <code>collector.known_server.project_id</code>.
+     */
+    @NotNull
+    public UInteger getProjectId() {
         return (UInteger) get(2);
     }
 
@@ -201,7 +201,7 @@ public class KnownServerRecord extends UpdatableRecordImpl<KnownServerRecord> im
      */
     @Override
     public Field<UInteger> field2() {
-        return KnownServer.KNOWN_SERVER.PROJECT_ID;
+        return KnownServer.KNOWN_SERVER.INSTANCE_ID;
     }
 
     /**
@@ -209,7 +209,7 @@ public class KnownServerRecord extends UpdatableRecordImpl<KnownServerRecord> im
      */
     @Override
     public Field<UInteger> field3() {
-        return KnownServer.KNOWN_SERVER.INSTANCE_ID;
+        return KnownServer.KNOWN_SERVER.PROJECT_ID;
     }
 
     /**
@@ -273,7 +273,7 @@ public class KnownServerRecord extends UpdatableRecordImpl<KnownServerRecord> im
      */
     @Override
     public UInteger component2() {
-        return getProjectId();
+        return getInstanceId();
     }
 
     /**
@@ -281,7 +281,7 @@ public class KnownServerRecord extends UpdatableRecordImpl<KnownServerRecord> im
      */
     @Override
     public UInteger component3() {
-        return getInstanceId();
+        return getProjectId();
     }
 
     /**
@@ -345,7 +345,7 @@ public class KnownServerRecord extends UpdatableRecordImpl<KnownServerRecord> im
      */
     @Override
     public UInteger value2() {
-        return getProjectId();
+        return getInstanceId();
     }
 
     /**
@@ -353,7 +353,7 @@ public class KnownServerRecord extends UpdatableRecordImpl<KnownServerRecord> im
      */
     @Override
     public UInteger value3() {
-        return getInstanceId();
+        return getProjectId();
     }
 
     /**
@@ -418,7 +418,7 @@ public class KnownServerRecord extends UpdatableRecordImpl<KnownServerRecord> im
      */
     @Override
     public KnownServerRecord value2(UInteger value) {
-        setProjectId(value);
+        setInstanceId(value);
         return this;
     }
 
@@ -427,7 +427,7 @@ public class KnownServerRecord extends UpdatableRecordImpl<KnownServerRecord> im
      */
     @Override
     public KnownServerRecord value3(UInteger value) {
-        setInstanceId(value);
+        setProjectId(value);
         return this;
     }
 
@@ -516,12 +516,12 @@ public class KnownServerRecord extends UpdatableRecordImpl<KnownServerRecord> im
     /**
      * Create a detached, initialised KnownServerRecord
      */
-    public KnownServerRecord(UInteger id, UInteger projectId, UInteger instanceId, String ipport, String name, Boolean active, Boolean ffa, Boolean ignoreBots, Boolean startSessionOnAction) {
+    public KnownServerRecord(UInteger id, UInteger instanceId, UInteger projectId, String ipport, String name, Boolean active, Boolean ffa, Boolean ignoreBots, Boolean startSessionOnAction) {
         super(KnownServer.KNOWN_SERVER);
 
         set(0, id);
-        set(1, projectId);
-        set(2, instanceId);
+        set(1, instanceId);
+        set(2, projectId);
         set(3, ipport);
         set(4, name);
         set(5, active);

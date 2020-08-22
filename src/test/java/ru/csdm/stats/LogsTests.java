@@ -4,19 +4,17 @@ import com.sun.security.auth.UserPrincipal;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.jooq.DSLContext;
-import org.jooq.Field;
 import org.jooq.InsertSetMoreStep;
-import org.jooq.Table;
 import org.jooq.impl.DSL;
 import org.jooq.types.UInteger;
 import org.junit.*;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.DependsOn;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
+import ru.csdm.stats.common.model.collector.tables.pojos.Project;
 import ru.csdm.stats.common.model.collector.tables.records.KnownServerRecord;
 import ru.csdm.stats.common.model.csstats.tables.pojos.Player;
 import ru.csdm.stats.common.model.csstats.tables.pojos.PlayerIp;
@@ -24,28 +22,23 @@ import ru.csdm.stats.common.model.csstats.tables.pojos.PlayerSteamid;
 import ru.csdm.stats.modules.collector.endpoints.CollectorEndpoint;
 import ru.csdm.stats.modules.collector.service.SettingsService;
 
-import java.io.BufferedReader;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.net.DatagramPacket;
-import java.net.DatagramSocket;
-import java.net.InetSocketAddress;
 import java.time.LocalDateTime;
-import java.util.*;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ThreadLocalRandom;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import static org.junit.Assert.assertEquals;
 import static org.springframework.boot.autoconfigure.task.TaskExecutionAutoConfiguration.APPLICATION_TASK_EXECUTOR_BEAN_NAME;
 import static ru.csdm.stats.common.Constants.YYYYMMDD_HHMMSS_PATTERN;
+import static ru.csdm.stats.common.model.collector.tables.DriverProperty.DRIVER_PROPERTY;
+import static ru.csdm.stats.common.model.collector.tables.Instance.INSTANCE;
 import static ru.csdm.stats.common.model.collector.tables.KnownServer.KNOWN_SERVER;
-import static ru.csdm.stats.common.model.csstats.tables.History.HISTORY;
-import static ru.csdm.stats.common.model.csstats.tables.Player.PLAYER;
-import static ru.csdm.stats.common.model.csstats.tables.PlayerIp.PLAYER_IP;
-import static ru.csdm.stats.common.model.csstats.tables.PlayerSteamid.PLAYER_STEAMID;
+import static ru.csdm.stats.common.model.collector.tables.Project.PROJECT;
+import static ru.csdm.stats.common.model.csstats.Tables.PLAYER;
+import static ru.csdm.stats.common.utils.SomeUtils.timezoneEnumByLiteral;
 
 @SpringBootTest
 @RunWith(SpringRunner.class)
@@ -59,8 +52,10 @@ public class LogsTests {
     private CollectorEndpoint collectorEndpoint;
     @Autowired
     private DSLContext collectorAdminDsl;
-    @Value("${collector.listener.port:8888}")
-    private int listenerPort;
+    @Autowired
+    private LogsSender logsSender;
+    @Autowired
+    private ProjectMaker projectMaker;
 
     @BeforeClass
     public static void beforeClass() {
@@ -86,43 +81,107 @@ public class LogsTests {
         truncateTables();
     }
 
+    public Project buildDefaultProject(String projectName, String projectSchema) {
+        Project project = new Project();
+        project.setName(projectName);
+        project.setDatabaseHostport("127.0.0.1:3306");
+        project.setDatabaseSchema(projectSchema);
+        project.setDatabaseUsername("stats_tester"); /* grants same as `stats`, but with TRUNCATE */
+        project.setDatabasePassword("stats_tester");
+        project.setDatabaseServerTimezone(timezoneEnumByLiteral.get("Europe/Moscow"));
+        return project;
+    }
+
     @Test
-    public void server1_27015_27015() throws Exception {
-        addKnownServer(27015, 27015, true, true, false, true);
-        sendLogs("server1.log", 27015, 27015);
-        ActualDB actualDB = new ActualDB(collectorAdminDsl);
-        
-        assertPlayers(actualDB, new String[][] {
-                {"2", "Name2", "0", "11", "66", "1", "2020-01-01 13:16:08", "Default server"}, // 1m 6s
-                {"1", "Name1", "10", "1", "10", "1", "2020-01-01 13:16:07", "Default server"} // 10s
+    public void server1_27015_27015() {
+        Project project = buildDefaultProject("Default CS project", "csstats");
+
+        collectorAdminDsl.transaction(config -> {
+            DSLContext transactionalDsl = DSL.using(config);
+
+            UInteger instanceId = addInstance(transactionalDsl, "instance_1");
+            addProject(transactionalDsl, project);
+            addKnownServer(transactionalDsl, instanceId, project.getId(), 27015, 27015, true, true, false, true);
         });
-        assertPlayersIps(actualDB, new String[][] {
+
+        settingsService.updateSettings(false);
+
+        projectMaker.process(project, () -> {
+            logsSender.sendLogs("server1.log", 27015, 27015);
+        });
+        
+        assertPlayers(projectMaker, new String[][] {
+                {"2", "Name2", "0", "11", "66", "1", "2020-01-01 13:16:08", "Test server 127.0.0.1:27015"}, // 1m 6s
+                {"1", "Name1", "10", "1", "10", "1", "2020-01-01 13:16:07", "Test server 127.0.0.1:27015"} // 10s
+        });
+        assertPlayersIps(projectMaker, new String[][] {
                 {"1", "1", "12.12.12.12", "2020-01-01 13:16:07"}
         });
-        assertPlayersSteamIds(actualDB, new String[][] {
+        assertPlayersSteamIds(projectMaker, new String[][] {
         });
     }
 
     @Test
-    public void server1_27015_27015_with_changing_names() throws Exception {
-        addKnownServer(27015, 27015, true, true, false, false);
-        sendLogs("server1_changing_names.log", 27015, 27015);
-        ActualDB actualDB = new ActualDB(collectorAdminDsl);
+    public void another_project_server1_27015_27015() {
+        Project project = buildDefaultProject("Another CS project", "csstats_another_project");
 
-        assertPlayers(actualDB, new String[][] {
-                {"2", "Name2", "0", "12", "69", "1", "2020-01-01 13:16:11", "Default server"}, // 1m 9s
-                {"1", "Name1", "5", "0", "10", "1", "2020-01-01 13:16:10", "Default server"}, // 10s
-                {"4", "Name9", "4", "0", "6", "1", "2020-01-01 13:16:08", "Default server"}, // 6s
-                {"3", "Name5", "2", "1", "4", "1", "2020-01-01 13:15:08", "Default server"} // 4s
+        collectorAdminDsl.transaction(config -> {
+            DSLContext transactionalDsl = DSL.using(config);
+
+            UInteger instanceId = addInstance(transactionalDsl, "instance_1");
+            addProject(transactionalDsl, project);
+            addKnownServer(transactionalDsl, instanceId, project.getId(), 27015, 27015, true, true, false, true);
         });
-        assertPlayersIps(actualDB, new String[][] {
+
+        settingsService.updateSettings(false);
+
+        projectMaker.process(project, () -> {
+            logsSender.sendLogs("server1.log", 27015, 27015);
+        });
+
+        assertPlayers(projectMaker, new String[][] {
+                {"2", "Name2", "0", "11", "66", "1", "2020-01-01 13:16:08", "Test server 127.0.0.1:27015"}, // 1m 6s
+                {"1", "Name1", "10", "1", "10", "1", "2020-01-01 13:16:07", "Test server 127.0.0.1:27015"} // 10s
+        });
+        assertPlayersIps(projectMaker, new String[][] {
+                {"1", "1", "12.12.12.12", "2020-01-01 13:16:07"}
+        });
+        assertPlayersSteamIds(projectMaker, new String[][] {
+        });
+    }
+
+    @Test
+    public void server1_27015_27015_with_changing_names() {
+        Project project = buildDefaultProject("Default CS project", "csstats");
+
+        collectorAdminDsl.transaction(config -> {
+            DSLContext transactionalDsl = DSL.using(config);
+
+            UInteger instanceId = addInstance(transactionalDsl, "instance_1");
+            addProject(transactionalDsl, project);
+            addKnownServer(transactionalDsl, instanceId, project.getId(), 27015, 27015, true, true, false, false);
+        });
+
+        settingsService.updateSettings(false);
+
+        projectMaker.process(project, () -> {
+            logsSender.sendLogs("server1_changing_names.log", 27015, 27015);
+        });
+
+        assertPlayers(projectMaker, new String[][] {
+                {"2", "Name2", "0", "12", "69", "1", "2020-01-01 13:16:11", "Test server 127.0.0.1:27015"}, // 1m 9s
+                {"1", "Name1", "5", "0", "10", "1", "2020-01-01 13:16:10", "Test server 127.0.0.1:27015"}, // 10s
+                {"4", "Name9", "4", "0", "6", "1", "2020-01-01 13:16:08", "Test server 127.0.0.1:27015"}, // 6s
+                {"3", "Name5", "2", "1", "4", "1", "2020-01-01 13:15:08", "Test server 127.0.0.1:27015"} // 4s
+        });
+        assertPlayersIps(projectMaker, new String[][] {
                 {"1", "1", "24.24.24.24", "2020-01-01 13:16:10"},
                 {"2", "1", "12.12.12.12", "2020-01-01 13:16:10"},
                 {"3", "3", "12.12.12.12", "2020-01-01 13:15:08"},
                 {"4", "4", "24.24.24.24", "2020-01-01 13:16:08"},
                 {"5", "4", "12.12.12.12", "2020-01-01 13:16:08"}
         });
-        assertPlayersSteamIds(actualDB, new String[][] {
+        assertPlayersSteamIds(projectMaker, new String[][] {
                 {"1", "1", "STEAM_0:0:123123123123", "2020-01-01 13:16:10"},
                 {"2", "1", "STEAM_0:0:999999999999", "2020-01-01 13:16:10"},
                 {"3", "2", "STEAM_0:1:987654", "2020-01-01 13:16:11"},
@@ -133,15 +192,27 @@ public class LogsTests {
     }
 
     @Test
-    public void server1_27015_27015_max_ips_steamids() throws Exception {
-        addKnownServer(27015, 27015, true, true, false, false);
-        sendLogs("server1_max_ips_steamids.log", 27015, 27015);
-        ActualDB actualDB = new ActualDB(collectorAdminDsl);
+    public void server1_27015_27015_max_ips_steamids() {
+        Project project = buildDefaultProject("Default CS project", "csstats");
 
-        assertPlayers(actualDB, new String[][] {
-                {"1", "Name1", "0", "0", "34", "1", "2020-01-01 13:15:50", "Default server"} // 34s
+        collectorAdminDsl.transaction(config -> {
+            DSLContext transactionalDsl = DSL.using(config);
+
+            UInteger instanceId = addInstance(transactionalDsl, "instance_1");
+            addProject(transactionalDsl, project);
+            addKnownServer(transactionalDsl, instanceId, project.getId(), 27015, 27015, true, true, false, false);
         });
-        assertPlayersIps(actualDB, new String[][] {
+
+        settingsService.updateSettings(false);
+
+        projectMaker.process(project, () -> {
+            logsSender.sendLogs("server1_max_ips_steamids.log", 27015, 27015);
+        });
+
+        assertPlayers(projectMaker, new String[][] {
+                {"1", "Name1", "0", "0", "34", "1", "2020-01-01 13:15:50", "Test server 127.0.0.1:27015"} // 34s
+        });
+        assertPlayersIps(projectMaker, new String[][] {
                 {"3", "1", "127.0.0.10", "2020-01-01 13:15:50"},
                 {"4", "1", "127.0.0.5", "2020-01-01 13:15:50"},
                 {"5", "1", "127.0.0.4", "2020-01-01 13:15:50"},
@@ -158,7 +229,7 @@ public class LogsTests {
                 {"16", "1", "127.0.0.2", "2020-01-01 13:15:50"},
                 {"17", "1", "127.0.0.1", "2020-01-01 13:15:50"}
         });
-        assertPlayersSteamIds(actualDB, new String[][] {
+        assertPlayersSteamIds(projectMaker, new String[][] {
                 {"3", "1", "STEAM_0:0:000008", "2020-01-01 13:15:50"},
                 {"4", "1", "STEAM_0:0:000005", "2020-01-01 13:15:50"},
                 {"5", "1", "STEAM_0:0:000016", "2020-01-01 13:15:50"},
@@ -178,188 +249,287 @@ public class LogsTests {
     }
 
     @Test
-    public void server4_27016_27016() throws Exception {
-        addKnownServer(27016, 27016, true, true, false, true);
-        sendLogs("server4.log", 27016, 27016);
-        ActualDB actualDB = new ActualDB(collectorAdminDsl);
-        
-        assertPlayers(actualDB, new String[][] {
-                {"1", "Admin", "17", "11", "449", "1", "2020-01-01 21:25:07", "Default server"}, // 7m 29s
-                {"4", "yeppi", "11", "21", "443", "1", "2020-01-01 21:24:58", "Default server"}, // 7m 23s
-                {"5", "sonic", "10", "16", "443", "1", "2020-01-01 21:24:58", "Default server"}, // 7m 23s
-                {"8", "wRa1 wRa1", "13", "17", "440", "1", "2020-01-01 21:24:58", "Default server"}, // 7m 20s
-                {"9", "showw", "21", "14", "438", "1", "2020-01-01 21:24:58", "Default server"}, // 7m 18s
-                {"2", "pravwOw~", "8", "22", "438", "1", "2020-01-01 21:24:58", "Default server"}, // 7m 18s
-                {"15", "BoBka’)", "8", "11", "438", "1", "2020-01-01 21:24:58", "Default server"}, // 7m 18s
-                {"10", "haaimbat", "14", "19", "435", "1", "2020-01-01 21:24:58", "Default server"}, // 7m 15s
-                {"7", "BatalOOl", "12", "10", "435", "1", "2020-01-01 21:24:58", "Default server"}, // 7m 15s
-                {"14", "KaRJlSoH", "20", "10", "434", "1", "2020-01-01 21:24:58", "Default server"}, // 7m 14s
-                {"16", "nameasd", "18", "10", "434", "1", "2020-01-01 21:24:58", "Default server"}, // 7m 14s
-                {"13", "[52 xemaike2h blanil", "14", "17", "422", "1", "2020-01-01 21:24:58", "Default server"}, // 7m 2s
-                {"11", "Currv", "20", "16", "417", "1", "2020-01-01 21:24:58", "Default server"}, // 6m 57s
-                {"3", "aromaken1", "14", "16", "415", "1", "2020-01-01 21:24:58", "Default server"}, // 6m 55s
-                {"12", "~kewAw0w~~", "13", "17", "400", "1", "2020-01-01 21:24:58", "Default server"}, // 6m 40s
-                {"6", "castzOr", "14", "16", "395", "1", "2020-01-01 21:24:58", "Default server"} // 6m 35s
+    public void server4_27016_27016() {
+        Project project = buildDefaultProject("Default CS project", "csstats");
+
+        collectorAdminDsl.transaction(config -> {
+            DSLContext transactionalDsl = DSL.using(config);
+
+            UInteger instanceId = addInstance(transactionalDsl, "instance_1");
+            addProject(transactionalDsl, project);
+            addKnownServer(transactionalDsl, instanceId, project.getId(), 27016, 27016, true, true, false, true);
         });
-        assertPlayersIps(actualDB, new String[][] {
+
+        settingsService.updateSettings(false);
+
+        projectMaker.process(project, () -> {
+            logsSender.sendLogs("server4.log", 27016, 27016);
         });
-        assertPlayersSteamIds(actualDB, new String[][] {
+
+        assertPlayers(projectMaker, new String[][] {
+                {"1", "Admin", "17", "11", "449", "1", "2020-01-01 21:25:07", "Test server 127.0.0.1:27016"}, // 7m 29s
+                {"4", "yeppi", "11", "21", "443", "1", "2020-01-01 21:24:58", "Test server 127.0.0.1:27016"}, // 7m 23s
+                {"5", "sonic", "10", "16", "443", "1", "2020-01-01 21:24:58", "Test server 127.0.0.1:27016"}, // 7m 23s
+                {"8", "wRa1 wRa1", "13", "17", "440", "1", "2020-01-01 21:24:58", "Test server 127.0.0.1:27016"}, // 7m 20s
+                {"9", "showw", "21", "14", "438", "1", "2020-01-01 21:24:58", "Test server 127.0.0.1:27016"}, // 7m 18s
+                {"2", "pravwOw~", "8", "22", "438", "1", "2020-01-01 21:24:58", "Test server 127.0.0.1:27016"}, // 7m 18s
+                {"15", "BoBka’)", "8", "11", "438", "1", "2020-01-01 21:24:58", "Test server 127.0.0.1:27016"}, // 7m 18s
+                {"10", "haaimbat", "14", "19", "435", "1", "2020-01-01 21:24:58", "Test server 127.0.0.1:27016"}, // 7m 15s
+                {"7", "BatalOOl", "12", "10", "435", "1", "2020-01-01 21:24:58", "Test server 127.0.0.1:27016"}, // 7m 15s
+                {"14", "KaRJlSoH", "20", "10", "434", "1", "2020-01-01 21:24:58", "Test server 127.0.0.1:27016"}, // 7m 14s
+                {"16", "nameasd", "18", "10", "434", "1", "2020-01-01 21:24:58", "Test server 127.0.0.1:27016"}, // 7m 14s
+                {"13", "[52 xemaike2h blanil", "14", "17", "422", "1", "2020-01-01 21:24:58", "Test server 127.0.0.1:27016"}, // 7m 2s
+                {"11", "Currv", "20", "16", "417", "1", "2020-01-01 21:24:58", "Test server 127.0.0.1:27016"}, // 6m 57s
+                {"3", "aromaken1", "14", "16", "415", "1", "2020-01-01 21:24:58", "Test server 127.0.0.1:27016"}, // 6m 55s
+                {"12", "~kewAw0w~~", "13", "17", "400", "1", "2020-01-01 21:24:58", "Test server 127.0.0.1:27016"}, // 6m 40s
+                {"6", "castzOr", "14", "16", "395", "1", "2020-01-01 21:24:58", "Test server 127.0.0.1:27016"} // 6m 35s
+        });
+        assertPlayersIps(projectMaker, new String[][] {
+        });
+        assertPlayersSteamIds(projectMaker, new String[][] {
         });
     }
 
     @Test
-    public void server1_27015_27016_start_session_on_action() throws Exception {
-        addKnownServer(27015, 27016, true, true, false, true);
-        sendLogs("server1.log", 27015, 27016);
+    public void server1_27015_27016_start_session_on_action() {
+        Project project = buildDefaultProject("Default CS project", "csstats");
 
-        Map<Table<?>, List<Field<?>>> excludeColumns = new HashMap<>();
+        collectorAdminDsl.transaction(config -> {
+            DSLContext transactionalDsl = DSL.using(config);
+
+            UInteger instanceId = addInstance(transactionalDsl, "instance_1");
+            addProject(transactionalDsl, project);
+            addKnownServer(transactionalDsl, instanceId, project.getId(), 27015, 27016, true, true, false, true);
+        });
+
+        settingsService.updateSettings(false);
+
+        projectMaker.process(project, () -> {
+            logsSender.sendLogs("server1.log", 27015, 27016);
+        }, Arrays.asList(PLAYER.LAST_SERVER_NAME));
         /* logs sends in parallel, so PLAYER.LAST_SERVER_NAME is undefined */
-        excludeColumns.put(PLAYER, Arrays.asList(PLAYER.LAST_SERVER_NAME));
-        ActualDB actualDB = new ActualDB(collectorAdminDsl, excludeColumns);
-        
-        assertPlayers(actualDB, new String[][] {
+
+        assertPlayers(projectMaker, new String[][] {
                 {"2", "Name2", "0", "22", "132", "1", "2020-01-01 13:16:08", null}, // 2m 12s
                 {"1", "Name1", "20", "2", "20", "1", "2020-01-01 13:16:07", null} // 20s
         });
-        assertPlayersIps(actualDB, new String[][] {
+        assertPlayersIps(projectMaker, new String[][] {
                 {"1", "1", "12.12.12.12", "2020-01-01 13:16:07"}
         });
-        assertPlayersSteamIds(actualDB, new String[][] {
+        assertPlayersSteamIds(projectMaker, new String[][] {
         });
     }
 
     @Test
-    public void server1_27015_27016_dont_start_session_on_action() throws Exception {
-        addKnownServer(27015, 27016, true, true, false, false);
-        sendLogs("server1.log", 27015, 27016);
+    public void server1_27015_27016_dont_start_session_on_action() {
+        Project project = buildDefaultProject("Default CS project", "csstats");
 
-        Map<Table<?>, List<Field<?>>> excludeColumns = new HashMap<>();
+        collectorAdminDsl.transaction(config -> {
+            DSLContext transactionalDsl = DSL.using(config);
+
+            UInteger instanceId = addInstance(transactionalDsl, "instance_1");
+            addProject(transactionalDsl, project);
+            addKnownServer(transactionalDsl, instanceId, project.getId(), 27015, 27016, true, true, false, false);
+        });
+
+        settingsService.updateSettings(false);
+
+        projectMaker.process(project, () -> {
+            logsSender.sendLogs("server1.log", 27015, 27016);
+        }, Arrays.asList(PLAYER.LAST_SERVER_NAME));
         /* logs sends in parallel, so PLAYER.LAST_SERVER_NAME is undefined */
-        excludeColumns.put(PLAYER, Arrays.asList(PLAYER.LAST_SERVER_NAME));
-        ActualDB actualDB = new ActualDB(collectorAdminDsl, excludeColumns);
 
-        assertPlayers(actualDB, new String[][] {
+        assertPlayers(projectMaker, new String[][] {
                 {"2", "Name2", "0", "22", "132", "1", "2020-01-01 13:16:08", null}, // 2m 12s
                 {"1", "Name1", "20", "2", "28", "1", "2020-01-01 13:16:07", null} // 28s
         });
-        assertPlayersIps(actualDB, new String[][] {
+        assertPlayersIps(projectMaker, new String[][] {
                 {"1", "1", "12.12.12.12", "2020-01-01 13:16:07"}
         });
-        assertPlayersSteamIds(actualDB, new String[][] {
+        assertPlayersSteamIds(projectMaker, new String[][] {
         });
     }
 
     @Test
-    public void server2_27015_27015_start_session_on_action() throws Exception {
-        addKnownServer(27015, 27015, true, true, false, true);
-        sendLogs("server2.log", 27015, 27015);
-        ActualDB actualDB = new ActualDB(collectorAdminDsl);
-        
-        assertPlayers(actualDB, new String[][] {
-                {"1", "Admin", "7", "5", "103", "1", "2020-01-01 20:58:38", "Default server"}, // 1m 43s
-                {"4", "cusoma", "0", "8", "89", "1", "2020-01-01 20:52:10", "Default server"}, // 1m 29s
-                {"3", "timoxatw", "5", "1", "76", "1", "2020-01-01 20:52:10", "Default server"}, // 1m 16s
-                {"2", "no kill", "3", "2", "51", "1", "2020-01-01 20:52:10", "Default server"} // 51s
+    public void server2_27015_27015_start_session_on_action() {
+        Project project = buildDefaultProject("Default CS project", "csstats");
+
+        collectorAdminDsl.transaction(config -> {
+            DSLContext transactionalDsl = DSL.using(config);
+
+            UInteger instanceId = addInstance(transactionalDsl, "instance_1");
+            addProject(transactionalDsl, project);
+            addKnownServer(transactionalDsl, instanceId, project.getId(), 27015, 27015, true, true, false, true);
         });
-        assertPlayersIps(actualDB, new String[][] {
+
+        settingsService.updateSettings(false);
+
+        projectMaker.process(project, () -> {
+            logsSender.sendLogs("server2.log", 27015, 27015);
         });
-        assertPlayersSteamIds(actualDB, new String[][] {
+
+        assertPlayers(projectMaker, new String[][] {
+                {"1", "Admin", "7", "5", "103", "1", "2020-01-01 20:58:38", "Test server 127.0.0.1:27015"}, // 1m 43s
+                {"4", "cusoma", "0", "8", "89", "1", "2020-01-01 20:52:10", "Test server 127.0.0.1:27015"}, // 1m 29s
+                {"3", "timoxatw", "5", "1", "76", "1", "2020-01-01 20:52:10", "Test server 127.0.0.1:27015"}, // 1m 16s
+                {"2", "no kill", "3", "2", "51", "1", "2020-01-01 20:52:10", "Test server 127.0.0.1:27015"} // 51s
+        });
+        assertPlayersIps(projectMaker, new String[][] {
+        });
+        assertPlayersSteamIds(projectMaker, new String[][] {
         });
     }
 
     @Test
-    public void server2_27015_27015_dont_start_session_on_action() throws Exception {
-        addKnownServer(27015, 27015, true, true, false, false);
-        sendLogs("server2.log", 27015, 27015);
-        ActualDB actualDB = new ActualDB(collectorAdminDsl);
-        
-        assertPlayers(actualDB, new String[][] {
-                {"1", "Admin", "7", "5", "221", "1", "2020-01-01 20:58:38", "Default server"}, // 3m 41s
-                {"2", "no kill", "3", "2", "113", "1", "2020-01-01 20:52:10", "Default server"}, // 1m 53s
-                {"3", "timoxatw", "5", "1", "110", "1", "2020-01-01 20:52:10", "Default server"}, // 1m 50s
-                {"4", "cusoma", "0", "8", "104", "1", "2020-01-01 20:52:10", "Default server"} // 1m 44s
+    public void server2_27015_27015_dont_start_session_on_action() {
+        Project project = buildDefaultProject("Default CS project", "csstats");
+
+        collectorAdminDsl.transaction(config -> {
+            DSLContext transactionalDsl = DSL.using(config);
+
+            UInteger instanceId = addInstance(transactionalDsl, "instance_1");
+            addProject(transactionalDsl, project);
+            addKnownServer(transactionalDsl, instanceId, project.getId(), 27015, 27015, true, true, false, false);
         });
-        assertPlayersIps(actualDB, new String[][] {
+
+        settingsService.updateSettings(false);
+
+        projectMaker.process(project, () -> {
+            logsSender.sendLogs("server2.log", 27015, 27015);
         });
-        assertPlayersSteamIds(actualDB, new String[][] {
+
+        assertPlayers(projectMaker, new String[][] {
+                {"1", "Admin", "7", "5", "221", "1", "2020-01-01 20:58:38", "Test server 127.0.0.1:27015"}, // 3m 41s
+                {"2", "no kill", "3", "2", "113", "1", "2020-01-01 20:52:10", "Test server 127.0.0.1:27015"}, // 1m 53s
+                {"3", "timoxatw", "5", "1", "110", "1", "2020-01-01 20:52:10", "Test server 127.0.0.1:27015"}, // 1m 50s
+                {"4", "cusoma", "0", "8", "104", "1", "2020-01-01 20:52:10", "Test server 127.0.0.1:27015"} // 1m 44s
+        });
+        assertPlayersIps(projectMaker, new String[][] {
+        });
+        assertPlayersSteamIds(projectMaker, new String[][] {
         });
     }
 
     @Test
-    public void server3_27015_27015_start_session_on_action() throws Exception {
-        addKnownServer(27015, 27015, true, true, false, true);
-        sendLogs("server3.log", 27015, 27015);
-        ActualDB actualDB = new ActualDB(collectorAdminDsl);
-        
-        assertPlayers(actualDB, new String[][] {
-                {"2", "cusoma", "0", "1", "95", "1", "2020-01-01 20:50:41", "Default server"}, // 1m 35s
-                {"1", "Admin", "1", "0", "94", "1", "2020-01-01 20:52:15", "Default server"} // 1m 34s
+    public void server3_27015_27015_start_session_on_action() {
+        Project project = buildDefaultProject("Default CS project", "csstats");
+
+        collectorAdminDsl.transaction(config -> {
+            DSLContext transactionalDsl = DSL.using(config);
+
+            UInteger instanceId = addInstance(transactionalDsl, "instance_1");
+            addProject(transactionalDsl, project);
+            addKnownServer(transactionalDsl, instanceId, project.getId(), 27015, 27015, true, true, false, true);
         });
-        assertPlayersIps(actualDB, new String[][] {
+
+        settingsService.updateSettings(false);
+
+        projectMaker.process(project, () -> {
+            logsSender.sendLogs("server3.log", 27015, 27015);
         });
-        assertPlayersSteamIds(actualDB, new String[][] {
+
+        assertPlayers(projectMaker, new String[][] {
+                {"2", "cusoma", "0", "1", "95", "1", "2020-01-01 20:50:41", "Test server 127.0.0.1:27015"}, // 1m 35s
+                {"1", "Admin", "1", "0", "94", "1", "2020-01-01 20:52:15", "Test server 127.0.0.1:27015"} // 1m 34s
+        });
+        assertPlayersIps(projectMaker, new String[][] {
+        });
+        assertPlayersSteamIds(projectMaker, new String[][] {
         });
     }
 
     @Test
-    public void server3_27015_27015_dont_start_session_on_action() throws Exception {
-        addKnownServer(27015, 27015, true, true, false, false);
-        sendLogs("server3.log", 27015, 27015);
-        ActualDB actualDB = new ActualDB(collectorAdminDsl);
-        
-        assertPlayers(actualDB, new String[][] {
-                {"1", "Admin", "1", "0", "127", "1", "2020-01-01 20:52:15", "Default server"}, // 2m 7s
-                {"2", "no kill", "0", "0", "119", "1", "2020-01-01 20:50:17", "Default server"}, // 1m 59s
-                {"3", "timoxatw", "0", "0", "116", "1", "2020-01-01 20:50:20", "Default server"}, // 1m 56s
-                {"4", "cusoma", "0", "1", "110", "1", "2020-01-01 20:50:41", "Default server"} // 1m 50s
+    public void server3_27015_27015_dont_start_session_on_action() {
+        Project project = buildDefaultProject("Default CS project", "csstats");
+
+        collectorAdminDsl.transaction(config -> {
+            DSLContext transactionalDsl = DSL.using(config);
+
+            UInteger instanceId = addInstance(transactionalDsl, "instance_1");
+            addProject(transactionalDsl, project);
+            addKnownServer(transactionalDsl, instanceId, project.getId(), 27015, 27015, true, true, false, false);
         });
-        assertPlayersIps(actualDB, new String[][] {
+
+        settingsService.updateSettings(false);
+
+        projectMaker.process(project, () -> {
+            logsSender.sendLogs("server3.log", 27015, 27015);
         });
-        assertPlayersSteamIds(actualDB, new String[][] {
+
+        assertPlayers(projectMaker, new String[][] {
+                {"1", "Admin", "1", "0", "127", "1", "2020-01-01 20:52:15", "Test server 127.0.0.1:27015"}, // 2m 7s
+                {"2", "no kill", "0", "0", "119", "1", "2020-01-01 20:50:17", "Test server 127.0.0.1:27015"}, // 1m 59s
+                {"3", "timoxatw", "0", "0", "116", "1", "2020-01-01 20:50:20", "Test server 127.0.0.1:27015"}, // 1m 56s
+                {"4", "cusoma", "0", "1", "110", "1", "2020-01-01 20:50:41", "Test server 127.0.0.1:27015"} // 1m 50s
+        });
+        assertPlayersIps(projectMaker, new String[][] {
+        });
+        assertPlayersSteamIds(projectMaker, new String[][] {
         });
     }
 
     @Test
-    public void server4_27015_27015() throws Exception {
-        addKnownServer(27015, 27015, true, true, false, true);
-        sendLogs("server4.log", 27015, 27015);
-        ActualDB actualDB = new ActualDB(collectorAdminDsl);
-        
-        assertPlayers(actualDB, new String[][] {
-                {"1", "Admin", "17", "11", "449", "1", "2020-01-01 21:25:07", "Default server"}, // 7m 29s
-                {"4", "yeppi", "11", "21", "443", "1", "2020-01-01 21:24:58", "Default server"}, // 7m 23s
-                {"5", "sonic", "10", "16", "443", "1", "2020-01-01 21:24:58", "Default server"}, // 7m 23s
-                {"8", "wRa1 wRa1", "13", "17", "440", "1", "2020-01-01 21:24:58", "Default server"}, // 7m 20s
-                {"9", "showw", "21", "14", "438", "1", "2020-01-01 21:24:58", "Default server"}, // 7m 18s
-                {"2", "pravwOw~", "8", "22", "438", "1", "2020-01-01 21:24:58", "Default server"}, // 7m 18s
-                {"15", "BoBka’)", "8", "11", "438", "1", "2020-01-01 21:24:58", "Default server"}, // 7m 18s
-                {"10", "haaimbat", "14", "19", "435", "1", "2020-01-01 21:24:58", "Default server"}, // 7m 15s
-                {"7", "BatalOOl", "12", "10", "435", "1", "2020-01-01 21:24:58", "Default server"}, // 7m 15s
-                {"14", "KaRJlSoH", "20", "10", "434", "1", "2020-01-01 21:24:58", "Default server"}, // 7m 14s
-                {"16", "nameasd", "18", "10", "434", "1", "2020-01-01 21:24:58", "Default server"}, // 7m 14s
-                {"13", "[52 xemaike2h blanil", "14", "17", "422", "1", "2020-01-01 21:24:58", "Default server"}, // 7m 2s
-                {"11", "Currv", "20", "16", "417", "1", "2020-01-01 21:24:58", "Default server"}, // 6m 57s
-                {"3", "aromaken1", "14", "16", "415", "1", "2020-01-01 21:24:58", "Default server"}, // 6m 55s
-                {"12", "~kewAw0w~~", "13", "17", "400", "1", "2020-01-01 21:24:58", "Default server"}, // 6m 40s
-                {"6", "castzOr", "14", "16", "395", "1", "2020-01-01 21:24:58", "Default server"} // 6m 35s
+    public void server4_27015_27015() {
+        Project project = buildDefaultProject("Default CS project", "csstats");
+
+        collectorAdminDsl.transaction(config -> {
+            DSLContext transactionalDsl = DSL.using(config);
+
+            UInteger instanceId = addInstance(transactionalDsl, "instance_1");
+            addProject(transactionalDsl, project);
+            addKnownServer(transactionalDsl, instanceId, project.getId(), 27015, 27015, true, true, false, true);
         });
-        assertPlayersIps(actualDB, new String[][] {
+
+        settingsService.updateSettings(false);
+
+        projectMaker.process(project, () -> {
+            logsSender.sendLogs("server4.log", 27015, 27015);
         });
-        assertPlayersSteamIds(actualDB, new String[][] {
+
+        assertPlayers(projectMaker, new String[][] {
+                {"1", "Admin", "17", "11", "449", "1", "2020-01-01 21:25:07", "Test server 127.0.0.1:27015"}, // 7m 29s
+                {"4", "yeppi", "11", "21", "443", "1", "2020-01-01 21:24:58", "Test server 127.0.0.1:27015"}, // 7m 23s
+                {"5", "sonic", "10", "16", "443", "1", "2020-01-01 21:24:58", "Test server 127.0.0.1:27015"}, // 7m 23s
+                {"8", "wRa1 wRa1", "13", "17", "440", "1", "2020-01-01 21:24:58", "Test server 127.0.0.1:27015"}, // 7m 20s
+                {"9", "showw", "21", "14", "438", "1", "2020-01-01 21:24:58", "Test server 127.0.0.1:27015"}, // 7m 18s
+                {"2", "pravwOw~", "8", "22", "438", "1", "2020-01-01 21:24:58", "Test server 127.0.0.1:27015"}, // 7m 18s
+                {"15", "BoBka’)", "8", "11", "438", "1", "2020-01-01 21:24:58", "Test server 127.0.0.1:27015"}, // 7m 18s
+                {"10", "haaimbat", "14", "19", "435", "1", "2020-01-01 21:24:58", "Test server 127.0.0.1:27015"}, // 7m 15s
+                {"7", "BatalOOl", "12", "10", "435", "1", "2020-01-01 21:24:58", "Test server 127.0.0.1:27015"}, // 7m 15s
+                {"14", "KaRJlSoH", "20", "10", "434", "1", "2020-01-01 21:24:58", "Test server 127.0.0.1:27015"}, // 7m 14s
+                {"16", "nameasd", "18", "10", "434", "1", "2020-01-01 21:24:58", "Test server 127.0.0.1:27015"}, // 7m 14s
+                {"13", "[52 xemaike2h blanil", "14", "17", "422", "1", "2020-01-01 21:24:58", "Test server 127.0.0.1:27015"}, // 7m 2s
+                {"11", "Currv", "20", "16", "417", "1", "2020-01-01 21:24:58", "Test server 127.0.0.1:27015"}, // 6m 57s
+                {"3", "aromaken1", "14", "16", "415", "1", "2020-01-01 21:24:58", "Test server 127.0.0.1:27015"}, // 6m 55s
+                {"12", "~kewAw0w~~", "13", "17", "400", "1", "2020-01-01 21:24:58", "Test server 127.0.0.1:27015"}, // 6m 40s
+                {"6", "castzOr", "14", "16", "395", "1", "2020-01-01 21:24:58", "Test server 127.0.0.1:27015"} // 6m 35s
+        });
+        assertPlayersIps(projectMaker, new String[][] {
+        });
+        assertPlayersSteamIds(projectMaker, new String[][] {
         });
     }
 
     @Test
-    public void server4_27015_27025() throws Exception {
-        addKnownServer(27015, 27025, true, true, false, true);
-        sendLogs("server4.log", 27015, 27025);
+    public void server4_27015_27025() {
+        Project project = buildDefaultProject("Default CS project", "csstats");
 
-        Map<Table<?>, List<Field<?>>> excludeColumns = new HashMap<>();
+        collectorAdminDsl.transaction(config -> {
+            DSLContext transactionalDsl = DSL.using(config);
+
+            UInteger instanceId = addInstance(transactionalDsl, "instance_1");
+            addProject(transactionalDsl, project);
+            addKnownServer(transactionalDsl, instanceId, project.getId(), 27015, 27025, true, true, false, true);
+        });
+
+        settingsService.updateSettings(false);
+
+        projectMaker.process(project, () -> {
+            logsSender.sendLogs("server4.log", 27015, 27025);
+        }, Arrays.asList(PLAYER.LAST_SERVER_NAME));
         /* logs sends in parallel, so PLAYER.LAST_SERVER_NAME is undefined */
-        excludeColumns.put(PLAYER, Arrays.asList(PLAYER.LAST_SERVER_NAME));
-        ActualDB actualDB = new ActualDB(collectorAdminDsl, excludeColumns);
-        
-        assertPlayers(actualDB, new String[][] {
+
+        assertPlayers(projectMaker, new String[][] {
                 {"1", "Admin", "187", "121", "4939", "3", "2020-01-01 21:25:07", null}, // 1h 22m 19s
                 {"4", "yeppi", "121", "231", "4873", "1", "2020-01-01 21:24:58", null}, // 1h 21m 13s
                 {"5", "sonic", "110", "176", "4873", "1", "2020-01-01 21:24:58", null}, // 1h 21m 13s
@@ -377,213 +547,354 @@ public class LogsTests {
                 {"12", "~kewAw0w~~", "143", "187", "4400", "1", "2020-01-01 21:24:58", null}, // 1h 13m 20s
                 {"6", "castzOr", "154", "176", "4345", "1", "2020-01-01 21:24:58", null} // 1h 12m 25s
         });
-        assertPlayersIps(actualDB, new String[][] {
+        assertPlayersIps(projectMaker, new String[][] {
         });
-        assertPlayersSteamIds(actualDB, new String[][] {
+        assertPlayersSteamIds(projectMaker, new String[][] {
         });
     }
 
     @Test
-    public void ffa_27015_27015_start_session_on_action() throws Exception {
-        addKnownServer(27015, 27015, true, true, false, true);
-        sendLogs("ffa.log", 27015, 27015);
-        ActualDB actualDB = new ActualDB(collectorAdminDsl);
-        
-        assertPlayers(actualDB, new String[][] {
-                {"1", "Admin", "2", "0", "20", "1", "2020-01-01 23:42:21", "Default server"}, // 20s
-                {"2", "CeHb^Oaa", "0", "2", "20", "1", "2020-01-01 23:42:21", "Default server"} // 20s
+    public void ffa_27015_27015_start_session_on_action() {
+        Project project = buildDefaultProject("Default CS project", "csstats");
+
+        collectorAdminDsl.transaction(config -> {
+            DSLContext transactionalDsl = DSL.using(config);
+
+            UInteger instanceId = addInstance(transactionalDsl, "instance_1");
+            addProject(transactionalDsl, project);
+            addKnownServer(transactionalDsl, instanceId, project.getId(), 27015, 27015, true, true, false, true);
         });
-        assertPlayersIps(actualDB, new String[][] {
+
+        settingsService.updateSettings(false);
+
+        projectMaker.process(project, () -> {
+            logsSender.sendLogs("ffa.log", 27015, 27015);
         });
-        assertPlayersSteamIds(actualDB, new String[][] {
+
+        assertPlayers(projectMaker, new String[][] {
+                {"1", "Admin", "2", "0", "20", "1", "2020-01-01 23:42:21", "Test server 127.0.0.1:27015"}, // 20s
+                {"2", "CeHb^Oaa", "0", "2", "20", "1", "2020-01-01 23:42:21", "Test server 127.0.0.1:27015"} // 20s
+        });
+        assertPlayersIps(projectMaker, new String[][] {
+        });
+        assertPlayersSteamIds(projectMaker, new String[][] {
                 {"1", "1", "STEAM_0:0:123456", "2020-01-01 23:42:21"}
         });
     }
 
     @Test
-    public void ffa_27015_27015_dont_start_session_on_action() throws Exception {
-        addKnownServer(27015, 27015, true, true, false, false);
-        sendLogs("ffa.log", 27015, 27015);
-        ActualDB actualDB = new ActualDB(collectorAdminDsl);
-        
-        assertPlayers(actualDB, new String[][] {
-                {"1", "Admin", "2", "0", "76", "1", "2020-01-01 23:42:21", "Default server"}, // 1m 16s
-                {"4", "CeHb^Oaa", "0", "2", "51", "1", "2020-01-01 23:42:21", "Default server"}, // 51s
-                {"2", "FENIX2H", "0", "0", "8", "1", "2020-01-01 23:41:22", "Default server"}, // 8s
-                {"3", "relish -w 800", "0", "0", "3", "1", "2020-01-01 23:41:27", "Default server"} // 3s
+    public void ffa_27015_27015_dont_start_session_on_action() {
+        Project project = buildDefaultProject("Default CS project", "csstats");
+
+        collectorAdminDsl.transaction(config -> {
+            DSLContext transactionalDsl = DSL.using(config);
+
+            UInteger instanceId = addInstance(transactionalDsl, "instance_1");
+            addProject(transactionalDsl, project);
+            addKnownServer(transactionalDsl, instanceId, project.getId(), 27015, 27015, true, true, false, false);
         });
-        assertPlayersIps(actualDB, new String[][] {
+
+        settingsService.updateSettings(false);
+
+        projectMaker.process(project, () -> {
+            logsSender.sendLogs("ffa.log", 27015, 27015);
         });
-        assertPlayersSteamIds(actualDB, new String[][] {
+
+        assertPlayers(projectMaker, new String[][] {
+                {"1", "Admin", "2", "0", "76", "1", "2020-01-01 23:42:21", "Test server 127.0.0.1:27015"}, // 1m 16s
+                {"4", "CeHb^Oaa", "0", "2", "51", "1", "2020-01-01 23:42:21", "Test server 127.0.0.1:27015"}, // 51s
+                {"2", "FENIX2H", "0", "0", "8", "1", "2020-01-01 23:41:22", "Test server 127.0.0.1:27015"}, // 8s
+                {"3", "relish -w 800", "0", "0", "3", "1", "2020-01-01 23:41:27", "Test server 127.0.0.1:27015"} // 3s
+        });
+        assertPlayersIps(projectMaker, new String[][] {
+        });
+        assertPlayersSteamIds(projectMaker, new String[][] {
                 {"1", "1", "STEAM_0:0:123456", "2020-01-01 23:42:21"}
         });
     }
 
     @Test
-    public void ffa_27015_27015_start_session_on_action_no_ffa() throws Exception {
-        addKnownServer(27015, 27015, true, false, false, true);
-        sendLogs("ffa.log", 27015, 27015);
-        ActualDB actualDB = new ActualDB(collectorAdminDsl);
-        
-        assertPlayers(actualDB, new String[][] {
+    public void ffa_27015_27015_start_session_on_action_no_ffa() {
+        Project project = buildDefaultProject("Default CS project", "csstats");
+
+        collectorAdminDsl.transaction(config -> {
+            DSLContext transactionalDsl = DSL.using(config);
+
+            UInteger instanceId = addInstance(transactionalDsl, "instance_1");
+            addProject(transactionalDsl, project);
+            addKnownServer(transactionalDsl, instanceId, project.getId(), 27015, 27015, true, false, false, true);
         });
-        assertPlayersIps(actualDB, new String[][] {
+
+        settingsService.updateSettings(false);
+
+        projectMaker.process(project, () -> {
+            logsSender.sendLogs("ffa.log", 27015, 27015);
         });
-        assertPlayersSteamIds(actualDB, new String[][] {
+
+        assertPlayers(projectMaker, new String[][] {
+        });
+        assertPlayersIps(projectMaker, new String[][] {
+        });
+        assertPlayersSteamIds(projectMaker, new String[][] {
         });
     }
 
     @Test
-    public void ffa_27015_27015_dont_start_session_on_action_no_ffa() throws Exception {
-        addKnownServer(27015, 27015, true, false, false, false);
-        sendLogs("ffa.log", 27015, 27015);
-        ActualDB actualDB = new ActualDB(collectorAdminDsl);
-        
-        assertPlayers(actualDB, new String[][] {
-                {"1", "Admin", "0", "0", "76", "1", "2020-01-01 23:42:21", "Default server"}, // 1m 16s
-                {"4", "CeHb^Oaa", "0", "0", "51", "1", "2020-01-01 23:42:21", "Default server"}, // 51s
-                {"2", "FENIX2H", "0", "0", "8", "1", "2020-01-01 23:41:22", "Default server"}, // 8s
-                {"3", "relish -w 800", "0", "0", "3", "1", "2020-01-01 23:41:27", "Default server"} // 3s
+    public void ffa_27015_27015_dont_start_session_on_action_no_ffa() {
+        Project project = buildDefaultProject("Default CS project", "csstats");
+
+        collectorAdminDsl.transaction(config -> {
+            DSLContext transactionalDsl = DSL.using(config);
+
+            UInteger instanceId = addInstance(transactionalDsl, "instance_1");
+            addProject(transactionalDsl, project);
+            addKnownServer(transactionalDsl, instanceId, project.getId(), 27015, 27015, true, false, false, false);
         });
-        assertPlayersIps(actualDB, new String[][] {
+
+        settingsService.updateSettings(false);
+
+        projectMaker.process(project, () -> {
+            logsSender.sendLogs("ffa.log", 27015, 27015);
         });
-        assertPlayersSteamIds(actualDB, new String[][] {
+
+        assertPlayers(projectMaker, new String[][] {
+                {"1", "Admin", "0", "0", "76", "1", "2020-01-01 23:42:21", "Test server 127.0.0.1:27015"}, // 1m 16s
+                {"4", "CeHb^Oaa", "0", "0", "51", "1", "2020-01-01 23:42:21", "Test server 127.0.0.1:27015"}, // 51s
+                {"2", "FENIX2H", "0", "0", "8", "1", "2020-01-01 23:41:22", "Test server 127.0.0.1:27015"}, // 8s
+                {"3", "relish -w 800", "0", "0", "3", "1", "2020-01-01 23:41:27", "Test server 127.0.0.1:27015"} // 3s
+        });
+        assertPlayersIps(projectMaker, new String[][] {
+        });
+        assertPlayersSteamIds(projectMaker, new String[][] {
                 {"1", "1", "STEAM_0:0:123456", "2020-01-01 23:42:21"}
         });
     }
 
     @Test
-    public void no_ffa_27015_27015_start_session_on_action() throws Exception {
-        addKnownServer(27015, 27015, true, true, false, true);
-        sendLogs("no_ffa.log", 27015, 27015);
-        ActualDB actualDB = new ActualDB(collectorAdminDsl);
-        
-        assertPlayers(actualDB, new String[][] {
-                {"1", "Admin", "4", "0", "46", "1", "2020-01-01 23:45:56", "Default server"}, // 46s
-                {"2", "desch", "0", "4", "46", "1", "2020-01-01 23:45:56", "Default server"} // 46s
+    public void no_ffa_27015_27015_start_session_on_action() {
+        Project project = buildDefaultProject("Default CS project", "csstats");
+
+        collectorAdminDsl.transaction(config -> {
+            DSLContext transactionalDsl = DSL.using(config);
+
+            UInteger instanceId = addInstance(transactionalDsl, "instance_1");
+            addProject(transactionalDsl, project);
+            addKnownServer(transactionalDsl, instanceId, project.getId(), 27015, 27015, true, true, false, true);
         });
-        assertPlayersIps(actualDB, new String[][] {
+
+        settingsService.updateSettings(false);
+
+        projectMaker.process(project, () -> {
+            logsSender.sendLogs("no_ffa.log", 27015, 27015);
+        });
+
+        assertPlayers(projectMaker, new String[][] {
+                {"1", "Admin", "4", "0", "46", "1", "2020-01-01 23:45:56", "Test server 127.0.0.1:27015"}, // 46s
+                {"2", "desch", "0", "4", "46", "1", "2020-01-01 23:45:56", "Test server 127.0.0.1:27015"} // 46s
+        });
+        assertPlayersIps(projectMaker, new String[][] {
                 {"1", "1", "255.0.0.142", "2020-01-01 23:45:56"}
         });
-        assertPlayersSteamIds(actualDB, new String[][] {
+        assertPlayersSteamIds(projectMaker, new String[][] {
                 {"1", "1", "STEAM_0:0:123456", "2020-01-01 23:45:56"}
         });
     }
 
     @Test
-    public void no_ffa_27015_27015_dont_start_session_on_action() throws Exception {
-        addKnownServer(27015, 27015, true, true, false, false);
-        sendLogs("no_ffa.log", 27015, 27015);
-        ActualDB actualDB = new ActualDB(collectorAdminDsl);
-        
-        assertPlayers(actualDB, new String[][] {
-                {"1", "Admin", "4", "0", "101", "1", "2020-01-01 23:45:56", "Default server"}, // 1m 41s
-                {"2", "desch", "0", "4", "88", "1", "2020-01-01 23:45:56", "Default server"} // 1m 28s
+    public void no_ffa_27015_27015_dont_start_session_on_action() {
+        Project project = buildDefaultProject("Default CS project", "csstats");
+
+        collectorAdminDsl.transaction(config -> {
+            DSLContext transactionalDsl = DSL.using(config);
+
+            UInteger instanceId = addInstance(transactionalDsl, "instance_1");
+            addProject(transactionalDsl, project);
+            addKnownServer(transactionalDsl, instanceId, project.getId(), 27015, 27015, true, true, false, false);
         });
-        assertPlayersIps(actualDB, new String[][] {
+
+        settingsService.updateSettings(false);
+
+        projectMaker.process(project, () -> {
+            logsSender.sendLogs("no_ffa.log", 27015, 27015);
+        });
+
+        assertPlayers(projectMaker, new String[][] {
+                {"1", "Admin", "4", "0", "101", "1", "2020-01-01 23:45:56", "Test server 127.0.0.1:27015"}, // 1m 41s
+                {"2", "desch", "0", "4", "88", "1", "2020-01-01 23:45:56", "Test server 127.0.0.1:27015"} // 1m 28s
+        });
+        assertPlayersIps(projectMaker, new String[][] {
                 {"1", "1", "255.0.0.142", "2020-01-01 23:45:56"}
         });
-        assertPlayersSteamIds(actualDB, new String[][] {
+        assertPlayersSteamIds(projectMaker, new String[][] {
                 {"1", "1", "STEAM_0:0:123456", "2020-01-01 23:45:56"}
         });
     }
 
     @Test
-    public void no_ffa_27015_27015_start_session_on_action_no_ffa() throws Exception {
-        addKnownServer(27015, 27015, true, false, false, true);
-        sendLogs("no_ffa.log", 27015, 27015);
-        ActualDB actualDB = new ActualDB(collectorAdminDsl);
-        
-        assertPlayers(actualDB, new String[][] {
+    public void no_ffa_27015_27015_start_session_on_action_no_ffa() {
+        Project project = buildDefaultProject("Default CS project", "csstats");
+
+        collectorAdminDsl.transaction(config -> {
+            DSLContext transactionalDsl = DSL.using(config);
+
+            UInteger instanceId = addInstance(transactionalDsl, "instance_1");
+            addProject(transactionalDsl, project);
+            addKnownServer(transactionalDsl, instanceId, project.getId(), 27015, 27015, true, false, false, true);
         });
-        assertPlayersIps(actualDB, new String[][] {
+
+        settingsService.updateSettings(false);
+
+        projectMaker.process(project, () -> {
+            logsSender.sendLogs("no_ffa.log", 27015, 27015);
         });
-        assertPlayersSteamIds(actualDB, new String[][] {
+
+        assertPlayers(projectMaker, new String[][] {
+        });
+        assertPlayersIps(projectMaker, new String[][] {
+        });
+        assertPlayersSteamIds(projectMaker, new String[][] {
         });
     }
 
     @Test
-    public void no_ffa_27015_27015_dont_start_session_on_action_no_ffa() throws Exception {
-        addKnownServer(27015, 27015, true, false, false, false);
-        sendLogs("no_ffa.log", 27015, 27015);
-        ActualDB actualDB = new ActualDB(collectorAdminDsl);
-        
-        assertPlayers(actualDB, new String[][] {
-                {"1", "Admin", "0", "0", "101", "1", "2020-01-01 23:45:56", "Default server"}, // 1m 41s
-                {"2", "desch", "0", "0", "88", "1", "2020-01-01 23:45:56", "Default server"} // 1m 28s
+    public void no_ffa_27015_27015_dont_start_session_on_action_no_ffa() {
+        Project project = buildDefaultProject("Default CS project", "csstats");
+
+        collectorAdminDsl.transaction(config -> {
+            DSLContext transactionalDsl = DSL.using(config);
+
+            UInteger instanceId = addInstance(transactionalDsl, "instance_1");
+            addProject(transactionalDsl, project);
+            addKnownServer(transactionalDsl, instanceId, project.getId(), 27015, 27015, true, false, false, false);
         });
-        assertPlayersIps(actualDB, new String[][] {
+
+        settingsService.updateSettings(false);
+
+        projectMaker.process(project, () -> {
+            logsSender.sendLogs("no_ffa.log", 27015, 27015);
+        });
+
+        assertPlayers(projectMaker, new String[][] {
+                {"1", "Admin", "0", "0", "101", "1", "2020-01-01 23:45:56", "Test server 127.0.0.1:27015"}, // 1m 41s
+                {"2", "desch", "0", "0", "88", "1", "2020-01-01 23:45:56", "Test server 127.0.0.1:27015"} // 1m 28s
+        });
+        assertPlayersIps(projectMaker, new String[][] {
                 {"1", "1", "255.0.0.142", "2020-01-01 23:45:56"}
         });
-        assertPlayersSteamIds(actualDB, new String[][] {
+        assertPlayersSteamIds(projectMaker, new String[][] {
                 {"1", "1", "STEAM_0:0:123456", "2020-01-01 23:45:56"}
         });
     }
 
     @Test
-    public void server4_27015_27017_start_session_on_action_ignore_bots() throws Exception {
-        addKnownServer(27015, 27025, true, true, true, true);
-        sendLogs("server4.log", 27015, 27017);
-        ActualDB actualDB = new ActualDB(collectorAdminDsl);
-        
-        assertPlayers(actualDB, new String[][] {
+    public void server4_27015_27017_start_session_on_action_ignore_bots() {
+        Project project = buildDefaultProject("Default CS project", "csstats");
+
+        collectorAdminDsl.transaction(config -> {
+            DSLContext transactionalDsl = DSL.using(config);
+
+            UInteger instanceId = addInstance(transactionalDsl, "instance_1");
+            addProject(transactionalDsl, project);
+            addKnownServer(transactionalDsl, instanceId, project.getId(), 27015, 27025, true, true, true, true);
         });
-        assertPlayersIps(actualDB, new String[][] {
+
+        settingsService.updateSettings(false);
+
+        projectMaker.process(project, () -> {
+            logsSender.sendLogs("server4.log", 27015, 27017);
         });
-        assertPlayersSteamIds(actualDB, new String[][] {
+
+        assertPlayers(projectMaker, new String[][] {
+        });
+        assertPlayersIps(projectMaker, new String[][] {
+        });
+        assertPlayersSteamIds(projectMaker, new String[][] {
         });
     }
 
     @Test
-    public void server4_27015_27015_dont_start_session_on_action_ignore_bots() throws Exception {
-        addKnownServer(27015, 27015, true, true, true, false);
-        sendLogs("server4.log", 27015, 27015);
-        ActualDB actualDB = new ActualDB(collectorAdminDsl);
-        
-        assertPlayers(actualDB, new String[][] {
-                {"1", "Admin", "0", "0", "598", "1", "2020-01-01 21:25:07", "Default server"} // 9m 58s
+    public void server4_27015_27015_dont_start_session_on_action_ignore_bots() {
+        Project project = buildDefaultProject("Default CS project", "csstats");
+
+        collectorAdminDsl.transaction(config -> {
+            DSLContext transactionalDsl = DSL.using(config);
+
+            UInteger instanceId = addInstance(transactionalDsl, "instance_1");
+            addProject(transactionalDsl, project);
+            addKnownServer(transactionalDsl, instanceId, project.getId(), 27015, 27015, true, true, true, false);
         });
-        assertPlayersIps(actualDB, new String[][] {
+
+        settingsService.updateSettings(false);
+
+        projectMaker.process(project, () -> {
+            logsSender.sendLogs("server4.log", 27015, 27015);
         });
-        assertPlayersSteamIds(actualDB, new String[][] {
+
+        assertPlayers(projectMaker, new String[][] {
+                {"1", "Admin", "0", "0", "598", "1", "2020-01-01 21:25:07", "Test server 127.0.0.1:27015"} // 9m 58s
+        });
+        assertPlayersIps(projectMaker, new String[][] {
+        });
+        assertPlayersSteamIds(projectMaker, new String[][] {
         });
     }
 
     @Test
-    public void server4_27015_27017_dont_start_session_on_action_ignore_bots() throws Exception {
-        addKnownServer(27015, 27025, true, true, true, false);
-        sendLogs("server4.log", 27015, 27017);
+    public void server4_27015_27017_dont_start_session_on_action_ignore_bots() {
+        Project project = buildDefaultProject("Default CS project", "csstats");
 
-        Map<Table<?>, List<Field<?>>> excludeColumns = new HashMap<>();
+        collectorAdminDsl.transaction(config -> {
+            DSLContext transactionalDsl = DSL.using(config);
+
+            UInteger instanceId = addInstance(transactionalDsl, "instance_1");
+            addProject(transactionalDsl, project);
+            addKnownServer(transactionalDsl, instanceId, project.getId(), 27015, 27025, true, true, true, false);
+        });
+
+        settingsService.updateSettings(false);
+
+        projectMaker.process(project, () -> {
+            logsSender.sendLogs("server4.log", 27015, 27017);
+        }, Arrays.asList(PLAYER.LAST_SERVER_NAME));
         /* logs sends in parallel, so PLAYER.LAST_SERVER_NAME is undefined */
-        excludeColumns.put(PLAYER, Arrays.asList(PLAYER.LAST_SERVER_NAME));
-        ActualDB actualDB = new ActualDB(collectorAdminDsl, excludeColumns);
-        
-        assertPlayers(actualDB, new String[][] {
+
+        assertPlayers(projectMaker, new String[][] {
                 {"1", "Admin", "0", "0", "1794", "1", "2020-01-01 21:25:07", null} // 29m 54s
         });
-        assertPlayersIps(actualDB, new String[][] {
+        assertPlayersIps(projectMaker, new String[][] {
         });
-        assertPlayersSteamIds(actualDB, new String[][] {
+        assertPlayersSteamIds(projectMaker, new String[][] {
         });
     }
 
     @Test
-    public void server4_manual_flush_27014_27018_dont_start_session_on_action() throws Exception {
-        addKnownServer(27015, 27017, true, true, false, false);
-        sendLogs("server4_only_load.log", 27014, 27018);
+    public void server4_manual_flush_27014_27018_dont_start_session_on_action() {
+        Project project = buildDefaultProject("Default CS project", "csstats");
 
-        Map<String, String> results = collectorEndpoint.flush(new UserPrincipal("tester"));
-        log.info("statsEndpoint results: " + results.toString());
+        collectorAdminDsl.transaction(config -> {
+            DSLContext transactionalDsl = DSL.using(config);
 
-        Thread.sleep(1000);
+            UInteger instanceId = addInstance(transactionalDsl, "instance_1");
+            addProject(transactionalDsl, project);
+            addKnownServer(transactionalDsl, instanceId, project.getId(), 27015, 27017, true, true, false, false);
+        });
 
-        Map<Table<?>, List<Field<?>>> excludeColumns = new HashMap<>();
+        settingsService.updateSettings(false);
+
+        projectMaker.process(project, () -> {
+            logsSender.sendLogs("server4_only_load.log", 27014, 27018);
+
+            Map<String, String> results = collectorEndpoint.flush(new UserPrincipal("tester"));
+
+            log.info("statsEndpoint results: " + results.toString());
+
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException ignored) {}
+        }, Arrays.asList(PLAYER.LAST_SERVER_NAME));
         /* logs sends in parallel, so PLAYER.LAST_SERVER_NAME is undefined */
-        excludeColumns.put(PLAYER, Arrays.asList(PLAYER.LAST_SERVER_NAME));
-        ActualDB actualDB = new ActualDB(collectorAdminDsl, excludeColumns);
-        
-        assertPlayers(actualDB, new String[][] {
+
+        assertPlayers(projectMaker, new String[][] {
                 {"1", "Admin", "51", "33", "1767", "1", "2020-01-01 21:23:52", null}, // 29m 27s
                 {"2", "pravwOw~", "24", "66", "1350", "1", "2020-01-01 21:24:57", null}, // 22m 30s
                 {"3", "aromaken1", "42", "48", "1347", "1", "2020-01-01 21:24:47", null}, // 22m 27s
@@ -601,17 +912,17 @@ public class LogsTests {
                 {"16", "nameasd", "54", "30", "1329", "1", "2020-01-01 21:24:58", null}, // 22m 9s
                 {"15", "BoBka’)", "24", "33", "1329", "1", "2020-01-01 21:24:57", null} // 22m 9s
         });
-        assertPlayersIps(actualDB, new String[][] {
+        assertPlayersIps(projectMaker, new String[][] {
                 {"1", "1", "127.0.1.1", "2020-01-01 21:23:52"}
         });
-        assertPlayersSteamIds(actualDB, new String[][] {
+        assertPlayersSteamIds(projectMaker, new String[][] {
                 {"1", "1", "STEAM_0:0:555000", "2020-01-01 21:23:52"}
         });
     }
 
-    private void assertPlayers(ActualDB actualDB,
+    private void assertPlayers(ProjectMaker projectMaker,
                                String[][] expectedRaw) {
-        List<Player> actualData = actualDB.getPlayers();
+        List<Player> actualData = projectMaker.getPlayers();
 
         List<Player> expectedData = Stream.of(expectedRaw)
                 .map(this::makePlayerFromRaw)
@@ -620,8 +931,8 @@ public class LogsTests {
         assertEquals(actualData, expectedData);
     }
 
-    private void assertPlayersIps(ActualDB actualDB, String[][] expectedRaw) {
-        List<PlayerIp> actualData = actualDB.getPlayersIps();
+    private void assertPlayersIps(ProjectMaker projectMaker, String[][] expectedRaw) {
+        List<PlayerIp> actualData = projectMaker.getPlayersIps();
 
         List<PlayerIp> expectedData = Stream.of(expectedRaw)
                 .map(this::makePlayersIpsFromRaw)
@@ -630,8 +941,8 @@ public class LogsTests {
         assertEquals(actualData, expectedData);
     }
 
-    private void assertPlayersSteamIds(ActualDB actualDB, String[][] expectedRaw) {
-        List<PlayerSteamid> actualData = actualDB.getPlayerSteamIds();
+    private void assertPlayersSteamIds(ProjectMaker projectMaker, String[][] expectedRaw) {
+        List<PlayerSteamid> actualData = projectMaker.getPlayerSteamIds();
 
         List<PlayerSteamid> expectedData = Stream.of(expectedRaw)
                 .map(this::makePlayersSteamIdsFromRaw)
@@ -640,54 +951,29 @@ public class LogsTests {
         assertEquals(actualData, expectedData);
     }
 
-    private void sendLogs(String fileName, int portStart, int portEnd) throws Exception {
-        List<String> logs;
-
-        try (InputStream resourceAsStream = LogsTests.class.getResourceAsStream("/collector/" + fileName);
-            BufferedReader br = new BufferedReader(new InputStreamReader(resourceAsStream))) {
-            logs = br.lines()
-                    .filter(StringUtils::isNotBlank)
-                    .collect(Collectors.toList());
-        }
-
-        InetSocketAddress serv1 = new InetSocketAddress("127.0.0.1", listenerPort);
-
-        CompletableFuture<Void>[] tasks = IntStream.rangeClosed(portStart, portEnd)
-                .boxed()
-                .map(port -> CompletableFuture.runAsync(() -> {
-                    boolean debugEnabled = log.isDebugEnabled();
-
-                    try (DatagramSocket socket = new DatagramSocket(port)) {
-                        for (String payload : logs) {
-                            if(debugEnabled)
-                                log.debug(port + " sending payload=" + payload);
-
-                            /* L 01/01/2020 - 13:15:00: "Name1<5><STEAM_ID_LAN><>" connected, address "12.12.12.12:27005" */
-                            byte[] rawSource = payload.getBytes();
-                            byte[] rawPayload = new byte[rawSource.length + 8]; // "-1 -1 -1 -1 l o g  "
-                            Arrays.fill(rawPayload, 0, 5, (byte) -1);
-                            rawPayload[4] = 'l';
-                            rawPayload[5] = 'o';
-                            rawPayload[6] = 'g';
-                            rawPayload[7] = ' ';
-                            System.arraycopy(rawSource, 0, rawPayload, 8, rawPayload.length - 8);
-
-                            DatagramPacket datagramPacket = new DatagramPacket(rawPayload, 0, rawPayload.length, serv1);
-                            datagramPacket.setSocketAddress(serv1);
-                            socket.send(datagramPacket);
-
-                            Thread.sleep(ThreadLocalRandom.current().nextInt(1, 15));
-                        }
-                    } catch (Exception e) {
-                        throw new RuntimeException(e);
-                    }
-                })).<CompletableFuture<Void>>toArray(CompletableFuture[]::new);
-
-        CompletableFuture.allOf(tasks).join();
-        Thread.sleep(1000);
+    private UInteger addInstance(DSLContext transactionalDsl, String instanceName) {
+        log.info("Add instance name: " + instanceName);
+        return transactionalDsl.insertInto(INSTANCE)
+                .set(INSTANCE.NAME, instanceName)
+                .returning(INSTANCE.ID).fetchOne().getId();
     }
 
-    private void addKnownServer(int portStart,
+    private void addProject(DSLContext transactionalDsl, Project project) {
+        log.info("Add project name: " + project.getName() + ", hostport: " + project.getDatabaseHostport() + ", schema: " + project.getDatabaseSchema());
+        transactionalDsl.insertInto(PROJECT)
+                .set(PROJECT.NAME, project.getName())
+                .set(PROJECT.DATABASE_HOSTPORT, project.getDatabaseHostport())
+                .set(PROJECT.DATABASE_SCHEMA, project.getDatabaseSchema())
+                .set(PROJECT.DATABASE_USERNAME, project.getDatabaseUsername())
+                .set(PROJECT.DATABASE_PASSWORD, project.getDatabasePassword())
+                .set(PROJECT.DATABASE_SERVER_TIMEZONE, project.getDatabaseServerTimezone())
+                .returning().fetchOne().into(project);
+    }
+
+    private void addKnownServer(DSLContext transactionalDsl,
+                                UInteger instanceId,
+                                UInteger projectId,
+                                int portStart,
                                 int portEnd,
                                 boolean active,
                                 boolean ffa,
@@ -701,8 +987,10 @@ public class LogsTests {
             log.info("Add address " + ipport);
 
             InsertSetMoreStep<KnownServerRecord> insertStep = DSL.insertInto(KNOWN_SERVER)
+                    .set(KNOWN_SERVER.INSTANCE_ID, instanceId)
+                    .set(KNOWN_SERVER.PROJECT_ID, projectId)
                     .set(KNOWN_SERVER.IPPORT, ipport)
-                    .set(KNOWN_SERVER.NAME, "Test Server #1")
+                    .set(KNOWN_SERVER.NAME, "Test server " + ipport)
                     .set(KNOWN_SERVER.ACTIVE, active)
                     .set(KNOWN_SERVER.FFA, ffa)
                     .set(KNOWN_SERVER.IGNORE_BOTS, ignore_bots)
@@ -711,12 +999,7 @@ public class LogsTests {
             insertSteps.add(insertStep);
         }
 
-        collectorAdminDsl.transaction(config -> {
-            DSLContext transactionalDsl = DSL.using(config);
-            transactionalDsl.batch(insertSteps).execute();
-        });
-
-        settingsService.updateSettings(false);
+        transactionalDsl.batch(insertSteps).execute();
     }
 
     public void truncateTables() {
@@ -724,11 +1007,11 @@ public class LogsTests {
             DSLContext transactionalDsl = DSL.using(config);
             try {
                 transactionalDsl.execute("SET FOREIGN_KEY_CHECKS = 0;");
-                transactionalDsl.truncate(HISTORY).execute();
-                transactionalDsl.truncate(PLAYER_IP).execute();
-                transactionalDsl.truncate(PLAYER_STEAMID).execute();
-                transactionalDsl.truncate(PLAYER).execute();
+
+                transactionalDsl.truncate(INSTANCE).execute();
+                transactionalDsl.truncate(PROJECT).execute();
                 transactionalDsl.truncate(KNOWN_SERVER).execute();
+                transactionalDsl.truncate(DRIVER_PROPERTY).execute();
             } finally {
                 transactionalDsl.execute("SET FOREIGN_KEY_CHECKS = 1;");
             }
@@ -736,8 +1019,8 @@ public class LogsTests {
     }
 
     /**
-     * {"2", "Name2", "0", "11", "66", "1", "2020-01-01 13:16:08", "Default server"}, // 1m 6s
-     * {"1", "Name1", "10", "1", "10", "1", "2020-01-01 13:16:07", "Default server"} // 10s
+     * {"2", "Name2", "0", "11", "66", "1", "2020-01-01 13:16:08", "Test server 127.0.0.1:27015"}, // 1m 6s
+     * {"1", "Name1", "10", "1", "10", "1", "2020-01-01 13:16:07", "Test server 127.0.0.1:27015"} // 10s
      */
     private Player makePlayerFromRaw(String[] sourceRaw) {
         Player player = new Player();

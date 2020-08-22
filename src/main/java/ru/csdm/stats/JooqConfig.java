@@ -20,7 +20,7 @@ public class JooqConfig {
     @Lazy(false)
     @DependsOn("collectorDataSource")
     DSLContext collectorDsl(HikariDataSource collectorDataSource) {
-        return configJooqContext(collectorDataSource, SQLDialect.MYSQL, null);
+        return configJooqContext(collectorDataSource, SQLDialect.MYSQL, null, 30);
     }
 
     @Bean

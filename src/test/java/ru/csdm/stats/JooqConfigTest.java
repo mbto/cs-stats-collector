@@ -17,7 +17,7 @@ public class JooqConfigTest {
     @Lazy(false)
     @DependsOn("collectorAdminDataSource")
     DSLContext collectorAdminDsl(HikariDataSource collectorAdminDataSource) {
-        return configJooqContext(collectorAdminDataSource, SQLDialect.MYSQL, null);
+        return configJooqContext(collectorAdminDataSource, SQLDialect.MYSQL, null, 10);
     }
 
     @Bean

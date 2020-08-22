@@ -53,8 +53,8 @@ public class Keys {
     // -------------------------------------------------------------------------
 
     public static final ForeignKey<DriverPropertyRecord, ProjectRecord> DRIVER_PROPERTY_PROJECT_ID_FK = ForeignKeys0.DRIVER_PROPERTY_PROJECT_ID_FK;
-    public static final ForeignKey<KnownServerRecord, ProjectRecord> KNOWN_SERVER_PROJECT_ID_FK = ForeignKeys0.KNOWN_SERVER_PROJECT_ID_FK;
     public static final ForeignKey<KnownServerRecord, InstanceRecord> KNOWN_SERVER_INSTANCE_ID_FK = ForeignKeys0.KNOWN_SERVER_INSTANCE_ID_FK;
+    public static final ForeignKey<KnownServerRecord, ProjectRecord> KNOWN_SERVER_PROJECT_ID_FK = ForeignKeys0.KNOWN_SERVER_PROJECT_ID_FK;
     public static final ForeignKey<ManagerRecord, ProjectRecord> MANAGER_PROJECT_ID_FK = ForeignKeys0.MANAGER_PROJECT_ID_FK;
 
     // -------------------------------------------------------------------------
@@ -87,8 +87,8 @@ public class Keys {
 
     private static class ForeignKeys0 {
         public static final ForeignKey<DriverPropertyRecord, ProjectRecord> DRIVER_PROPERTY_PROJECT_ID_FK = Internal.createForeignKey(ru.csdm.stats.common.model.collector.Keys.KEY_PROJECT_PRIMARY, DriverProperty.DRIVER_PROPERTY, "driver_property_project_id_fk", DriverProperty.DRIVER_PROPERTY.PROJECT_ID);
-        public static final ForeignKey<KnownServerRecord, ProjectRecord> KNOWN_SERVER_PROJECT_ID_FK = Internal.createForeignKey(ru.csdm.stats.common.model.collector.Keys.KEY_PROJECT_PRIMARY, KnownServer.KNOWN_SERVER, "known_server_project_id_fk", KnownServer.KNOWN_SERVER.PROJECT_ID);
         public static final ForeignKey<KnownServerRecord, InstanceRecord> KNOWN_SERVER_INSTANCE_ID_FK = Internal.createForeignKey(ru.csdm.stats.common.model.collector.Keys.KEY_INSTANCE_PRIMARY, KnownServer.KNOWN_SERVER, "known_server_instance_id_fk", KnownServer.KNOWN_SERVER.INSTANCE_ID);
+        public static final ForeignKey<KnownServerRecord, ProjectRecord> KNOWN_SERVER_PROJECT_ID_FK = Internal.createForeignKey(ru.csdm.stats.common.model.collector.Keys.KEY_PROJECT_PRIMARY, KnownServer.KNOWN_SERVER, "known_server_project_id_fk", KnownServer.KNOWN_SERVER.PROJECT_ID);
         public static final ForeignKey<ManagerRecord, ProjectRecord> MANAGER_PROJECT_ID_FK = Internal.createForeignKey(ru.csdm.stats.common.model.collector.Keys.KEY_PROJECT_PRIMARY, Manager.MANAGER, "manager_project_id_fk", Manager.MANAGER.PROJECT_ID);
     }
 }
