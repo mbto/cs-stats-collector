@@ -171,7 +171,7 @@ CREATE TABLE `manager` (
   `username` varchar(31) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
   `password` char(60) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL COMMENT 'https://www.browserling.com/tools/bcrypt',
   `active` tinyint unsigned NOT NULL DEFAULT '1',
-  `manage_hosting` tinyint unsigned NOT NULL DEFAULT '0' COMMENT '1-can manage all projects in hosting, 0-can manage only project by `project_id`',
+  `manage_hosting` tinyint unsigned NOT NULL DEFAULT '0' COMMENT '1-can manage all projects in hosting within an instance name of cs-stats-collector, 0-can manage only project by `project_id`',
   `reg_datetime` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   UNIQUE KEY `id_UNIQUE` (`id`),
