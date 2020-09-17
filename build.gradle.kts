@@ -1,7 +1,7 @@
 import org.gradle.api.JavaVersion.VERSION_1_8
 
 group = "cs-stats-collector"
-version = "1.4"
+version = "1.5"
 
 val springVersion: String by extra
 
@@ -28,9 +28,13 @@ tasks {
 
 allprojects {
     extra["springVersion"] = "2.1.4.RELEASE"
+    extra["joinFacesVersion"] = "4.0.12"
 
     repositories {
         mavenCentral()
+        maven {
+            setUrl("https://repository.primefaces.org")
+        }
     }
 
 // Правильные версии всех зависимостей узнавать тут:

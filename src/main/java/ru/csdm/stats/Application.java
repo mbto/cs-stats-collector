@@ -8,6 +8,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.jackson.Jackson2ObjectMapperBuilderCustomizer;
 import org.springframework.boot.autoconfigure.jooq.JooqAutoConfiguration;
 import org.springframework.boot.autoconfigure.task.TaskExecutionAutoConfiguration;
+import org.springframework.boot.web.servlet.ServletContextInitializer;
 import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.DependsOn;
@@ -149,6 +150,31 @@ public class Application {
             builder.simpleDateFormat("yyyy-MM-dd HH:mm:ss");
             builder.serializers(new LocalDateSerializer(DateTimeFormatter.ofPattern("yyyy-MM-dd")));
             builder.serializers(new LocalDateTimeSerializer(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
+        };
+    }
+
+    @Bean
+    public ServletContextInitializer withParamsContextInitializer() {
+        return servletContext -> {
+//            servletContext.setInitParameter("javax.faces.DEFAULT_SUFFIX", ".xhtml");
+            servletContext.setInitParameter("javax.faces.FACELETS_VIEW_MAPPINGS", "*.xhtml");
+            servletContext.setInitParameter("javax.faces.PROJECT_STAGE", "Production");
+//        servletContext.setInitParameter("javax.faces.PROJECT_STAGE", "Development");
+            servletContext.setInitParameter("javax.faces.FACELETS_SKIP_COMMENTS", "true");
+            servletContext.setInitParameter("javax.faces.DATETIMECONVERTER_DEFAULT_TIMEZONE_IS_SYSTEM_TIMEZONE", "true");
+            servletContext.setInitParameter("javax.faces.INTERPRET_EMPTY_STRING_SUBMITTED_VALUES_AS_NULL", "true");
+            servletContext.setInitParameter("javax.faces.FACELETS_BUFFER_SIZE", "65535");
+
+            servletContext.setInitParameter("com.sun.faces.enableRestoreView11Compatibility", "true");
+            servletContext.setInitParameter("com.sun.faces.forceLoadConfiguration", "true");
+
+            servletContext.setInitParameter("primefaces.THEME", "glass-x");
+            servletContext.setInitParameter("primefaces.SUBMIT", "partial");
+            servletContext.setInitParameter("primefaces.TRANSFORM_METADATA", "true");
+//            servletContext.setInitParameter("primefaces.FONT_AWESOME", "true");
+            servletContext.setInitParameter("primefaces.UPLOADER", "native");
+
+            servletContext.setInitParameter("org.omnifaces.FACES_VIEWS_SCAN_PATHS", "/*.xhtml/*");
         };
     }
 }
