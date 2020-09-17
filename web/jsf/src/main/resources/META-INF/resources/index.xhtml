@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html
+        PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+        "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:h="http://xmlns.jcp.org/jsf/html"
+      xmlns:p="http://primefaces.org/ui"
+      xmlns:ui="http://xmlns.jcp.org/jsf/facelets"
+>
+
+<ui:composition template="../template/layout.xhtml">
+    <ui:define name="center">
+        <p:panel header="Системная информация">
+            <h:form id="pfId">
+                <p:poll process="@this" update="oP oF oM oA oTF" async="true"
+                        interval="1" listener="#{statusShower.calculate}"/>
+
+                <p:panelGrid id="statusPanelId" columns="2" styleClass="ui-panelgrid-blank">
+                    <h:outputText value="Processors"/>
+                    <h:outputText id="oP" value="#{statusShower.processors}"/>
+                    <h:outputText value="Free memory"/>
+                    <h:outputText id="oF" value="#{statusShower.freeMemory} mb"/>
+                    <h:outputText value="Max memory"/>
+                    <h:outputText id="oM" value="#{statusShower.maxMemory} mb"/>
+                    <h:outputText value="Allocated memory"/>
+                    <h:outputText id="oA" value="#{statusShower.allocatedMemory} mb"/>
+                    <h:outputText value="Total free memory"/>
+                    <h:outputText id="oTF" value="#{statusShower.totalFreeMemory} mb"/>
+                </p:panelGrid>
+            </h:form>
+        </p:panel>
+    </ui:define>
+</ui:composition>
+
+</html>

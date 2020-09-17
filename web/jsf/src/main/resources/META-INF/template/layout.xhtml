@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html
+        PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+        "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:h="http://xmlns.jcp.org/jsf/html"
+      xmlns:p="http://primefaces.org/ui"
+      xmlns:ui="http://xmlns.jcp.org/jsf/facelets"
+>
+<h:head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+    <meta name="robots" content="noindex"/>
+
+    <link rel="shortcut icon" type="image/x-icon" href="#{resource['images/emblem.png']}"/>
+    <title><ui:insert name="title">#{application.servletContextName}</ui:insert></title>
+
+    <style type="text/css">
+        .ui-panelgrid .ui-panelgrid-cell {
+            padding: 0 10px 0 0;
+        }
+    </style>
+    <ui:insert name="head"/>
+</h:head>
+
+<h:body>
+    <p:growl id="growl" life="5000"/>
+<!--    <p:tooltip position="bottom" />-->
+
+    <div class="ui-g">
+        <div class="ui-g-12">
+            <p:outputPanel style="text-align:center;display:block;margin: 0 auto;">
+                <p:outputLabel value="#{application.servletContextName}"/>
+            </p:outputPanel>
+        </div>
+        <div class="ui-g-12">
+            <div class="ui-g">
+                <div class="ui-g-12 ui-xl-4 ui-lg-5 ui-md-12 ui-sm-12 ui-g-nopad">
+                    <ui:insert name="leftmenu">
+                        <p:outputPanel>
+                            <p:tieredMenu>
+                                <p:menuitem value="Главная" url="/" />
+                            </p:tieredMenu>
+                        </p:outputPanel>
+
+
+                    </ui:insert>
+                </div>
+                <div class="ui-g-12 ui-xl-8 ui-lg-7 ui-md-12 ui-sm-12 ui-g-nopad">
+<!--                   <div class="ui-g-12 ui-fluid ui-g-nopad">-->
+                   <div class="ui-g-12 ui-g-nopad">
+                        <ui:insert name="center"/>
+                   </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <ui:insert name="excepts">
+        <p:ajaxExceptionHandler onexception="PF('excWid').show();" update="expDialog" type="java.lang.Throwable"/>
+
+        <p:dialog id="expDialog" widgetVar="excWid" header="Ошибка на странице - #{pfExceptionHandler.type}"
+                             width="800" height="600" position="center,center" fitViewport="true" modal="true">
+        <h:outputText value="Обратитесь в тех. поддержку"/> <br />
+        <p:button value="Перезагрузить страницу" style="margin:20px 5px 20px 5px" onclick="document.location.href = document.location.href;"/><br/>
+        <h:outputText value="#{pfExceptionHandler.message}"/><br/>
+        <h:outputText value="#{pfExceptionHandler.formattedTimestamp}"/><br/>
+        <h:outputText value="#{pfExceptionHandler.formattedStackTrace.substring(0,pfExceptionHandler.formattedStackTrace.length()>570?570:pfExceptionHandler.formattedStackTrace.length())}" escape="false"/><br/>
+        </p:dialog>
+    </ui:insert>
+</h:body>
+
+<!--<ui:debug hotkey="x"/>-->
+</html>

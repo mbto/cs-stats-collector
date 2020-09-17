@@ -8,6 +8,7 @@ val springVersion: String by extra
 plugins {
     java
     id("org.springframework.boot") version "2.1.4.RELEASE"
+//    id("io.spring.dependency-management") version "1.0.10.RELEASE"
 }
 
 subprojects {
