@@ -9,7 +9,7 @@ dependencies {
     compile("org.joinfaces:jsf-spring-boot-starter:$joinFacesVersion")
     compile("org.joinfaces:primefaces-spring-boot-starter:$joinFacesVersion")
     compile("org.primefaces.themes:glass-x:1.0.10")
-//        compile("org.joinfaces:omnifaces3-spring-boot-starter:$joinFacesVersion")
+//    compile("org.joinfaces:omnifaces1-spring-boot-starter:$joinFacesVersion")
 
     implementation("org.joinfaces:joinfaces-dependencies:$joinFacesVersion")
 }

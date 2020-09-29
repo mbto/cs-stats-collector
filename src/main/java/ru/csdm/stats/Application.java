@@ -174,7 +174,7 @@ public class Application {
 //            servletContext.setInitParameter("primefaces.FONT_AWESOME", "true");
             servletContext.setInitParameter("primefaces.UPLOADER", "native");
 
-            servletContext.setInitParameter("org.omnifaces.FACES_VIEWS_SCAN_PATHS", "/*.xhtml/*");
+//            servletContext.setInitParameter("org.omnifaces.FACES_VIEWS_SCAN_PATHS", "/*.xhtml/*");
         };
     }
 }

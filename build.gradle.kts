@@ -7,7 +7,7 @@ val springVersion: String by extra
 
 plugins {
     java
-    id("org.springframework.boot") version "2.1.4.RELEASE"
+    id("org.springframework.boot") version "2.1.12.RELEASE"
 //    id("io.spring.dependency-management") version "1.0.10.RELEASE"
 }
 
@@ -28,7 +28,7 @@ tasks {
 }
 
 allprojects {
-    extra["springVersion"] = "2.1.4.RELEASE"
+    extra["springVersion"] = "2.1.12.RELEASE"
     extra["joinFacesVersion"] = "4.0.12"
 
     repositories {
@@ -39,7 +39,7 @@ allprojects {
     }
 
 // Правильные версии всех зависимостей узнавать тут:
-// http://search.maven.org/classic/remotecontent?filepath=org/springframework/boot/spring-boot-dependencies/2.1.4.RELEASE/spring-boot-dependencies-2.1.4.RELEASE.pom
+// http://search.maven.org/classic/remotecontent?filepath=org/springframework/boot/spring-boot-dependencies/2.1.12.RELEASE/spring-boot-dependencies-2.1.12.RELEASE.pom
     dependencies {
         val lombokVer = "1.18.6"
         compileOnly("org.projectlombok:lombok:$lombokVer");
@@ -71,7 +71,7 @@ val developmentOnly = configurations.create("developmentOnly")
 configurations.runtimeClasspath.get().extendsFrom(developmentOnly)
 
 dependencies {
-//    compile("io.hawt:hawtio-springboot:2.6.0") // compatible with spring boot 2.1.4.RELEASE
+//    compile("io.hawt:hawtio-springboot:2.6.0") // compatible with spring boot 2.1.12.RELEASE
     developmentOnly("org.springframework.boot:spring-boot-devtools:$springVersion")
 
     subprojects.forEach {
@@ -82,13 +82,4 @@ dependencies {
 //    testCompile("org.apache.commons:commons-collections4:4.3")
     testCompile("org.springframework.boot:spring-boot-test:$springVersion")
     testCompile("org.springframework.boot:spring-boot-test-autoconfigure:$springVersion")
-    testCompile("junit:junit:+")
-    testCompile("com.jayway.jsonpath:json-path:+")
-    testCompile("org.hamcrest:hamcrest-core:+")
-    testCompile("org.hamcrest:hamcrest-library:+")
-
-    testCompile("org.junit.jupiter:junit-jupiter-api:5.2.0")
-    testCompile("org.junit.jupiter:junit-jupiter-params:5.2.0")
-    testCompile("org.springframework:spring-test:5.1.2.RELEASE")
-    testRuntime("org.junit.jupiter:junit-jupiter-engine:5.2.0")
 }
