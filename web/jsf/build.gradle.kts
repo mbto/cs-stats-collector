@@ -12,4 +12,6 @@ dependencies {
 //    compile("org.joinfaces:omnifaces1-spring-boot-starter:$joinFacesVersion")
 
     implementation("org.joinfaces:joinfaces-dependencies:$joinFacesVersion")
+
+    compile(project(":common"))
 }

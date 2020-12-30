@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html
+        PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+        "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:f="http://xmlns.jcp.org/jsf/core"
+      xmlns:h="http://xmlns.jcp.org/jsf/html"
+      xmlns:p="http://primefaces.org/ui"
+      xmlns:ui="http://xmlns.jcp.org/jsf/facelets"
+>
+
+<f:metadata>
+    <f:metadata>
+        <f:viewAction action="#{viewProject.fetch()}" onPostback="false" immediate="true"/>
+    </f:metadata>
+</f:metadata>
+
+<ui:composition template="../template/layout.xhtml">
+    <ui:define name="center">
+        <ui:fragment rendered="#{not empty viewProject.project}">
+            <p:panel id="edProdPanel" header="[#{viewProject.project.id}] #{viewProject.project.name}">
+                <h:form id="edProdForm">
+                    <p:panelGrid columns="2" styleClass="ui-panelgrid-blank ui-fluid">
+                        <h:outputText value="Reg date" />
+                        <h:outputText value="#{viewProject.project.regDatetime}"/>
+
+                        <h:outputText value="Name" />
+                        <p:inputText value="#{viewProject.project.name}" required="true" label="Name" />
+
+                        <h:outputText value="Description" />
+                        <p:inputTextarea value="#{viewProject.project.description}" label="Description" />
+
+                        <h:outputText value="DB host:port" />
+                        <p:inputText value="#{viewProject.project.databaseHostport}" required="true" label="DB host:port" />
+
+                        <h:outputText value="DB schema" />
+                        <p:inputText value="#{viewProject.project.databaseSchema}" required="true" label="DB schema" />
+
+                        <h:outputText value="DB password" />
+                        <p:inputText value="#{viewProject.project.databasePassword}" required="true" label="DB password" />
+
+                        <h:outputText value="DB server timezone" />
+                        <p:selectOneMenu value="#{viewProject.project.databaseServerTimezone}" required="true" height="400">
+                            <f:selectItems value="#{viewProject.availableTimeZones}" />
+                        </p:selectOneMenu>
+
+                        <p:link value="Driver properties" href="https://dev.mysql.com/doc/connector-j/8.0/en/connector-j-reference-configuration-properties.html" />
+                        <h:panelGroup layout="block">
+                            <p:dataTable id="drProps" value="#{viewProject.allowedDriverProperties()}" var="drp"
+                                         editable="true" cellEditMode="lazy">
+                                <p:ajax event="rowEdit" partialSubmit="true"/>
+                                <p:ajax event="rowEditCancel" partialSubmit="true"/>
+
+                                <p:column headerText="Key">
+                                    <p:cellEditor>
+                                        <f:facet name="output"><p:outputLabel value="#{drp.key}" /></f:facet>
+                                        <f:facet name="input"><p:inputText value="#{drp.key}" required="true" label="Key" /></f:facet>
+                                    </p:cellEditor>
+                                </p:column>
+                                <p:column headerText="Value">
+                                    <p:cellEditor>
+                                        <f:facet name="output"><p:outputLabel value="#{drp.value}" /></f:facet>
+                                        <f:facet name="input"><p:inputText value="#{drp.value}" required="true" label="Value" /></f:facet>
+                                    </p:cellEditor>
+                                </p:column>
+                                <p:column style="width:32px">
+                                    <p:rowEditor />
+                                </p:column>
+                            </p:dataTable>
+
+                            <p:panelGrid columns="2">
+                            <p:commandButton value="Add row" immediate="true" partialSubmit="true"
+                                             process="@this" update="drProps"
+                                             actionListener="#{viewProject.onAddPropertyRow()}" style="margin-top:10px;"
+                                             icon="ui-icon-plusthick"/>
+
+                                <p:commandButton value="Remove row" immediate="true" partialSubmit="true"
+                                                 process="@this" update="drProps"
+                                                 actionListener="#{viewProject.onRemovePropertyRow()}" style="margin-top:10px;"
+                                                 icon="ui-icon-minusthick"/>
+                            </p:panelGrid>
+                        </h:panelGroup>
+                    </p:panelGrid>
+
+                    <p:separator style="margin-top:20px;" />
+                    <p:panelGrid columns="2" styleClass="ui-panelgrid-blank">
+                        <p:commandButton id="validateBtn" value="Validate"
+                                         process="@form" update="@form msgs"
+                                         actionListener="#{viewProject.validate}" style="margin-top:10px;"
+                                         icon="ui-icon-search"/>
+
+                        <p:commandButton id="saveBtn" value="Save" disabled="#{!viewProject.connectionValidated}"
+                                         process="@this" update="@form msgs"
+                                         actionListener="#{viewProject.save}" style="margin-top:10px;"
+                                         icon="ui-icon-check"/>
+                    </p:panelGrid>
+                </h:form>
+            </p:panel>
+            <p:blockUI block="edProdPanel" trigger=":edProdForm:validateBtn :edProdForm:saveBtn" >
+                <p:graphicImage library="images" name="ajaxloadingbar.gif"/>
+            </p:blockUI>
+        </ui:fragment>
+
+        <p:messages id="msgs" showSummary="true" showDetail="true"/>
+    </ui:define>
+</ui:composition>
+
+</html>

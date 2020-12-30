@@ -10,5 +10,9 @@ public class DefaultView implements WebMvcConfigurer {
     public void addViewControllers(ViewControllerRegistry registry) {
         registry.addViewController("/").setViewName("forward:/index.xhtml");
         registry.addViewController("/index").setViewName("forward:/index.xhtml");
+        registry.addViewController("/projects").setViewName("forward:/projects.xhtml");
+        registry.addViewController("/editProject").setViewName("forward:/editProject.xhtml");
+        registry.addViewController("/knownServers").setViewName("forward:/knownServers.xhtml");
+        registry.addViewController("/managers").setViewName("forward:/managers.xhtml");
     }
 }

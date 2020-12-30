@@ -1,5 +1,7 @@
 package ru.csdm.stats.common;
 
+import ru.csdm.stats.common.model.collector.enums.ProjectDatabaseServerTimezone;
+
 import java.text.SimpleDateFormat;
 import java.time.format.DateTimeFormatter;
 import java.util.regex.Pattern;
@@ -14,4 +16,7 @@ public interface Constants {
     DateTimeFormatter MMDDYYYY_HHMMSS_PATTERN = DateTimeFormatter.ofPattern("MM/dd/yyyy - HH:mm:ss");
     Pattern IPADDRESS_PATTERN = Pattern.compile("(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)");
     Pattern STEAMID_PATTERN = Pattern.compile("STEAM_[0-1]:[0-1]:[0-9]+");
+
+    /* to prevent dublicate array creating at .values() */
+    ProjectDatabaseServerTimezone[] PROJECT_DATABASE_SERVER_TIMEZONES = ProjectDatabaseServerTimezone.values();
 }
