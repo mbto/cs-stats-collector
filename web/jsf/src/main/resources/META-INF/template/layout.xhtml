@@ -2,16 +2,22 @@
         PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
         "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:f="http://xmlns.jcp.org/jsf/core"
       xmlns:h="http://xmlns.jcp.org/jsf/html"
       xmlns:p="http://primefaces.org/ui"
       xmlns:ui="http://xmlns.jcp.org/jsf/facelets"
 >
+
+<f:metadata>
+    <f:loadBundle basename="application" var="springConfig" />
+</f:metadata>
+
 <h:head>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
     <meta name="robots" content="noindex"/>
 
     <link rel="shortcut icon" type="image/x-icon" href="#{resource['images/emblem.png']}"/>
-    <title><ui:insert name="title">#{application.servletContextName}</ui:insert></title>
+    <title><ui:insert name="title">#{springConfig['collector.instance.name']}</ui:insert></title>
 
     <style type="text/css">
         .ui-panelgrid .ui-panelgrid-cell {
@@ -28,7 +34,7 @@
     <div class="ui-g">
         <div class="ui-g-12">
             <p:outputPanel style="text-align:center;display:block;margin: 0 auto;">
-                <p:outputLabel value="#{application.servletContextName}"/>
+                <p:outputLabel value="Instance [#{springConfig['collector.instance.name']}]"/>
             </p:outputPanel>
         </div>
         <div class="ui-g-12">

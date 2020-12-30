@@ -9,7 +9,7 @@
 
 <ui:composition template="../template/layout.xhtml">
     <ui:define name="center">
-        <p:panel header="Системная информация">
+        <p:panel header="Memory info">
             <h:form id="pfId">
                 <p:poll process="@this" update="oP oF oM oA oTF" async="true"
                         interval="1" listener="#{statusShower.calculate}"/>
@@ -17,13 +17,13 @@
                 <p:panelGrid id="statusPanelId" columns="2" styleClass="ui-panelgrid-blank">
                     <h:outputText value="Processors"/>
                     <h:outputText id="oP" value="#{statusShower.processors}"/>
-                    <h:outputText value="Free memory"/>
+                    <h:outputText value="Free"/>
                     <h:outputText id="oF" value="#{statusShower.freeMemory} mb"/>
-                    <h:outputText value="Max memory"/>
+                    <h:outputText value="Max"/>
                     <h:outputText id="oM" value="#{statusShower.maxMemory} mb"/>
-                    <h:outputText value="Allocated memory"/>
+                    <h:outputText value="Allocated"/>
                     <h:outputText id="oA" value="#{statusShower.allocatedMemory} mb"/>
-                    <h:outputText value="Total free memory"/>
+                    <h:outputText value="Total free"/>
                     <h:outputText id="oTF" value="#{statusShower.totalFreeMemory} mb"/>
                 </p:panelGrid>
             </h:form>

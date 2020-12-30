@@ -7,5 +7,5 @@ public enum DriverPropertyStatus {
     NEW,
     TO_REMOVE;
 
-    public static final EnumSet<DriverPropertyStatus> allowedToFrontend = EnumSet.of(EXISTED, NEW);
+    public static final EnumSet<DriverPropertyStatus> ALLOWED_TO_FRONTEND = EnumSet.of(EXISTED, NEW);
 }
