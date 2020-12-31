@@ -3,8 +3,7 @@ package ru.csdm.stats.webapp.view;
 import com.zaxxer.hikari.HikariDataSource;
 import lombok.Getter;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.tuple.MutablePair;
-import org.apache.commons.lang3.tuple.Pair;
+import org.apache.commons.lang3.tuple.MutableTriple;
 import org.jooq.DSLContext;
 import org.jooq.SQLDialect;
 import org.jooq.impl.DSL;
@@ -12,7 +11,7 @@ import org.jooq.types.UInteger;
 import org.springframework.beans.factory.annotation.Autowired;
 import ru.csdm.stats.common.model.collector.tables.pojos.DriverProperty;
 import ru.csdm.stats.common.model.collector.tables.pojos.Project;
-import ru.csdm.stats.webapp.DriverPropertyStatus;
+import ru.csdm.stats.webapp.PojoStatus;
 
 import javax.annotation.PostConstruct;
 import javax.faces.application.FacesMessage;
@@ -22,9 +21,7 @@ import javax.faces.view.ViewScoped;
 import javax.inject.Named;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-
 import java.util.*;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -39,7 +36,7 @@ import static ru.csdm.stats.common.model.csstats.tables.PlayerIp.PLAYER_IP;
 import static ru.csdm.stats.common.model.csstats.tables.PlayerSteamid.PLAYER_STEAMID;
 import static ru.csdm.stats.common.utils.SomeUtils.buildHikariDataSource;
 import static ru.csdm.stats.common.utils.SomeUtils.configJooqContext;
-import static ru.csdm.stats.webapp.DriverPropertyStatus.*;
+import static ru.csdm.stats.webapp.PojoStatus.*;
 
 @ViewScoped
 @Named
@@ -53,7 +50,7 @@ public class ViewProject {
     @Getter
     private Project project;
     @Getter
-    private List<Pair<DriverProperty, DriverPropertyStatus>> driverPropertiesWithStatus = new ArrayList<>();
+    private List<MutableTriple<DriverProperty, UUID, PojoStatus>> driverPropertiesWithStatus = new ArrayList<>();
 
     @Getter
     private SelectItem[] availableTimeZones;
@@ -85,18 +82,24 @@ public class ViewProject {
 
         if(Objects.isNull(project)) {
             fc.getExternalContext().setResponseStatus(HttpServletResponse.SC_NOT_FOUND);
-            fc.addMessage("msgs", new FacesMessage("Project with id '" + id + "' not founded", ""));
+            fc.addMessage("msgs", new FacesMessage("Project [" + id + "] not founded", ""));
             return;
         }
 
-        List<DriverProperty> driverProperties = collectorDsl.selectFrom(DRIVER_PROPERTY)
+        fetchDriverProperties();
+    }
+
+    public void fetchDriverProperties() {
+        if(Objects.isNull(project))
+            return;
+
+        collectorDsl.selectFrom(DRIVER_PROPERTY)
                 .where(DRIVER_PROPERTY.PROJECT_ID.eq(project.getId()))
                 .orderBy(DRIVER_PROPERTY.ID.asc())
-                .fetchInto(DriverProperty.class);
-
-        for (DriverProperty driverProperty : driverProperties) {
-            driverPropertiesWithStatus.add(MutablePair.of(driverProperty, EXISTED));
-        }
+                .fetchInto(DriverProperty.class)
+                .forEach(driverProperty -> {
+                    driverPropertiesWithStatus.add(MutableTriple.of(driverProperty, UUID.randomUUID(), EXISTED));
+                });
     }
 
     public boolean validate() {
@@ -111,13 +114,13 @@ public class ViewProject {
             hds.setPassword(project.getDatabasePassword());
             hds.addDataSourceProperty("serverTimezone", project.getDatabaseServerTimezone().getLiteral());
 
-            for (Iterator<Pair<DriverProperty, DriverPropertyStatus>> iterator = driverPropertiesWithStatus.iterator(); iterator.hasNext(); ) {
-                Pair<DriverProperty, DriverPropertyStatus> pair = iterator.next();
+            for (Iterator<MutableTriple<DriverProperty, UUID, PojoStatus>> iterator = driverPropertiesWithStatus.iterator(); iterator.hasNext(); ) {
+                MutableTriple<DriverProperty, UUID, PojoStatus> triple = iterator.next();
 
-                DriverProperty driverProperty = pair.getLeft();
-                DriverPropertyStatus driverPropertyStatus = pair.getRight();
+                DriverProperty driverProperty = triple.getLeft();
+                PojoStatus pojoStatus = triple.getRight();
 
-                if(driverPropertyStatus == TO_REMOVE && Objects.isNull(driverProperty.getId())) {
+                if(pojoStatus == TO_REMOVE && Objects.isNull(driverProperty.getId())) {
                     iterator.remove();
                     continue;
                 }
@@ -126,8 +129,8 @@ public class ViewProject {
                     if(Objects.isNull(driverProperty.getId()))
                         iterator.remove();
                     else
-                        pair.setValue(TO_REMOVE);
-                } else if(driverPropertyStatus != TO_REMOVE) {
+                        triple.setRight(TO_REMOVE);
+                } else if(pojoStatus != TO_REMOVE) {
                     if (StringUtils.isBlank(driverProperty.getValue()))
                         driverProperty.setValue("");
 
@@ -164,21 +167,21 @@ public class ViewProject {
             tablesCount = null;
 
             fc.addMessage("msgs", new FacesMessage(SEVERITY_WARN,
-                    "Failed validation project with id '" + project.getId() + "'",
+                    "Failed validation project [" + project.getId() + "]",
                     e.toString()));
 
             return false;
         }
 
         if(tablesCount == 5) {
-            fc.addMessage("msgs", new FacesMessage("Project with id '" + project.getId() + "' validated", ""));
+            fc.addMessage("msgs", new FacesMessage("Project [" + project.getId() + "] validated", ""));
             connectionValidated = true;
 
             return true;
         }
 
         fc.addMessage("msgs", new FacesMessage(SEVERITY_WARN,
-                "Failed validation project with id '" + project.getId() + "'",
+                "Failed validation project [" + project.getId() + "]",
                 "One of 5 database tables is missing"));
 
         return false;
@@ -202,11 +205,11 @@ public class ViewProject {
                         .execute();
 
                 List<UInteger> toRemoveDriverPropertyIds = new ArrayList<>(driverPropertiesWithStatus.size());
-                for (Iterator<Pair<DriverProperty, DriverPropertyStatus>> iterator = driverPropertiesWithStatus.iterator(); iterator.hasNext(); ) {
-                    Pair<DriverProperty, DriverPropertyStatus> pair = iterator.next();
+                for (Iterator<MutableTriple<DriverProperty, UUID, PojoStatus>> iterator = driverPropertiesWithStatus.iterator(); iterator.hasNext(); ) {
+                    MutableTriple<DriverProperty, UUID, PojoStatus> triple = iterator.next();
 
-                    if(pair.getRight() == TO_REMOVE) {
-                        toRemoveDriverPropertyIds.add(pair.getLeft().getId());
+                    if(triple.getRight() == TO_REMOVE) {
+                        toRemoveDriverPropertyIds.add(triple.getLeft().getId());
                         iterator.remove();
                     }
                 }
@@ -217,17 +220,17 @@ public class ViewProject {
                             .execute();
                 }
 
-                for (Pair<DriverProperty, DriverPropertyStatus> pair : driverPropertiesWithStatus) {
-                    DriverProperty driverProperty = pair.getKey();
-                    DriverPropertyStatus driverPropertyStatus = pair.getRight();
+                for (MutableTriple<DriverProperty, UUID, PojoStatus> triple : driverPropertiesWithStatus) {
+                    DriverProperty driverProperty = triple.getLeft();
+                    PojoStatus pojoStatus = triple.getRight();
 
-                    if(driverPropertyStatus == EXISTED) {
+                    if(pojoStatus == EXISTED) {
                         transactionalDsl.update(DRIVER_PROPERTY)
                                 .set(DRIVER_PROPERTY.KEY, driverProperty.getKey())
                                 .set(DRIVER_PROPERTY.VALUE, driverProperty.getValue())
                                 .where(DRIVER_PROPERTY.ID.eq(driverProperty.getId()))
                                 .execute();
-                    } else if(driverPropertyStatus == NEW) {
+                    } else if(pojoStatus == NEW) {
                         transactionalDsl.insertInto(DRIVER_PROPERTY)
                                 .set(DRIVER_PROPERTY.KEY, driverProperty.getKey())
                                 .set(DRIVER_PROPERTY.VALUE, driverProperty.getValue())
@@ -235,41 +238,31 @@ public class ViewProject {
                                 .execute();
                     }
                 }
+
+                driverPropertiesWithStatus.clear();
+                fetchDriverProperties();
             });
 
-            fc.addMessage("msgs", new FacesMessage("Project with id '" + project.getId() + "' saved", ""));
+            fc.addMessage("msgs", new FacesMessage("Project [" + project.getId() + "] saved", ""));
         } catch (Exception e) {
             fc.addMessage("msgs", new FacesMessage(SEVERITY_WARN,
-                    "Failed save project with id '" + project.getId() + "'",
+                    "Failed save project [" + project.getId() + "]",
                     e.toString()));
         } finally {
             connectionValidated = false;
         }
     }
 
-    public void onAddPropertyRow() {
-        driverPropertiesWithStatus.add(MutablePair.of(new DriverProperty(), NEW));
+    public void onAddProperty() {
+        connectionValidated = false;
+        driverPropertiesWithStatus.add(MutableTriple.of(new DriverProperty(), UUID.randomUUID(), NEW));
     }
 
-    public void onRemovePropertyRow() {
-        if(!driverPropertiesWithStatus.isEmpty()) {
-            for (int i = driverPropertiesWithStatus.size() - 1; i >= 0; i--) {
-                Pair<DriverProperty, DriverPropertyStatus> pair = driverPropertiesWithStatus.get(i);
-
-                if(pair.getRight() == TO_REMOVE)
-                    continue;
-
-                pair.setValue(TO_REMOVE);
-                break;
-            }
-        }
-    }
-
-    public List<DriverProperty> allowedDriverProperties() {
-        return driverPropertiesWithStatus
+    public void onRemoveProperty(UUID driverPropertyGid) {
+        connectionValidated = false;
+        driverPropertiesWithStatus
                 .stream()
-                .filter(pair -> allowedToFrontend.contains(pair.getRight()))
-                .map(Pair::getLeft)
-                .collect(Collectors.toList());
+                .filter(triple -> triple.getMiddle().equals(driverPropertyGid))
+                .forEach(triple -> triple.setRight(TO_REMOVE));
     }
 }

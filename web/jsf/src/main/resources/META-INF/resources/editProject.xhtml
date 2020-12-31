@@ -5,13 +5,11 @@
       xmlns:f="http://xmlns.jcp.org/jsf/core"
       xmlns:h="http://xmlns.jcp.org/jsf/html"
       xmlns:p="http://primefaces.org/ui"
-      xmlns:ui="http://xmlns.jcp.org/jsf/facelets"
->
-
+      xmlns:ui="http://xmlns.jcp.org/jsf/facelets">
 <f:metadata>
     <f:loadBundle basename="application" var="springConfig" />
     <f:viewAction action="#{viewProject.fetch()}" onPostback="false" immediate="true"/>
-    <p:importEnum type="ru.csdm.stats.webapp.DriverPropertyStatus" var="DriverPropertyStatus"/>
+    <p:importEnum type="ru.csdm.stats.webapp.PojoStatus" var="PojoStatus"/>
 </f:metadata>
 
 <ui:composition template="../template/layout.xhtml">
@@ -33,13 +31,16 @@
             }
         </style>
     </ui:define>
+
     <ui:define name="title">#{not empty viewProject.project ? '[' += viewProject.project.id += '] ' += viewProject.project.name : 'Edit project'}</ui:define>
+
     <ui:define name="center">
         <ui:fragment rendered="#{not empty viewProject.project}">
             <p:panel id="edProdPanel" header="[#{viewProject.project.id}] #{viewProject.project.name}">
                 <p:button value="Known servers" outcome="/knownServers">
-                    <f:param name="id" value="#{viewProject.project.id}"/>
+                    <f:param name="projectId" value="#{viewProject.project.id}"/>
                 </p:button>
+
                 <p:separator/>
                 <h:form id="edProdForm">
                     <p:panelGrid columns="2" style="width:100%;" styleClass="ui-panelgrid-blank ui-fluid">
@@ -73,7 +74,7 @@
 
                     <p:dataTable id="drProps" value="#{viewProject.driverPropertiesWithStatus}" var="drps"
                                  editable="true" cellEditMode="lazy" rowIndexVar="rowIndex" emptyMessage="No driver properties found"
-                                 rowStyleClass="#{drps.right == DriverPropertyStatus.TO_REMOVE ? 'propToRemove' : null}"
+                                 rowStyleClass="#{drps.right == PojoStatus.TO_REMOVE ? 'propToRemove' : null}"
                                  style="margin-top:10px;" styleClass="ui-fluid">
                         <f:facet name="header">
                             <p:link value="Driver properties" href="https://dev.mysql.com/doc/connector-j/8.0/en/connector-j-reference-configuration-properties.html" style="font-weight:normal;" />
@@ -99,7 +100,7 @@
                         <p:column style="width:8px">
                             <p:commandLink id="remPropLinkId" value="-" immediate="true" partialSubmit="true"
                                            process="@this" update="drProps edProdForm:saveBtn" style="text-decoration: none;"
-                                           actionListener="#{viewProject.removeProperty(drps.middle)}">
+                                           actionListener="#{viewProject.onRemoveProperty(drps.middle)}">
                             </p:commandLink>
                             <p:tooltip for="remPropLinkId" value="Delete"/>
                         </p:column>
@@ -107,7 +108,7 @@
 
                     <p:commandButton value="Add row" immediate="true" partialSubmit="true"
                                      process="@this" update="drProps edProdForm:saveBtn"
-                                     actionListener="#{viewProject.onAddPropertyRow()}" style="margin-top:10px;"
+                                     actionListener="#{viewProject.onAddProperty()}" style="margin-top:10px;"
                                      icon="ui-icon-plusthick"/>
 
                     <p:separator />
