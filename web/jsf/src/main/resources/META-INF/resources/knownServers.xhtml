@@ -13,108 +13,146 @@
 </f:metadata>
 
 <ui:composition template="../template/layout.xhtml">
-    <ui:define name="head">
-        <style type="text/css">
-            .propToRemove {
-                background-color: #ffa6a6 !important;
-                background-image: none !important;
-                color: #000000 !important;
-            }
-        </style>
-    </ui:define>
+<ui:define name="head">
+<style type="text/css">
+.propToRemove {
+    background-color: #ffa6a6 !important;
+    background-image: none !important;
+    color: #000000 !important;
+}
+</style>
+</ui:define>
 
-    <ui:define name="center">
+<ui:define name="center">
+<ui:fragment rendered="#{not empty viewKnownServers.selectedProject}">
+<p:panel id="edKnServsPanel" header="#{'[' += viewKnownServers.selectedProject.id += '] ' += viewKnownServers.selectedProject.name}">
+<h:form id="edKnServsForm">
+    <p:dataTable id="knServs" widgetVar="knServsW" value="#{viewKnownServers.currentInstanceRows}" var="row"
+                 editable="true" rowIndexVar="rowIndex" emptyMessage="No known servers found"
+                 rowStyleClass="#{row.status == PojoStatus.TO_REMOVE ? 'propToRemove' : null}"
+                 styleClass="ui-fluid">
+        <f:facet name="header">
+            Known servers: #{viewKnownServers.currentInstanceRows.size()} |
+            Instance: [#{sessionInstanceHolder.currentInstanceId}] #{sessionInstanceHolder.availableInstances.get(sessionInstanceHolder.currentInstanceId).name}
+        </f:facet>
+        <p:ajax event="rowEdit" partialSubmit="true" listener="#{viewKnownServers.onRowEdit}" update="edKnServsForm:addKnownServerBtn msgs" />
+        <p:ajax event="rowEditCancel" partialSubmit="true"/>
 
-        <h:form id="edKnServsForm">
-            <p:dataTable id="knServs" value="#{viewKnownServers.knownServerWithStatus}" var="drps"
-                         editable="true" cellEditMode="lazy" rowIndexVar="rowIndex" emptyMessage="No known servers found"
-                         rowStyleClass="#{drps.right == PojoStatus.TO_REMOVE ? 'propToRemove' : null}"
-                         styleClass="ui-fluid">
-                <f:facet name="header">#{viewKnownServers.knownServerWithStatus.size()} Known servers of project [#{request.getParameter('projectId')}]</f:facet>
-                <p:ajax event="rowEdit" partialSubmit="true"/>
-                <p:ajax event="rowEditCancel" partialSubmit="true"/>
+        <p:column headerText="ip:port" width="200">
+            <p:cellEditor>
+                <f:facet name="output"><p:outputLabel value="#{row.pojo.ipport}"/></f:facet>
+                <f:facet name="input"><p:inputText value="#{row.pojo.ipport}" required="true" label="ip:port"
+                                                   validator="ipPortValidator" maxlength="21" onkeypress="if(event.keyCode == 13) { return false; }"/></f:facet>
+            </p:cellEditor>
+        </p:column>
 
-                <p:column headerText="instance id">
-                    <p:outputLabel value="#{drps.left.instanceId}" />
-                </p:column>
-                <p:column headerText="project id">
-                    <p:outputLabel value="#{drps.left.projectId}" />
-                </p:column>
+        <p:column headerText="Name" width="100%">
+            <p:cellEditor>
+                <f:facet name="output"><h:outputText value="#{row.pojo.name}"/></f:facet>
+                <f:facet name="input"><p:inputText value="#{row.pojo.name}" required="true" label="Name" maxlength="31" onkeypress="if(event.keyCode == 13) { return false; }"/></f:facet>
+            </p:cellEditor>
+        </p:column>
 
-                <p:column headerText="ip:port">
-                    <p:cellEditor>
-                        <f:facet name="output"><p:outputLabel value="#{drps.left.ipport}" /></f:facet>
-                        <f:facet name="input"><p:inputText value="#{drps.left.ipport}" required="true" label="ip:port" /></f:facet>
-                    </p:cellEditor>
-                </p:column>
+        <p:column headerText="Active" width="60">
+            <p:cellEditor>
+                <f:facet name="output"><h:outputText value="#{row.pojo.active ? 'Yes' : 'No'}" rendered="#{not empty row.pojo.active}"/></f:facet>
+                <f:facet name="input"><p:selectBooleanButton value="#{row.pojo.active}" onLabel="Yes" offLabel="No" required="true" label="Active" /></f:facet>
+            </p:cellEditor>
+        </p:column>
 
-                <p:column headerText="Name">
-                    <p:cellEditor>
-                        <f:facet name="output"><h:outputText value="#{drps.left.name}" /></f:facet>
-                        <f:facet name="input"><p:inputText value="#{drps.left.name}" required="true" label="Name" /></f:facet>
-                    </p:cellEditor>
-                </p:column>
+        <p:column headerText="FFA" width="60">
+            <p:cellEditor>
+                <f:facet name="output"><h:outputText value="#{row.pojo.ffa ? 'Yes' : 'No'}" rendered="#{not empty row.pojo.ffa}"/></f:facet>
+                <f:facet name="input"><p:selectBooleanButton value="#{row.pojo.ffa}" onLabel="Yes" offLabel="No" required="true" label="FFA"/></f:facet>
+            </p:cellEditor>
+        </p:column>
 
-                <p:column headerText="Active">
-                    <p:cellEditor>
-                        <f:facet name="output"><h:outputText value="#{drps.left.active ? 'Yes' : 'No'}" /></f:facet>
-                        <f:facet name="input"><p:selectBooleanButton value="#{drps.left.active}" onLabel="Yes" offLabel="No" required="true" label="Active" /></f:facet>
-                    </p:cellEditor>
-                </p:column>
+        <p:column headerText="Ignore bots" width="120">
+            <p:cellEditor>
+                <f:facet name="output"><h:outputText value="#{row.pojo.ignoreBots ? 'Yes' : 'No'}" rendered="#{not empty row.pojo.ignoreBots}"/></f:facet>
+                <f:facet name="input"><p:selectBooleanButton value="#{row.pojo.ignoreBots}" onLabel="Yes" offLabel="No" required="true" label="Ignore bots" /></f:facet>
+            </p:cellEditor>
+        </p:column>
 
-                <p:column headerText="FFA">
-                    <p:cellEditor>
-                        <f:facet name="output"><h:outputText value="#{drps.left.ffa ? 'Yes' : 'No'}" /></f:facet>
-                        <f:facet name="input"><p:selectBooleanButton value="#{drps.left.ffa}" onLabel="Yes" offLabel="No" required="true" label="FFA"/></f:facet>
-                    </p:cellEditor>
-                </p:column>
+        <p:column headerText="Start session on action" width="120">
+            <p:cellEditor rendered="#{row.pojo.instanceId == sessionInstanceHolder.currentInstanceId}">
+                <f:facet name="output"><h:outputText value="#{row.pojo.startSessionOnAction ? 'Yes' : 'No'}" rendered="#{not empty row.pojo.startSessionOnAction}"/></f:facet>
+                <f:facet name="input"><p:selectBooleanButton value="#{row.pojo.startSessionOnAction}" onLabel="Yes" offLabel="No" required="true" label="Start session on action" /></f:facet>
+            </p:cellEditor>
+        </p:column>
 
-                <p:column headerText="Ignore bots">
-                    <p:cellEditor>
-                        <f:facet name="output"><h:outputText value="#{drps.left.ignoreBots ? 'Yes' : 'No'}" /></f:facet>
-                        <f:facet name="input"><p:selectBooleanButton value="#{drps.left.ignoreBots}" onLabel="Yes" offLabel="No" required="true" label="Ignore bots" /></f:facet>
-                    </p:cellEditor>
-                </p:column>
+        <p:column style="width:32px">
+            <p:rowEditor />
+        </p:column>
+        <p:column style="width:8px">
+            <ui:fragment rendered="#{row.status == PojoStatus.TO_REMOVE}">
+                <p:commandLink value="+" immediate="true" partialSubmit="true" title="Restore"
+                               process="@this" update="knServs" style="text-decoration: none;"
+                               onstart="PF('buiKnServs').show()" oncomplete="PF('buiKnServs').hide()"
+                               actionListener="#{viewKnownServers.onRestoreRow(row)}"/>
+            </ui:fragment>
+            <ui:fragment rendered="#{row.status != PojoStatus.TO_REMOVE}">
+                <p:commandLink value="-" immediate="true" partialSubmit="true" title="Remove"
+                               process="@this" update="knServs" style="text-decoration: none;"
+                               onstart="PF('buiKnServs').show()" oncomplete="PF('buiKnServs').hide()"
+                               actionListener="#{viewKnownServers.onRemoveRow(row)}"/>
+            </ui:fragment>
+        </p:column>
+    </p:dataTable>
+    <p:panelGrid columns="2" style="margin-top:10px;" styleClass="ui-panelgrid-blank">
+        <p:commandButton id="addKnownServerBtn" value="Add server" immediate="true" partialSubmit="true"
+                         process="@this" update="@this knServs" disabled="#{viewKnownServers.addServerBtnDisabled}"
+                         actionListener="#{viewKnownServers.onAddKnownServer()}"
+                         icon="ui-icon-plusthick"/>
 
-                <p:column headerText="Start session on action">
-                    <p:cellEditor>
-                        <f:facet name="output"><h:outputText value="#{drps.left.startSessionOnAction ? 'Yes' : 'No'}" /></f:facet>
-                        <f:facet name="input"><p:selectBooleanButton value="#{drps.left.startSessionOnAction}" onLabel="Yes" offLabel="No" required="true" label="Start session on action" /></f:facet>
-                    </p:cellEditor>
-                </p:column>
+        <p:commandButton id="saveBtn" value="Save"
+                         process="@this" update="@form msgs"
+                         actionListener="#{viewKnownServers.save}"
+                         icon="ui-icon-check"/>
+    </p:panelGrid>
+</h:form>
+<p:messages id="msgs" showSummary="true" showDetail="true"/>
 
-                <p:column style="width:32px">
-                    <p:rowEditor />
-                </p:column>
-                <p:column style="width:8px">
-                    <ui:fragment rendered="#{drps.right == PojoStatus.TO_REMOVE}">
-                        <p:commandLink value="+" immediate="true" partialSubmit="true" title="Restore"
-                                       process="@this" update="knServs" style="text-decoration: none;"
-                                       actionListener="#{viewKnownServers.onRestoreProperty(drps.middle)}"/>
-                    </ui:fragment>
-                    <ui:fragment rendered="#{drps.right != PojoStatus.TO_REMOVE}">
-                        <p:commandLink value="-" immediate="true" partialSubmit="true" title="Remove"
-                                       process="@this" update="knServs" style="text-decoration: none;"
-                                       actionListener="#{viewKnownServers.onRemoveProperty(drps.middle)}"/>
-                    </ui:fragment>
-                </p:column>
-            </p:dataTable>
-            <p:commandButton value="Add row" immediate="true" partialSubmit="true"
-                             process="@this" update="knServs saveBtn"
-                             actionListener="#{viewKnownServers.onAddProperty()}" style="margin-top:10px;"
-                             icon="ui-icon-plusthick"/>
+<p:separator rendered="#{not empty viewKnownServers.selectedProject and not empty viewKnownServers.otherInstanceRows}"/>
 
-            <p:separator />
-<!--        <p:panelGrid columns="2" styleClass="ui-panelgrid-blank">-->
-            <p:commandButton id="saveBtn" value="Save"
-                             process="@this" update="@form msgs"
-                             actionListener="#{viewKnownServers.save}"
-                             icon="ui-icon-check"/>
-<!--        </p:panelGrid>-->
-        </h:form>
+<ui:repeat value="#{viewKnownServers.otherInstanceRows.entrySet()}" var="entry" rendered="#{not empty viewKnownServers.selectedProject and not empty viewKnownServers.otherInstanceRows}">
+    <p:dataTable value="#{entry.value}" var="row" style="margin-top: 10px;" styleClass="ui-fluid">
+        <f:facet name="header">
+            Known servers: #{entry.value.size()} |
+            Instance: [#{entry.key}] #{sessionInstanceHolder.availableInstances.get(entry.key).name}
+        </f:facet>
 
-        <p:messages id="msgs" showSummary="true" showDetail="true"/>
-    </ui:define>
+        <p:column headerText="ip:port" width="200">
+            <p:outputLabel value="#{row.pojo.ipport}"/>
+        </p:column>
+
+        <p:column headerText="Name" width="100%">
+            <h:outputText value="#{row.pojo.name}"/>
+        </p:column>
+
+        <p:column headerText="Active" width="60">
+            <h:outputText value="#{row.pojo.active ? 'Yes' : 'No'}" rendered="#{not empty row.pojo.active}"/>
+        </p:column>
+
+        <p:column headerText="FFA" width="60">
+            <h:outputText value="#{row.pojo.ffa ? 'Yes' : 'No'}" rendered="#{not empty row.pojo.ffa}"/>
+        </p:column>
+
+        <p:column headerText="Ignore bots" width="120">
+            <h:outputText value="#{row.pojo.ignoreBots ? 'Yes' : 'No'}" rendered="#{not empty row.pojo.ignoreBots}"/>
+        </p:column>
+
+        <p:column headerText="Start session on action" width="120">
+            <h:outputText value="#{row.pojo.startSessionOnAction ? 'Yes' : 'No'}" rendered="#{not empty row.pojo.startSessionOnAction}"/>
+        </p:column>
+    </p:dataTable>
+</ui:repeat>
+</p:panel>
+<p:blockUI widgetVar="buiKnServs" block="edKnServsPanel" trigger="edKnServsForm:addKnownServerBtn edKnServsForm:saveBtn edKnServsForm:knServs">
+    <p:graphicImage library="images" name="ajaxloadingbar.gif"/>
+</p:blockUI>
+</ui:fragment>
+</ui:define>
 </ui:composition>
 
 </html>

@@ -10,7 +10,7 @@
 <ui:composition template="../template/layout.xhtml">
     <ui:define name="center">
         <h:form id="dtId">
-            <p:dataTable var="car" value="#{dtBasicView.cars}" rows="20" paginator="true" reflow="true">
+            <p:dataTable var="car" value="#{dtBasicView.cars}" reflow="true">
                 <f:facet name="header">Managers</f:facet>
                 <p:column headerText="Id">
                     <h:outputText value="#{car.id}" />

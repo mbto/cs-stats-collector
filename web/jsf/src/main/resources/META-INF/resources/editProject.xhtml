@@ -13,125 +13,132 @@
 </f:metadata>
 
 <ui:composition template="../template/layout.xhtml">
-    <ui:define name="head">
-        <script type="text/javascript">
-            function showDbPassword(){
-            var field = $('#edProdForm\\:dbPwdId');
-            if (field.attr('type') === 'password') {
-                field.attr('type', 'text');
-            } else {
-                field.attr('type', 'password');
-            } }
-        </script>
-        <style type="text/css">
-            .propToRemove {
-                background-color: #b0b0b0 !important;
-                background-image: none !important;
-                color: #000000 !important;
-            }
-        </style>
-    </ui:define>
+<ui:define name="head">
+<script type="text/javascript">
+    function showDbPassword(){
+    var field = $('#edProjForm\\:dbPwdId');
+    if (field.attr('type') === 'password') {
+        field.attr('type', 'text');
+    } else {
+        field.attr('type', 'password');
+    } }
+</script>
+<style type="text/css">
+.propToRemove {
+    background-color: #ffa6a6 !important;
+    background-image: none !important;
+    color: #000000 !important;
+}
+</style>
+</ui:define>
 
-    <ui:define name="title">#{not empty viewProject.project ? '[' += viewProject.project.id += '] ' += viewProject.project.name : 'Edit project'}</ui:define>
+<ui:define name="center">
+<ui:fragment rendered="#{not empty viewProject.selectedProject}">
+<p:panel id="edProjPanel" header="[#{viewProject.selectedProject.id}] #{viewProject.selectedProject.name}"
+    style="width:600px;">
+    <p:button value="Known servers" outcome="/knownServers">
+        <f:param name="projectId" value="#{viewProject.selectedProject.id}"/>
+    </p:button>
 
-    <ui:define name="center">
-        <ui:fragment rendered="#{not empty viewProject.project}">
-            <p:panel id="edProdPanel" header="[#{viewProject.project.id}] #{viewProject.project.name}">
-                <p:button value="Known servers" outcome="/knownServers">
-                    <f:param name="projectId" value="#{viewProject.project.id}"/>
-                </p:button>
+    <p:separator/>
+    <h:form id="edProjForm">
+        <p:panelGrid columns="2" styleClass="ui-panelgrid-blank ui-fluid">
+            <h:outputText value="Reg date" />
+            <h:outputText value="#{viewProject.selectedProject.regDatetime}">
+                <f:convertDateTime pattern="yyyy-MM-dd HH:mm:ss" type="localDateTime"/>
+            </h:outputText>
 
-                <p:separator/>
-                <h:form id="edProdForm">
-                    <p:panelGrid columns="2" style="width:100%;" styleClass="ui-panelgrid-blank ui-fluid">
-                        <h:outputText value="Reg date" />
-                        <h:outputText value="#{viewProject.project.regDatetime}"/>
+            <h:outputText value="Name" />
+            <p:inputText value="#{viewProject.selectedProject.name}" required="true" label="Name" />
 
-                        <h:outputText value="Name" />
-                        <p:inputText value="#{viewProject.project.name}" required="true" label="Name" />
+            <h:outputText value="Description" />
+            <p:inputTextarea value="#{viewProject.selectedProject.description}" label="Description" />
 
-                        <h:outputText value="Description" />
-                        <p:inputTextarea value="#{viewProject.project.description}" label="Description" />
+            <h:outputText value="DB host:port" />
+            <p:inputText value="#{viewProject.selectedProject.databaseHostport}" required="true" label="DB host:port" />
 
-                        <h:outputText value="DB host:port" />
-                        <p:inputText value="#{viewProject.project.databaseHostport}" required="true" label="DB host:port" />
+            <h:outputText value="DB schema" />
+            <p:inputText value="#{viewProject.selectedProject.databaseSchema}" required="true" label="DB schema" />
 
-                        <h:outputText value="DB schema" />
-                        <p:inputText value="#{viewProject.project.databaseSchema}" required="true" label="DB schema" />
+            <h:outputText value="DB password" />
+            <p:columnGroup>
+                <p:password id="dbPwdId" redisplay="true" value="#{viewProject.selectedProject.databasePassword}"
+                            required="true" label="DB password" style="width:95%;margin-right:5px;" />
+                <p:commandLink id="dbBtnId" value="?" onclick="showDbPassword();return false;"/>
+            </p:columnGroup>
 
-                        <h:outputText value="DB password" />
-                        <p:panelGrid columns="2">
-                            <p:password id="dbPwdId" redisplay="true" value="#{viewProject.project.databasePassword}"
-                                        required="true" label="DB password" />
-                            <p:commandLink id="dbBtnId" value="?" onclick="showDbPassword();return false;"/>
-                        </p:panelGrid>
+            <h:outputText value="DB server timezone" />
+            <p:selectOneMenu value="#{viewProject.selectedProject.databaseServerTimezone}" required="true" height="400">
+                <f:selectItems value="#{viewProject.availableTimeZones}" />
+            </p:selectOneMenu>
+        </p:panelGrid>
 
-                        <h:outputText value="DB server timezone" />
-                        <p:selectOneMenu value="#{viewProject.project.databaseServerTimezone}" required="true" height="400">
-                            <f:selectItems value="#{viewProject.availableTimeZones}" />
-                        </p:selectOneMenu>
-                    </p:panelGrid>
+        <p:dataTable id="drProps" value="#{viewProject.currentProjectDriverPropertyRows}" var="row"
+                     editable="true" emptyMessage="No driver properties found"
+                     rowStyleClass="#{row.status == PojoStatus.TO_REMOVE ? 'propToRemove' : null}"
+                     style="margin-top:10px;" styleClass="ui-fluid">
+            <f:facet name="header">
+                <p:link value="Driver properties" href="https://dev.mysql.com/doc/connector-j/8.0/en/connector-j-reference-configuration-properties.html" style="font-weight:normal;" />
+            </f:facet>
+            <p:ajax event="rowEdit" partialSubmit="true" listener="#{viewProject.onRowEdit}" update="edProjForm:addDrPropBtn msgs" />
+            <p:ajax event="rowEditCancel" partialSubmit="true"/>
 
-                    <p:dataTable id="drProps" value="#{viewProject.driverPropertiesWithStatus}" var="drps"
-                                 editable="true" cellEditMode="lazy" rowIndexVar="rowIndex" emptyMessage="No driver properties found"
-                                 rowStyleClass="#{drps.right == PojoStatus.TO_REMOVE ? 'propToRemove' : null}"
-                                 style="margin-top:10px;" styleClass="ui-fluid">
-                        <f:facet name="header">
-                            <p:link value="Driver properties" href="https://dev.mysql.com/doc/connector-j/8.0/en/connector-j-reference-configuration-properties.html" style="font-weight:normal;" />
-                        </f:facet>
-                        <p:ajax event="rowEdit" partialSubmit="true"/>
-                        <p:ajax event="rowEditCancel" partialSubmit="true"/>
+            <p:column headerText="Key">
+                <p:cellEditor>
+                    <f:facet name="output"><p:outputLabel value="#{row.pojo.key}" /></f:facet>
+                    <f:facet name="input"><p:inputText value="#{row.pojo.key}" required="true" label="Key" /></f:facet>
+                </p:cellEditor>
+            </p:column>
+            <p:column headerText="Value">
+                <p:cellEditor>
+                    <f:facet name="output"><p:outputLabel value="#{row.pojo.value}" /></f:facet>
+                    <f:facet name="input"><p:inputText value="#{row.pojo.value}" required="true" label="Value" /></f:facet>
+                </p:cellEditor>
+            </p:column>
+            <p:column style="width:32px">
+                <p:rowEditor />
+            </p:column>
+            <p:column style="width:8px">
+                <ui:fragment rendered="#{row.status == PojoStatus.TO_REMOVE}">
+                    <p:commandLink value="+" immediate="true" partialSubmit="true" title="Restore"
+                                   process="@this" update="drProps edProjForm:saveBtn" style="text-decoration: none;"
+                                   onstart="PF('buiProjects').show()" oncomplete="PF('buiProjects').hide()"
+                                   actionListener="#{viewProject.onRestoreProperty(row)}"/>
+                </ui:fragment>
+                <ui:fragment rendered="#{row.status != PojoStatus.TO_REMOVE}">
+                    <p:commandLink value="-" immediate="true" partialSubmit="true" title="Remove"
+                                   process="@this" update="drProps edProjForm:saveBtn" style="text-decoration: none;"
+                                   onstart="PF('buiProjects').show()" oncomplete="PF('buiProjects').hide()"
+                                   actionListener="#{viewProject.onRemoveProperty(row)}"/>
+                </ui:fragment>
+            </p:column>
+        </p:dataTable>
 
-                        <p:column headerText="Key">
-                            <p:cellEditor>
-                                <f:facet name="output"><p:outputLabel value="#{drps.left.key}" /></f:facet>
-                                <f:facet name="input"><p:inputText value="#{drps.left.key}" required="true" label="Key" /></f:facet>
-                            </p:cellEditor>
-                        </p:column>
-                        <p:column headerText="Value">
-                            <p:cellEditor>
-                                <f:facet name="output"><p:outputLabel value="#{drps.left.value}" /></f:facet>
-                                <f:facet name="input"><p:inputText value="#{drps.left.value}" required="true" label="Value" /></f:facet>
-                            </p:cellEditor>
-                        </p:column>
-                        <p:column style="width:32px">
-                            <p:rowEditor />
-                        </p:column>
-                        <p:column style="width:8px">
-                            <p:commandLink id="remPropLinkId" value="-" immediate="true" partialSubmit="true"
-                                           process="@this" update="drProps edProdForm:saveBtn" style="text-decoration: none;"
-                                           actionListener="#{viewProject.onRemoveProperty(drps.middle)}">
-                            </p:commandLink>
-                            <p:tooltip for="remPropLinkId" value="Delete"/>
-                        </p:column>
-                    </p:dataTable>
+        <p:commandButton id="addDrPropBtn" value="Add driver property" immediate="true" partialSubmit="true"
+                         process="@this" update="@this drProps edProjForm:saveBtn" disabled="#{viewProject.addServerBtnDisabled}"
+                         actionListener="#{viewProject.onAddProperty()}" style="margin-top:10px;"
+                         icon="ui-icon-plusthick"/>
 
-                    <p:commandButton value="Add row" immediate="true" partialSubmit="true"
-                                     process="@this" update="drProps edProdForm:saveBtn"
-                                     actionListener="#{viewProject.onAddProperty()}" style="margin-top:10px;"
-                                     icon="ui-icon-plusthick"/>
+        <p:separator />
+        <p:panelGrid columns="2" styleClass="ui-panelgrid-blank">
+            <p:commandButton id="validateBtn" value="Validate"
+                             process="@form" update="@form msgs"
+                             actionListener="#{viewProject.validate}"
+                             icon="ui-icon-search"/>
 
-                    <p:separator />
-                    <p:panelGrid columns="2" styleClass="ui-panelgrid-blank">
-                        <p:commandButton id="validateBtn" value="Validate"
-                                         process="@form" update="@form msgs"
-                                         actionListener="#{viewProject.validate}"
-                                         icon="ui-icon-search"/>
-
-                        <p:commandButton id="saveBtn" value="Save" disabled="#{!viewProject.connectionValidated}"
-                                         process="@this" update="@form msgs"
-                                         actionListener="#{viewProject.save}"
-                                         icon="ui-icon-check"/>
-                    </p:panelGrid>
-                </h:form>
-            </p:panel>
-            <p:blockUI block="edProdPanel" trigger="edProdForm:validateBtn edProdForm:saveBtn" >
-                <p:graphicImage library="images" name="ajaxloadingbar.gif"/>
-            </p:blockUI>
-        </ui:fragment>
-
-        <p:messages id="msgs" showSummary="true" showDetail="true"/>
-    </ui:define>
+            <p:commandButton id="saveBtn" value="Save" disabled="#{!viewProject.connectionValidated}"
+                             process="@this" update="@form msgs"
+                             actionListener="#{viewProject.save}"
+                             icon="ui-icon-check"/>
+        </p:panelGrid>
+    </h:form>
+<p:messages id="msgs" showSummary="true" showDetail="true"/>
+</p:panel>
+<p:blockUI widgetVar="buiProjects" block="edProjPanel" trigger="edProjForm:validateBtn edProjForm:saveBtn edProjForm:drProps edProjForm:addDrPropBtn" >
+    <p:graphicImage library="images" name="ajaxloadingbar.gif"/>
+</p:blockUI>
+</ui:fragment>
+</ui:define>
 </ui:composition>
 
 </html>

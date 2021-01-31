@@ -15,31 +15,43 @@
     <meta name="robots" content="noindex"/>
 
     <link rel="shortcut icon" type="image/x-icon" href="#{resource['images/emblem.png']}"/>
-    <title><ui:insert name="title">#{springConfig['collector.instance.name']}</ui:insert></title>
+<!--    <title><ui:insert name="title">#{springConfig['collector.instance.name']}</ui:insert></title>-->
+    <title><ui:insert name="title">
+        <h:outputText value="#{'[' += sessionInstanceHolder.currentInstanceId += '] ' += sessionInstanceHolder.availableInstances.get(sessionInstanceHolder.currentInstanceId).name}"
+                      rendered="#{not empty sessionInstanceHolder.currentInstanceId}" />
+        <h:outputText value="Instance not setted"
+                      rendered="#{empty sessionInstanceHolder.currentInstanceId}" />
+    </ui:insert></title>
 
-    <style type="text/css">
-        .ui-panelgrid .ui-panelgrid-cell {
-            padding: 0 10px 0 0;
-        }
-    </style>
+    <h:outputStylesheet name="css/default.css" />
     <ui:insert name="head"/>
 </h:head>
 
 <h:body>
-<!--    <p:growl id="growl" life="5000" />-->
+    <p:growl id="growl" life="5000" severity="warn" globalOnly="true" />
 <!--    <p:tooltip position="bottom" />-->
 
     <div class="ui-g">
         <div class="ui-g-12">
             <p:outputPanel style="text-align:center;display:block;margin: 0 auto;">
-                <p:outputLabel value="Instance [#{springConfig['collector.instance.name']}]"/>
+                <h:form>
+                    <p:selectOneMenu value="#{sessionInstanceHolder.currentInstanceId}" style="width: 200px;">
+                        <f:selectItem itemLabel="Select instance" noSelectionOption="true" itemDisabled="true"/>
+                        <f:selectItems value="#{sessionInstanceHolder.availableInstances.entrySet()}" var="entry"
+                                       itemLabel="#{'[' += entry.key += '] ' += entry.value.name += (empty entry.value.description ? '' : (' (' += entry.value.description += ')'))}"
+                                       itemValue="#{entry.value.id}"/>
+
+                        <p:ajax event="change" process="@this" update="@none" immediate="true"
+                                onsuccess="document.location.href = document.location.href;" />
+                    </p:selectOneMenu>
+                </h:form>
             </p:outputPanel>
         </div>
         <div class="ui-g-12">
             <div class="ui-g">
                 <div class="ui-g-12 ui-xl-12 ui-lg-12 ui-md-12 ui-sm-12 ui-g-nopad">
                     <p:outputPanel style="margin-bottom:10px;">
-                        <p:button href="/" value="Main"/>
+                        <p:button href="/" value="Dashboard"/>
                         <p:button outcome="/projects" value="Projects"/>
                         <p:button outcome="/managers" value="Managers"/>
                     </p:outputPanel>

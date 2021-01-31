@@ -8,12 +8,12 @@
 
 <ui:composition template="../template/layout.xhtml">
     <ui:define name="center">
-        <p:panel header="Memory info">
+        <p:panel header="Memory info" style="max-width:300px;">
             <h:form id="pfId">
                 <p:poll process="@this" update="oP oF oM oA oTF" async="true"
                         interval="1" listener="#{statusShower.calculate}"/>
 
-                <p:panelGrid id="statusPanelId" columns="2" styleClass="ui-panelgrid-blank">
+                <p:panelGrid id="statusPanelId" columns="2" styleClass="ui-panelgrid-blank" style="padding: 4px 10px 0 0">
                     <h:outputText value="Processors"/>
                     <h:outputText id="oP" value="#{statusShower.processors}"/>
                     <h:outputText value="Free"/>

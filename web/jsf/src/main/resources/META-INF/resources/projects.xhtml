@@ -12,15 +12,16 @@
             <h:form id="dtId">
                 <p:dataTable value="#{projectOperations.projects}" var="project"
                              selectionMode="single"
-                             rowKey="#{project.id}"
-                             rows="20" paginator="true" reflow="true">
+                             rowKey="#{project.id}" reflow="true">
                     <f:facet name="header">Projects</f:facet>
 
                     <p:ajax event="rowSelect" listener="#{projectOperations.onRowSelect}" immediate="true"
                         process="@this" update="@none"/>
 
-                    <p:column headerText="Reg date">
-                        <h:outputText value="#{project.regDatetime}" />
+                    <p:column headerText="Reg date" width="180">
+                        <h:outputText value="#{project.regDatetime}">
+                            <f:convertDateTime pattern="yyyy-MM-dd HH:mm:ss" type="localDateTime"/>
+                        </h:outputText>
                     </p:column>
 
                     <p:column headerText="Name">
@@ -35,7 +36,7 @@
                         <h:outputText value="#{project.databaseHostport}/#{project.databaseSchema}" />
                     </p:column>
 
-                    <p:column headerText="DB server timezone">
+                    <p:column headerText="DB server timezone" width="200">
                         <h:outputText value="#{projectOperations.literalOfProjectDatabaseServerTimezone(project.databaseServerTimezone)}" />
                     </p:column>
                 </p:dataTable>

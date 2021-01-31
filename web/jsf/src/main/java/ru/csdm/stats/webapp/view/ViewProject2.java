@@ -2,16 +2,18 @@ package ru.csdm.stats.webapp.view;
 
 import com.zaxxer.hikari.HikariDataSource;
 import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.tuple.MutableTriple;
 import org.jooq.DSLContext;
 import org.jooq.SQLDialect;
 import org.jooq.impl.DSL;
 import org.jooq.types.UInteger;
+import org.primefaces.event.RowEditEvent;
 import org.springframework.beans.factory.annotation.Autowired;
 import ru.csdm.stats.common.model.collector.tables.pojos.DriverProperty;
 import ru.csdm.stats.common.model.collector.tables.pojos.Project;
 import ru.csdm.stats.webapp.PojoStatus;
+import ru.csdm.stats.webapp.Row;
 
 import javax.annotation.PostConstruct;
 import javax.faces.application.FacesMessage;
@@ -21,7 +23,11 @@ import javax.faces.view.ViewScoped;
 import javax.inject.Named;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Objects;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -40,22 +46,24 @@ import static ru.csdm.stats.webapp.PojoStatus.*;
 
 @ViewScoped
 @Named
+@Slf4j
 public class ViewProject {
     @Autowired
     private DSLContext collectorDsl;
 
     @Getter
-    private boolean connectionValidated;
-
+    private Project selectedProject;
     @Getter
-    private Project project;
-    @Getter
-    private List<MutableTriple<DriverProperty, UUID, PojoStatus>> driverPropertiesWithStatus = new ArrayList<>();
+    private List<Row<DriverProperty>> currentProjectDriverPropertyRows;
 
     @Getter
     private SelectItem[] availableTimeZones;
 
     @Getter
+    private boolean connectionValidated;
+    @Getter
+    private boolean addServerBtnDisabled;
+
     private Integer tablesCount;
 
     @PostConstruct
@@ -67,22 +75,22 @@ public class ViewProject {
 
     public void fetch() {
         HttpServletRequest request = (HttpServletRequest) FacesContext.getCurrentInstance().getExternalContext().getRequest();
-        String id = request.getParameter("id");
+        String projectId = request.getParameter("projectId");
 
         FacesContext fc = FacesContext.getCurrentInstance();
 
-        if (!StringUtils.isNumeric(id)) {
-            fc.addMessage("msgs", new FacesMessage(SEVERITY_WARN, "Invalid id", ""));
+        if (!StringUtils.isNumeric(projectId)) {
+            fc.addMessage(null, new FacesMessage(SEVERITY_WARN, "Invalid projectId", ""));
             return;
         }
 
-        project = collectorDsl.selectFrom(PROJECT)
-                .where(PROJECT.ID.eq(UInteger.valueOf(id)))
+        selectedProject = collectorDsl.selectFrom(PROJECT)
+                .where(PROJECT.ID.eq(UInteger.valueOf(projectId)))
                 .fetchOneInto(Project.class);
 
-        if(Objects.isNull(project)) {
+        if(Objects.isNull(selectedProject)) {
             fc.getExternalContext().setResponseStatus(HttpServletResponse.SC_NOT_FOUND);
-            fc.addMessage("msgs", new FacesMessage("Project [" + id + "] not founded", ""));
+            fc.addMessage(null, new FacesMessage(SEVERITY_WARN, "Project [" + projectId + "] not founded", ""));
             return;
         }
 
@@ -90,35 +98,37 @@ public class ViewProject {
     }
 
     public void fetchDriverProperties() {
-        if(Objects.isNull(project))
+        if(Objects.isNull(selectedProject))
             return;
 
-        collectorDsl.selectFrom(DRIVER_PROPERTY)
-                .where(DRIVER_PROPERTY.PROJECT_ID.eq(project.getId()))
+        currentProjectDriverPropertyRows = collectorDsl.selectFrom(DRIVER_PROPERTY)
+                .where(DRIVER_PROPERTY.PROJECT_ID.eq(selectedProject.getId()))
                 .orderBy(DRIVER_PROPERTY.ID.asc())
                 .fetchInto(DriverProperty.class)
-                .forEach(driverProperty -> {
-                    driverPropertiesWithStatus.add(MutableTriple.of(driverProperty, UUID.randomUUID(), EXISTED));
-                });
+                .stream()
+                .map(driverProperty -> new Row<>(driverProperty, EXISTED))
+                .collect(Collectors.toList());
+
+        addServerBtnDisabled = false;
     }
 
-    public boolean validate() {
+    public void validate() {
         connectionValidated = false;
 
         FacesContext fc = FacesContext.getCurrentInstance();
 
-        try(HikariDataSource hds = buildHikariDataSource(project.getDatabaseSchema() + "-connection-project-#" + project.getId())) {
-            hds.setJdbcUrl("jdbc:mysql://" + project.getDatabaseHostport() + "/" + project.getDatabaseSchema());
-            hds.setSchema(project.getDatabaseSchema());
-            hds.setUsername(project.getDatabaseUsername());
-            hds.setPassword(project.getDatabasePassword());
-            hds.addDataSourceProperty("serverTimezone", project.getDatabaseServerTimezone().getLiteral());
+        try(HikariDataSource hds = buildHikariDataSource(selectedProject.getDatabaseSchema() + "-connection-project-#" + selectedProject.getId())) {
+            hds.setJdbcUrl("jdbc:mysql://" + selectedProject.getDatabaseHostport() + "/" + selectedProject.getDatabaseSchema());
+            hds.setSchema(selectedProject.getDatabaseSchema());
+            hds.setUsername(selectedProject.getDatabaseUsername());
+            hds.setPassword(selectedProject.getDatabasePassword());
+            hds.addDataSourceProperty("serverTimezone", selectedProject.getDatabaseServerTimezone().getLiteral());
 
-            for (Iterator<MutableTriple<DriverProperty, UUID, PojoStatus>> iterator = driverPropertiesWithStatus.iterator(); iterator.hasNext(); ) {
-                MutableTriple<DriverProperty, UUID, PojoStatus> triple = iterator.next();
+            for (Iterator<Row<DriverProperty>> iterator = currentProjectDriverPropertyRows.iterator(); iterator.hasNext(); ) {
+                Row<DriverProperty> row = iterator.next();
 
-                DriverProperty driverProperty = triple.getLeft();
-                PojoStatus pojoStatus = triple.getRight();
+                DriverProperty driverProperty = row.getPojo();
+                PojoStatus pojoStatus = row.getStatus();
 
                 if(pojoStatus == TO_REMOVE && Objects.isNull(driverProperty.getId())) {
                     iterator.remove();
@@ -129,10 +139,13 @@ public class ViewProject {
                     if(Objects.isNull(driverProperty.getId()))
                         iterator.remove();
                     else
-                        triple.setRight(TO_REMOVE);
+                        row.setStatus(TO_REMOVE);
                 } else if(pojoStatus != TO_REMOVE) {
                     if (StringUtils.isBlank(driverProperty.getValue()))
                         driverProperty.setValue("");
+
+                    if(log.isDebugEnabled())
+                        log.debug("\naddDataSourceProperty " + driverProperty.getKey() + "=" + driverProperty.getValue());
 
                     hds.addDataSourceProperty(driverProperty.getKey(), driverProperty.getValue());
                 }
@@ -147,14 +160,14 @@ public class ViewProject {
             hds.setIdleTimeout(SECONDS.toMillis(29));
             hds.setMaxLifetime(SECONDS.toMillis(30));
 
-            DSLContext statsDsl = configJooqContext(hds, SQLDialect.MYSQL, project.getDatabaseSchema(), 10);
+            DSLContext statsDsl = configJooqContext(hds, SQLDialect.MYSQL, selectedProject.getDatabaseSchema(), 10);
 
             statsDsl.transaction(config -> {
                 DSLContext transactionalDsl = DSL.using(config);
 
                 tablesCount = transactionalDsl.selectCount()
                         .from(DSL.table("information_schema.TABLES"))
-                        .where(DSL.field("TABLE_SCHEMA").eq(project.getDatabaseSchema()),
+                        .where(DSL.field("TABLE_SCHEMA").eq(selectedProject.getDatabaseSchema()),
                                 DSL.field("TABLE_NAME").in(
                                     HISTORY.getName(),
                                     PLAYER.getName(),
@@ -167,24 +180,24 @@ public class ViewProject {
             tablesCount = null;
 
             fc.addMessage("msgs", new FacesMessage(SEVERITY_WARN,
-                    "Failed validation project [" + project.getId() + "]",
+                    "Failed validation project [" + selectedProject.getId() + "]",
                     e.toString()));
 
-            return false;
+            return;
+        } finally {
+            addServerBtnDisabled = false;
         }
 
-        if(tablesCount == 5) {
-            fc.addMessage("msgs", new FacesMessage("Project [" + project.getId() + "] validated", ""));
-            connectionValidated = true;
+        if(tablesCount != 5) {
+            fc.addMessage("msgs", new FacesMessage(SEVERITY_WARN,
+                    "Failed validation project [" + selectedProject.getId() + "]",
+                    "One of 5 database tables is missing"));
 
-            return true;
+            return;
         }
 
-        fc.addMessage("msgs", new FacesMessage(SEVERITY_WARN,
-                "Failed validation project [" + project.getId() + "]",
-                "One of 5 database tables is missing"));
-
-        return false;
+        fc.addMessage("msgs", new FacesMessage("Project [" + selectedProject.getId() + "] validated", ""));
+        connectionValidated = true;
     }
 
     public void save() {
@@ -195,21 +208,21 @@ public class ViewProject {
                 DSLContext transactionalDsl = DSL.using(config);
 
                 transactionalDsl.update(PROJECT)
-                        .set(PROJECT.NAME, project.getName())
-                        .set(PROJECT.DESCRIPTION, StringUtils.isBlank(project.getDescription()) ? null : project.getDescription())
-                        .set(PROJECT.DATABASE_HOSTPORT, project.getDatabaseHostport())
-                        .set(PROJECT.DATABASE_SCHEMA, project.getDatabaseSchema())
-                        .set(PROJECT.DATABASE_PASSWORD, project.getDatabasePassword())
-                        .set(PROJECT.DATABASE_SERVER_TIMEZONE, project.getDatabaseServerTimezone())
-                        .where(PROJECT.ID.eq(project.getId()))
+                        .set(PROJECT.NAME, selectedProject.getName())
+                        .set(PROJECT.DESCRIPTION, StringUtils.isBlank(selectedProject.getDescription()) ? null : selectedProject.getDescription())
+                        .set(PROJECT.DATABASE_HOSTPORT, selectedProject.getDatabaseHostport())
+                        .set(PROJECT.DATABASE_SCHEMA, selectedProject.getDatabaseSchema())
+                        .set(PROJECT.DATABASE_PASSWORD, selectedProject.getDatabasePassword())
+                        .set(PROJECT.DATABASE_SERVER_TIMEZONE, selectedProject.getDatabaseServerTimezone())
+                        .where(PROJECT.ID.eq(selectedProject.getId()))
                         .execute();
 
-                List<UInteger> toRemoveDriverPropertyIds = new ArrayList<>(driverPropertiesWithStatus.size());
-                for (Iterator<MutableTriple<DriverProperty, UUID, PojoStatus>> iterator = driverPropertiesWithStatus.iterator(); iterator.hasNext(); ) {
-                    MutableTriple<DriverProperty, UUID, PojoStatus> triple = iterator.next();
+                List<UInteger> toRemoveDriverPropertyIds = new ArrayList<>(currentProjectDriverPropertyRows.size());
+                for (Iterator<Row<DriverProperty>> iterator = currentProjectDriverPropertyRows.iterator(); iterator.hasNext(); ) {
+                    Row<DriverProperty> row = iterator.next();
 
-                    if(triple.getRight() == TO_REMOVE) {
-                        toRemoveDriverPropertyIds.add(triple.getLeft().getId());
+                    if(row.getStatus() == TO_REMOVE) {
+                        toRemoveDriverPropertyIds.add(row.getPojo().getId());
                         iterator.remove();
                     }
                 }
@@ -220,11 +233,11 @@ public class ViewProject {
                             .execute();
                 }
 
-                for (MutableTriple<DriverProperty, UUID, PojoStatus> triple : driverPropertiesWithStatus) {
-                    DriverProperty driverProperty = triple.getLeft();
-                    PojoStatus pojoStatus = triple.getRight();
+                for (Row<DriverProperty> row : currentProjectDriverPropertyRows) {
+                    DriverProperty driverProperty = row.getPojo();
+                    PojoStatus pojoStatus = row.getStatus();
 
-                    if(pojoStatus == EXISTED) {
+                    if(pojoStatus == CHANGED) {
                         transactionalDsl.update(DRIVER_PROPERTY)
                                 .set(DRIVER_PROPERTY.KEY, driverProperty.getKey())
                                 .set(DRIVER_PROPERTY.VALUE, driverProperty.getValue())
@@ -234,35 +247,69 @@ public class ViewProject {
                         transactionalDsl.insertInto(DRIVER_PROPERTY)
                                 .set(DRIVER_PROPERTY.KEY, driverProperty.getKey())
                                 .set(DRIVER_PROPERTY.VALUE, driverProperty.getValue())
-                                .set(DRIVER_PROPERTY.PROJECT_ID, project.getId())
+                                .set(DRIVER_PROPERTY.PROJECT_ID, driverProperty.getProjectId())
                                 .execute();
                     }
                 }
 
-                driverPropertiesWithStatus.clear();
-                fetchDriverProperties();
+                currentProjectDriverPropertyRows.clear();
             });
 
-            fc.addMessage("msgs", new FacesMessage("Project [" + project.getId() + "] saved", ""));
+            fetchDriverProperties();
+
+            fc.addMessage("msgs", new FacesMessage("Project [" + selectedProject.getId() + "] saved", ""));
         } catch (Exception e) {
             fc.addMessage("msgs", new FacesMessage(SEVERITY_WARN,
-                    "Failed save project [" + project.getId() + "]",
+                    "Failed save project [" + selectedProject.getId() + "]",
                     e.toString()));
         } finally {
             connectionValidated = false;
         }
     }
 
-    public void onAddProperty() {
-        connectionValidated = false;
-        driverPropertiesWithStatus.add(MutableTriple.of(new DriverProperty(), UUID.randomUUID(), NEW));
+    public void onRowEdit(RowEditEvent event) {
+        Row<DriverProperty> row = (Row<DriverProperty>) event.getObject();
+
+        if(Objects.nonNull(row.getPojo().getId())) {
+            row.setStatus(CHANGED);
+            row.setPreviousStatus(null);
+        } else if(currentProjectDriverPropertyRows.get(currentProjectDriverPropertyRows.size() -1).equals(row)) {
+            addServerBtnDisabled = false;
+        }
+
+        if(log.isDebugEnabled())
+            log.debug("\nonRowEdit " + row);
     }
 
-    public void onRemoveProperty(UUID driverPropertyGid) {
+    public void onAddProperty() {
+        if(log.isDebugEnabled())
+            log.debug("\nonAddProperty");
+
         connectionValidated = false;
-        driverPropertiesWithStatus
-                .stream()
-                .filter(triple -> triple.getMiddle().equals(driverPropertyGid))
-                .forEach(triple -> triple.setRight(TO_REMOVE));
+
+        DriverProperty driverProperty = new DriverProperty();
+        driverProperty.setProjectId(selectedProject.getId());
+        currentProjectDriverPropertyRows.add(new Row<>(driverProperty, NEW));
+        addServerBtnDisabled = true;
+    }
+
+    public void onRestoreProperty(Row<DriverProperty> row) {
+        connectionValidated = false;
+
+        row.setStatus(row.getPreviousStatus());
+        row.setPreviousStatus(null);
+
+        if(log.isDebugEnabled())
+            log.debug("\nonRestoreProperty " + row);
+    }
+
+    public void onRemoveProperty(Row<DriverProperty> row) {
+        connectionValidated = false;
+
+        row.setPreviousStatus(row.getStatus());
+        row.setStatus(TO_REMOVE);
+
+        if(log.isDebugEnabled())
+            log.debug("\nonRemoveProperty " + row);
     }
 }

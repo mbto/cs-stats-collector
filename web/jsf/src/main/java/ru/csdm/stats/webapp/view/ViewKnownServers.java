@@ -1,102 +1,144 @@
 package ru.csdm.stats.webapp.view;
 
 import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.tuple.MutableTriple;
 import org.jooq.DSLContext;
 import org.jooq.types.UInteger;
+import org.primefaces.event.RowEditEvent;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
-import ru.csdm.stats.common.model.collector.tables.pojos.Instance;
 import ru.csdm.stats.common.model.collector.tables.pojos.KnownServer;
-import ru.csdm.stats.webapp.PojoStatus;
+import ru.csdm.stats.common.model.collector.tables.pojos.Project;
+import ru.csdm.stats.webapp.Row;
+import ru.csdm.stats.webapp.session.SessionInstanceHolder;
 
 import javax.faces.application.FacesMessage;
 import javax.faces.context.FacesContext;
-import javax.faces.model.SelectItem;
 import javax.faces.view.ViewScoped;
 import javax.inject.Named;
 import javax.servlet.http.HttpServletRequest;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
-import java.util.UUID;
+import javax.servlet.http.HttpServletResponse;
+import java.util.*;
+import java.util.stream.Collectors;
 
 import static javax.faces.application.FacesMessage.SEVERITY_WARN;
-import static ru.csdm.stats.common.model.collector.tables.Instance.INSTANCE;
 import static ru.csdm.stats.common.model.collector.tables.KnownServer.KNOWN_SERVER;
+import static ru.csdm.stats.common.model.collector.tables.Project.PROJECT;
 import static ru.csdm.stats.webapp.PojoStatus.*;
 
 @ViewScoped
 @Named
+@Slf4j
 public class ViewKnownServers {
     @Autowired
     private DSLContext collectorDsl;
-    @Value("${collector.instance.name}")
-    private String collectorInstanceName;
+
+    @Autowired
+    private SessionInstanceHolder sessionInstanceHolder;
 
     @Getter
-    private List<MutableTriple<KnownServer, UUID, PojoStatus>> knownServerWithStatus = new ArrayList<>();
+    private Project selectedProject;
 
     @Getter
-    private SelectItem[] availableInstances;
+    private final List<Row<KnownServer>> currentInstanceRows = new ArrayList<>();
+    @Getter
+    private final Map<UInteger, List<Row<KnownServer>>> otherInstanceRows = new LinkedHashMap<>();
 
     @Getter
-    private SelectItem[] availableProjects;
-
-    @Getter
-    private Integer tablesCount;
+    private boolean addServerBtnDisabled;
 
     public void fetch() {
+        if(log.isDebugEnabled())
+            log.debug("\nfetch");
+
         HttpServletRequest request = (HttpServletRequest) FacesContext.getCurrentInstance().getExternalContext().getRequest();
-        String projectId = request.getParameter("projectId");
+        String projectIdStr = request.getParameter("projectId");
 
         FacesContext fc = FacesContext.getCurrentInstance();
 
-        if (!StringUtils.isNumeric(projectId)) {
-            fc.addMessage("msgs", new FacesMessage(SEVERITY_WARN, "Invalid projectId", ""));
+        if (!StringUtils.isNumeric(projectIdStr)) {
+            fc.addMessage(null, new FacesMessage(SEVERITY_WARN, "Invalid projectId", ""));
             return;
         }
 
-        collectorDsl.select(KNOWN_SERVER.fields())
-                .from(KNOWN_SERVER)
-                .join(INSTANCE).on(KNOWN_SERVER.INSTANCE_ID.eq(INSTANCE.ID))
-                .where(INSTANCE.NAME.eq(collectorInstanceName),
-                        KNOWN_SERVER.PROJECT_ID.eq(UInteger.valueOf(projectId)))
-                .fetchInto(KnownServer.class)
-                .forEach(knownServer -> {
-                    knownServerWithStatus.add(MutableTriple.of(knownServer, UUID.randomUUID(), EXISTED));
-                });
+        UInteger projectId = UInteger.valueOf(projectIdStr);
 
-        availableInstances = collectorDsl.selectFrom(INSTANCE)
-                .orderBy(INSTANCE.ID.asc())
-                .fetchInto(Instance.class)
+        selectedProject = collectorDsl.select(PROJECT.ID, PROJECT.NAME)
+                .from(PROJECT)
+                .where(PROJECT.ID.eq(projectId))
+                .fetchOneInto(Project.class);
+
+        if(Objects.isNull(selectedProject)) {
+            fc.getExternalContext().setResponseStatus(HttpServletResponse.SC_NOT_FOUND);
+            fc.addMessage(null, new FacesMessage(SEVERITY_WARN, "Project [" + projectId + "] not founded", ""));
+            return;
+        }
+
+        List<Row<KnownServer>> knownServers = collectorDsl.selectFrom(KNOWN_SERVER)
+                .where(KNOWN_SERVER.PROJECT_ID.eq(projectId))
+                .orderBy(KNOWN_SERVER.ID.asc())
+                .fetchInto(KnownServer.class)
                 .stream()
-                .map(instance -> new SelectItem(instance.getId(), instance.getName()))
-                .toArray(SelectItem[]::new);
+                .map(knownServer -> new Row<>(knownServer, EXISTED))
+                .collect(Collectors.toList());
+
+        for (Row<KnownServer> knownServerRow : knownServers) {
+            KnownServer knownServer = knownServerRow.getPojo();
+            if(knownServer.getInstanceId().equals(sessionInstanceHolder.getCurrentInstanceId())) {
+                currentInstanceRows.add(knownServerRow);
+            } else {
+                List<Row<KnownServer>> rows = otherInstanceRows.get(knownServer.getInstanceId());
+                if(Objects.isNull(rows)) {
+                    rows = new ArrayList<>();
+                    otherInstanceRows.put(knownServer.getInstanceId(), rows);
+                }
+
+                rows.add(knownServerRow);
+            }
+        }
     }
 
     public void save() {
 
     }
 
-    public void onAddProperty() {
-        knownServerWithStatus.add(MutableTriple.of(new KnownServer(), UUID.randomUUID(), NEW));
+    public void onRowEdit(RowEditEvent event) {
+        Row<KnownServer> row = (Row<KnownServer>) event.getObject();
+
+        if(Objects.nonNull(row.getPojo().getId())) {
+            row.setStatus(CHANGED);
+            row.setPreviousStatus(null);
+        } else if(currentInstanceRows.get(currentInstanceRows.size() -1).equals(row)) {
+            addServerBtnDisabled = false;
+        }
+
+        if(log.isDebugEnabled())
+            log.debug("\nonRowEdit " + row);
     }
 
-    public void onRestoreProperty(UUID driverPropertyGid) {
-        knownServerWithStatus
-                .stream()
-                .filter(triple -> triple.getMiddle().equals(driverPropertyGid))
-                .forEach(triple -> {
-                    triple.setRight(Objects.isNull(triple.getLeft().getId()) ? NEW : EXISTED);
-                });
+    public void onAddKnownServer() {
+        if(log.isDebugEnabled())
+            log.debug("\nonAddKnownServer");
+
+        KnownServer knownServer = new KnownServer();
+        knownServer.setInstanceId(sessionInstanceHolder.getCurrentInstanceId());
+        currentInstanceRows.add(new Row<>(knownServer, NEW));
+        addServerBtnDisabled = true;
     }
 
-    public void onRemoveProperty(UUID driverPropertyGid) {
-        knownServerWithStatus
-                .stream()
-                .filter(triple -> triple.getMiddle().equals(driverPropertyGid))
-                .forEach(triple -> triple.setRight(TO_REMOVE));
+    public void onRestoreRow(Row<KnownServer> row) {
+        row.setStatus(row.getPreviousStatus());
+        row.setPreviousStatus(null);
+
+        if(log.isDebugEnabled())
+            log.debug("\nonRestoreRow " + row);
+    }
+
+    public void onRemoveRow(Row<KnownServer> row) {
+        row.setPreviousStatus(row.getStatus());
+        row.setStatus(TO_REMOVE);
+
+        if(log.isDebugEnabled())
+            log.debug("\nonRemoveRow " + row);
     }
 }
