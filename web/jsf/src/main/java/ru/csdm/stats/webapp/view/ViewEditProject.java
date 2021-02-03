@@ -7,10 +7,12 @@ import org.apache.commons.lang3.StringUtils;
 import org.jooq.*;
 import org.jooq.impl.DSL;
 import org.jooq.types.UInteger;
+import org.primefaces.context.RequestContext;
 import org.primefaces.event.RowEditEvent;
 import org.springframework.beans.factory.annotation.Autowired;
 import ru.csdm.stats.common.model.collector.tables.pojos.DriverProperty;
 import ru.csdm.stats.common.model.collector.tables.pojos.Project;
+import ru.csdm.stats.webapp.DependentUtil;
 import ru.csdm.stats.webapp.PojoStatus;
 import ru.csdm.stats.webapp.Row;
 import ru.csdm.stats.webapp.session.SessionInstanceHolder;
@@ -25,10 +27,10 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
+import static javax.faces.application.FacesMessage.SEVERITY_INFO;
 import static javax.faces.application.FacesMessage.SEVERITY_WARN;
 import static ru.csdm.stats.common.model.collector.tables.DriverProperty.DRIVER_PROPERTY;
 import static ru.csdm.stats.common.model.collector.tables.KnownServer.KNOWN_SERVER;
@@ -95,7 +97,20 @@ public class ViewEditProject {
         }
 
         fetchDriverProperties();
+        fetchKnownServersCounts();
+    }
 
+    private void fetchDriverProperties() {
+        currentProjectDriverPropertyRows = collectorDsl.selectFrom(DRIVER_PROPERTY)
+                .where(DRIVER_PROPERTY.PROJECT_ID.eq(selectedProject.getId()))
+                .orderBy(DRIVER_PROPERTY.ID.asc())
+                .fetchInto(DriverProperty.class)
+                .stream()
+                .map(driverProperty -> new Row<>(driverProperty, EXISTED))
+                .collect(Collectors.toList());
+    }
+
+    private void fetchKnownServersCounts() {
         Record2<Integer, Integer> knownServersCounts = collectorDsl.select(
                 DSL.selectCount()
                         .from(KNOWN_SERVER)
@@ -111,16 +126,6 @@ public class ViewEditProject {
 
         knownServersAtInstance = knownServersCounts.getValue("at_instance", Integer.class);
         knownServersAtAllInstances = knownServersCounts.getValue("at_all_instances", Integer.class);
-    }
-
-    private void fetchDriverProperties() {
-        currentProjectDriverPropertyRows = collectorDsl.selectFrom(DRIVER_PROPERTY)
-                .where(DRIVER_PROPERTY.PROJECT_ID.eq(selectedProject.getId()))
-                .orderBy(DRIVER_PROPERTY.ID.asc())
-                .fetchInto(DriverProperty.class)
-                .stream()
-                .map(driverProperty -> new Row<>(driverProperty, EXISTED))
-                .collect(Collectors.toList());
     }
 
     public void validate() {
@@ -282,6 +287,30 @@ public class ViewEditProject {
             connectionValidated = false;
             addDriverPropertyBtnDisabled = false;
         }
+    }
+
+    public String delete() {
+        try {
+            fetchKnownServersCounts();
+
+            if(knownServersAtAllInstances > 0) {
+                throw new IllegalStateException("You must delete " + knownServersAtAllInstances
+                        + " known server" + (knownServersAtAllInstances > 1 ? "s" : "") + " from all instances for this project "
+                        + "[" + selectedProject.getId() + "] " + selectedProject.getName());
+            }
+
+            collectorDsl.deleteFrom(PROJECT)
+                    .where(PROJECT.ID.eq(selectedProject.getId()))
+                    .execute();
+        } catch (Exception e) {
+            FacesContext.getCurrentInstance().addMessage("msgs", new FacesMessage(SEVERITY_WARN,
+                    "Failed delete project [" + selectedProject.getId() + "] " + selectedProject.getName(),
+                    e.toString()));
+
+            return null;
+        }
+
+        return "/projects?faces-redirect=true";
     }
 
     public void onRowEdit(RowEditEvent event) {

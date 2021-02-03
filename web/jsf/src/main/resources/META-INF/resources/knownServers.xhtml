@@ -44,8 +44,8 @@
 
         <p:column headerText="ip:port" width="200">
             <p:cellEditor>
-                <f:facet name="output"><p:outputLabel value="#{row.pojo.ipport}"/></f:facet>
-                <f:facet name="input"><p:inputText value="#{row.pojo.ipport}" required="true" label="ip:port"
+                <f:facet name="output"><h:outputText value="#{row.pojo.ipport}"/></f:facet>
+                <f:facet name="input"><p:inputText value="#{row.pojo.ipport}" required="true" label="ip:port" placeholder="127.0.0.1:27015"
                                                    validator="ipPortValidator" maxlength="21" onkeypress="if(event.keyCode == 13) { return false; }"/></f:facet>
             </p:cellEditor>
         </p:column>
@@ -60,28 +60,28 @@
         <p:column headerText="Active" width="60">
             <p:cellEditor>
                 <f:facet name="output"><h:outputText value="#{row.pojo.active ? 'Yes' : 'No'}" rendered="#{not empty row.pojo.active}"/></f:facet>
-                <f:facet name="input"><p:selectBooleanButton value="#{row.pojo.active}" onLabel="Yes" offLabel="No" required="true" label="Active" /></f:facet>
+                <f:facet name="input"><p:selectBooleanButton value="#{row.pojo.active}" onLabel="Yes" offLabel="No" required="true"/></f:facet>
             </p:cellEditor>
         </p:column>
 
         <p:column headerText="FFA" width="60">
             <p:cellEditor>
                 <f:facet name="output"><h:outputText value="#{row.pojo.ffa ? 'Yes' : 'No'}" rendered="#{not empty row.pojo.ffa}"/></f:facet>
-                <f:facet name="input"><p:selectBooleanButton value="#{row.pojo.ffa}" onLabel="Yes" offLabel="No" required="true" label="FFA"/></f:facet>
+                <f:facet name="input"><p:selectBooleanButton value="#{row.pojo.ffa}" onLabel="Yes" offLabel="No" required="true"/></f:facet>
             </p:cellEditor>
         </p:column>
 
         <p:column headerText="Ignore bots" width="120">
             <p:cellEditor>
                 <f:facet name="output"><h:outputText value="#{row.pojo.ignoreBots ? 'Yes' : 'No'}" rendered="#{not empty row.pojo.ignoreBots}"/></f:facet>
-                <f:facet name="input"><p:selectBooleanButton value="#{row.pojo.ignoreBots}" onLabel="Yes" offLabel="No" required="true" label="Ignore bots" /></f:facet>
+                <f:facet name="input"><p:selectBooleanButton value="#{row.pojo.ignoreBots}" onLabel="Yes" offLabel="No" required="true"/></f:facet>
             </p:cellEditor>
         </p:column>
 
         <p:column headerText="Start session on action" width="120">
             <p:cellEditor rendered="#{row.pojo.instanceId == sessionInstanceHolder.currentInstanceId}">
                 <f:facet name="output"><h:outputText value="#{row.pojo.startSessionOnAction ? 'Yes' : 'No'}" rendered="#{not empty row.pojo.startSessionOnAction}"/></f:facet>
-                <f:facet name="input"><p:selectBooleanButton value="#{row.pojo.startSessionOnAction}" onLabel="Yes" offLabel="No" required="true" label="Start session on action" /></f:facet>
+                <f:facet name="input"><p:selectBooleanButton value="#{row.pojo.startSessionOnAction}" onLabel="Yes" offLabel="No" required="true"/></f:facet>
             </p:cellEditor>
         </p:column>
 
@@ -127,7 +127,7 @@
         </f:facet>
 
         <p:column headerText="ip:port" width="200">
-            <p:outputLabel value="#{row.pojo.ipport}"/>
+            <h:outputText value="#{row.pojo.ipport}"/>
         </p:column>
 
         <p:column headerText="Name" width="100%">

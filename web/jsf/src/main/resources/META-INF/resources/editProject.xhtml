@@ -15,7 +15,7 @@
 <ui:define name="head">
 <script type="text/javascript">
     function showDbPassword(){
-    var field = $('#edProjForm\\:dbPwdId');
+    var field = $('#edProjForm\\:iPwd');
     if (field.attr('type') === 'password') {
         field.attr('type', 'text');
     } else {
@@ -33,9 +33,8 @@
 
 <ui:define name="center">
 <ui:fragment rendered="#{not empty viewEditProject.selectedProject}">
-<p:outputPanel id="edProjOutPanel">
-<p:panel id="edProjPanel" header="[#{viewEditProject.selectedProject.id}] #{viewEditProject.selectedProject.name}"
-    style="width:600px;">
+<p:outputPanel id="edProjOutPanel" style="width:600px;">
+<p:panel id="edProjPanel" header="[#{viewEditProject.selectedProject.id}] #{viewEditProject.selectedProject.name}">
     <p:button value="Edit known servers [#{viewEditProject.knownServersAtInstance} of #{viewEditProject.knownServersAtAllInstances}]"
               outcome="/knownServers" icon="ui-icon-arrowthick-1-e">
         <f:param name="projectId" value="#{viewEditProject.selectedProject.id}"/>
@@ -49,31 +48,30 @@
                 <f:convertDateTime pattern="yyyy-MM-dd HH:mm:ss" type="localDateTime"/>
             </h:outputText>
 
-            <h:outputText value="Name" />
-            <p:inputText value="#{viewEditProject.selectedProject.name}" required="true" label="Name" />
+            <p:outputLabel value="Name" for="iName" />
+            <p:inputText id="iName" value="#{viewEditProject.selectedProject.name}" required="true" placeholder="Some CS project" />
 
-            <h:outputText value="Description" />
-            <p:inputTextarea value="#{viewEditProject.selectedProject.description}" label="Description" />
+            <p:outputLabel value="Description" for="iDesc" />
+            <p:inputTextarea id="iDesc" value="#{viewEditProject.selectedProject.description}" />
 
-            <h:outputText value="DB host:port" />
-            <p:inputText value="#{viewEditProject.selectedProject.databaseHostport}" required="true" label="DB host:port" />
+            <p:outputLabel value="DB host:port" for="iHP" />
+            <p:inputText id="iHP" value="#{viewEditProject.selectedProject.databaseHostport}" required="true" placeholder="example:com:3306" />
 
-            <h:outputText value="DB schema" />
-            <p:inputText value="#{viewEditProject.selectedProject.databaseSchema}" required="true" label="DB schema" />
+            <p:outputLabel value="DB schema" for="iSchema" />
+            <p:inputText id="iSchema" value="#{viewEditProject.selectedProject.databaseSchema}" required="true" placeholder="csstats" />
 
-            <h:outputText value="DB username" />
-            <p:inputText value="#{viewEditProject.selectedProject.databaseUsername}" required="true" label="DB username" />
+            <p:outputLabel value="DB username" for="iUsername" />
+            <p:inputText id="iUsername" value="#{viewEditProject.selectedProject.databaseUsername}" required="true" />
 
-            <h:outputText value="DB password" />
+            <p:outputLabel value="DB password" for="iPwd" />
             <p:columnGroup>
-                <p:password id="dbPwdId" redisplay="true" value="#{viewEditProject.selectedProject.databasePassword}"
-                            required="true" label="DB password" style="width:95%;margin-right:5px;" />
-                <p:commandLink id="dbBtnId" value="?" onclick="showDbPassword();return false;"/>
+                <p:password id="iPwd" redisplay="true" value="#{viewEditProject.selectedProject.databasePassword}"
+                            required="true" style="width:95%;margin-right:5px;" />
+                <p:commandLink value="?" onclick="showDbPassword();return false;"/>
             </p:columnGroup>
 
-            <h:outputText value="DB server timezone" />
-            <p:selectOneMenu value="#{viewEditProject.selectedProject.databaseServerTimezone}" required="true"
-                             label="DB server timezone" height="400">
+            <p:outputLabel value="DB server timezone" for="iTZs" />
+            <p:selectOneMenu id="iTZs" value="#{viewEditProject.selectedProject.databaseServerTimezone}" required="true" height="400">
                 <f:selectItems value="#{dependentUtil.getAVAILABLE_TIME_ZONES()}" />
             </p:selectOneMenu>
         </p:panelGrid>
@@ -90,14 +88,14 @@
 
             <p:column headerText="Key">
                 <p:cellEditor>
-                    <f:facet name="output"><p:outputLabel value="#{row.pojo.key}" /></f:facet>
-                    <f:facet name="input"><p:inputText value="#{row.pojo.key}" required="true" label="Key" /></f:facet>
+                    <f:facet name="output"><h:outputText value="#{row.pojo.key}" /></f:facet>
+                    <f:facet name="input"><p:inputText value="#{row.pojo.key}" required="true" label="Key" placeholder="Key" /></f:facet>
                 </p:cellEditor>
             </p:column>
             <p:column headerText="Value">
                 <p:cellEditor>
-                    <f:facet name="output"><p:outputLabel value="#{row.pojo.value}" /></f:facet>
-                    <f:facet name="input"><p:inputText value="#{row.pojo.value}" required="true" label="Value" /></f:facet>
+                    <f:facet name="output"><h:outputText value="#{row.pojo.value}" /></f:facet>
+                    <f:facet name="input"><p:inputText value="#{row.pojo.value}" required="true" label="Value" placeholder="Value" /></f:facet>
                 </p:cellEditor>
             </p:column>
             <p:column style="width:32px">
@@ -125,22 +123,32 @@
                          icon="ui-icon-plusthick"/>
 
         <p:separator />
-        <p:panelGrid columns="2" styleClass="ui-panelgrid-blank">
-            <p:commandButton id="validateBtn" value="Validate"
-                             process="@form" update="@form msgs"
-                             actionListener="#{viewEditProject.validate}"
-                             icon="ui-icon-search"/>
+        <p:commandButton id="validateBtn" value="Validate"
+                         process="@form" update="@form msgs"
+                         actionListener="#{viewEditProject.validate}"
+                         icon="ui-icon-search" />
 
-            <p:commandButton id="saveBtn" value="Save" disabled="#{!viewEditProject.connectionValidated}"
-                             process="@this" update="edProjPanel"
-                             actionListener="#{viewEditProject.save}"
-                             icon="ui-icon-check"/>
-        </p:panelGrid>
+        <p:commandButton id="saveBtn" value="Save" disabled="#{!viewEditProject.connectionValidated}"
+                         process="@this" update="edProjPanel"
+                         actionListener="#{viewEditProject.save}"
+                         icon="ui-icon-check" style="margin-left:10px;"/>
+
+        <p:commandButton type="button" value="Delete" onclick="PF('confDialDelete').show()"
+                         icon="ui-icon-closethick" style="float: right;" styleClass="ui-button-danger"/>
+        <p:confirmDialog widgetVar="confDialDelete" header="Confirm"
+            message="Are you sure you want to delete project [#{viewEditProject.selectedProject.id}] #{viewEditProject.selectedProject.name} ?">
+
+            <p:commandButton id="deleteBtn" value="Delete"
+                         process="@this" update="msgs" oncomplete="PF('confDialDelete').hide()"
+                         action="#{viewEditProject.delete}" icon="ui-icon-closethick"/>
+            <p:commandButton type="button" value="Cancel" onclick="PF('confDialDelete').hide()" style="float: right;"
+                         icon="ui-icon-cancel"/>
+        </p:confirmDialog>
     </h:form>
 <p:messages id="msgs" showSummary="true" showDetail="true"/>
 </p:panel>
 </p:outputPanel>
-<p:blockUI widgetVar="buiProjects" block="edProjOutPanel" trigger="edProjForm:validateBtn edProjForm:saveBtn edProjForm:drProps edProjForm:addDrPropBtn" >
+<p:blockUI widgetVar="buiProjects" block="edProjOutPanel" trigger="edProjForm:validateBtn edProjForm:saveBtn edProjForm:deleteBtn edProjForm:drProps edProjForm:addDrPropBtn" >
     <p:graphicImage library="images" name="ajaxloadingbar.gif"/>
 </p:blockUI>
 </ui:fragment>

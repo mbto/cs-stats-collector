@@ -46,8 +46,6 @@ import static ru.csdm.stats.webapp.PojoStatus.*;
 public class ViewNewProject {
     @Autowired
     private DSLContext collectorDsl;
-    @Autowired
-    private DependentUtil util;
 
     @Getter
     private Project selectedProject;
@@ -163,7 +161,7 @@ public class ViewNewProject {
         connectionValidated = true;
     }
 
-    public void save() {
+    public String save() {
         FacesContext fc = FacesContext.getCurrentInstance();
 
         try {
@@ -194,10 +192,12 @@ public class ViewNewProject {
                 }
             });
 
-            util.sendRedirect(util.getAbsoluteContextPath(true) + "/editProject?projectId=" + selectedProject.getId());
+            return "/editProject?faces-redirect=true&projectId=" + selectedProject.getId();
         } catch (Exception e) {
             selectedProject.setId(null);
             fc.addMessage("msgs", new FacesMessage(SEVERITY_WARN, "Failed save new project", e.toString()));
+
+            return null;
         } finally {
             connectionValidated = false;
             addDriverPropertyBtnDisabled = false;

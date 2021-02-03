@@ -5,7 +5,6 @@ import org.jooq.DSLContext;
 import org.jooq.types.UInteger;
 import org.primefaces.event.SelectEvent;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import ru.csdm.stats.common.model.collector.tables.pojos.Project;
 import ru.csdm.stats.webapp.DependentUtil;
 
@@ -24,9 +23,6 @@ public class ProjectOperations {
     @Autowired
     private DependentUtil util;
 
-    @Value("${collector.instance.name}")
-    private String collectorInstanceName;
-
     @Getter
     private List<Project> projects;
 
@@ -42,10 +38,4 @@ public class ProjectOperations {
 
         util.sendRedirect(util.getAbsoluteContextPath(true) + "/editProject?projectId=" + projectId);
     }
-
-
-
-//    public String literalOfProjectDatabaseServerTimezone(ProjectDatabaseServerTimezone timezone) {
-//        return timezone.getLiteral();
-//    }
 }
