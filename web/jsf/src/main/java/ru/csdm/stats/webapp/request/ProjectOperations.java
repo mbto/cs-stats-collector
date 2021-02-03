@@ -6,16 +6,12 @@ import org.jooq.types.UInteger;
 import org.primefaces.event.SelectEvent;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import ru.csdm.stats.common.model.collector.enums.ProjectDatabaseServerTimezone;
 import ru.csdm.stats.common.model.collector.tables.pojos.Project;
 import ru.csdm.stats.webapp.DependentUtil;
 
 import javax.annotation.PostConstruct;
 import javax.enterprise.context.RequestScoped;
-import javax.faces.context.ExternalContext;
-import javax.faces.context.FacesContext;
 import javax.inject.Named;
-import java.io.IOException;
 import java.util.List;
 
 import static ru.csdm.stats.common.model.collector.tables.Project.PROJECT;
@@ -23,15 +19,13 @@ import static ru.csdm.stats.common.model.collector.tables.Project.PROJECT;
 @Named
 @RequestScoped
 public class ProjectOperations {
-
     @Autowired
     private DSLContext collectorDsl;
+    @Autowired
+    private DependentUtil util;
 
     @Value("${collector.instance.name}")
     private String collectorInstanceName;
-
-    @Autowired
-    private DependentUtil util;
 
     @Getter
     private List<Project> projects;
@@ -46,17 +40,12 @@ public class ProjectOperations {
     public void onRowSelect(SelectEvent event) {
         UInteger projectId = ((Project) event.getObject()).getId();
 
-        FacesContext fc = FacesContext.getCurrentInstance();
-        ExternalContext exCtx = fc.getExternalContext();
-        try {
-            exCtx.redirect(util.getAbsoluteContextPath(true) + "/editProject?projectId=" + projectId);
-        } catch (IOException ignored) {
-        } finally {
-            fc.responseComplete();
-        }
+        util.sendRedirect(util.getAbsoluteContextPath(true) + "/editProject?projectId=" + projectId);
     }
 
-    public String literalOfProjectDatabaseServerTimezone(ProjectDatabaseServerTimezone timezone) {
-        return timezone.getLiteral();
-    }
+
+
+//    public String literalOfProjectDatabaseServerTimezone(ProjectDatabaseServerTimezone timezone) {
+//        return timezone.getLiteral();
+//    }
 }

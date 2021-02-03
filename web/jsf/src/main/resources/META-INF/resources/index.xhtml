@@ -9,7 +9,7 @@
 <ui:composition template="../template/layout.xhtml">
     <ui:define name="center">
         <p:panel header="Memory info" style="max-width:300px;">
-            <h:form id="pfId">
+            <h:form id="dbrForm">
                 <p:poll process="@this" update="oP oF oM oA oTF" async="true"
                         interval="1" listener="#{statusShower.calculate}"/>
 

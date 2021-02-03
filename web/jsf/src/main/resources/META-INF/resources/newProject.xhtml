@@ -7,7 +7,7 @@
       xmlns:p="http://primefaces.org/ui"
       xmlns:ui="http://xmlns.jcp.org/jsf/facelets">
 <f:metadata>
-    <f:viewAction action="#{viewEditProject.fetch()}" onPostback="false" immediate="true"/>
+    <f:viewAction action="#{viewNewProject.fetch()}" onPostback="false" immediate="true"/>
     <p:importEnum type="ru.csdm.stats.webapp.PojoStatus" var="PojoStatus"/>
 </f:metadata>
 
@@ -32,60 +32,52 @@
 </ui:define>
 
 <ui:define name="center">
-<ui:fragment rendered="#{not empty viewEditProject.selectedProject}">
 <p:outputPanel id="edProjOutPanel">
-<p:panel id="edProjPanel" header="[#{viewEditProject.selectedProject.id}] #{viewEditProject.selectedProject.name}"
-    style="width:600px;">
-    <p:button value="Edit known servers [#{viewEditProject.knownServersAtInstance} of #{viewEditProject.knownServersAtAllInstances}]"
-              outcome="/knownServers" icon="ui-icon-arrowthick-1-e">
-        <f:param name="projectId" value="#{viewEditProject.selectedProject.id}"/>
-    </p:button>
-
-    <p:separator/>
+<p:panel id="edProjPanel" header="New project" style="width:600px;">
     <h:form id="edProjForm">
         <p:panelGrid columns="2" styleClass="ui-panelgrid-blank ui-fluid">
             <h:outputText value="Reg date" />
-            <h:outputText value="#{viewEditProject.selectedProject.regDatetime}">
+            <h:outputText value="#{viewNewProject.selectedProject.regDatetime}">
                 <f:convertDateTime pattern="yyyy-MM-dd HH:mm:ss" type="localDateTime"/>
             </h:outputText>
 
             <h:outputText value="Name" />
-            <p:inputText value="#{viewEditProject.selectedProject.name}" required="true" label="Name" />
+            <p:inputText value="#{viewNewProject.selectedProject.name}" required="true" label="Name" />
 
             <h:outputText value="Description" />
-            <p:inputTextarea value="#{viewEditProject.selectedProject.description}" label="Description" />
+            <p:inputTextarea value="#{viewNewProject.selectedProject.description}" label="Description" />
 
             <h:outputText value="DB host:port" />
-            <p:inputText value="#{viewEditProject.selectedProject.databaseHostport}" required="true" label="DB host:port" />
+            <p:inputText value="#{viewNewProject.selectedProject.databaseHostport}" required="true" label="DB host:port" />
 
             <h:outputText value="DB schema" />
-            <p:inputText value="#{viewEditProject.selectedProject.databaseSchema}" required="true" label="DB schema" />
+            <p:inputText value="#{viewNewProject.selectedProject.databaseSchema}" required="true" label="DB schema" />
 
             <h:outputText value="DB username" />
-            <p:inputText value="#{viewEditProject.selectedProject.databaseUsername}" required="true" label="DB username" />
+            <p:inputText value="#{viewNewProject.selectedProject.databaseUsername}" required="true" label="DB username" />
 
             <h:outputText value="DB password" />
             <p:columnGroup>
-                <p:password id="dbPwdId" redisplay="true" value="#{viewEditProject.selectedProject.databasePassword}"
+                <p:password id="dbPwdId" redisplay="true" value="#{viewNewProject.selectedProject.databasePassword}"
                             required="true" label="DB password" style="width:95%;margin-right:5px;" />
                 <p:commandLink id="dbBtnId" value="?" onclick="showDbPassword();return false;"/>
             </p:columnGroup>
 
             <h:outputText value="DB server timezone" />
-            <p:selectOneMenu value="#{viewEditProject.selectedProject.databaseServerTimezone}" required="true"
+            <p:selectOneMenu value="#{viewNewProject.selectedProject.databaseServerTimezone}" required="true"
                              label="DB server timezone" height="400">
                 <f:selectItems value="#{dependentUtil.getAVAILABLE_TIME_ZONES()}" />
             </p:selectOneMenu>
         </p:panelGrid>
 
-        <p:dataTable id="drProps" value="#{viewEditProject.currentProjectDriverPropertyRows}" var="row"
+        <p:dataTable id="drProps" value="#{viewNewProject.driverPropertyRows}" var="row"
                      editable="true" emptyMessage="No driver properties found"
                      rowStyleClass="#{row.status == PojoStatus.TO_REMOVE ? 'propToRemove' : null}"
                      style="margin-top:10px;" styleClass="ui-fluid">
             <f:facet name="header">
                 <p:link value="Driver properties" href="https://dev.mysql.com/doc/connector-j/8.0/en/connector-j-reference-configuration-properties.html" style="font-weight:normal;" />
             </f:facet>
-            <p:ajax event="rowEdit" partialSubmit="true" listener="#{viewEditProject.onRowEdit}" update="edProjForm:addDrPropBtn edProjForm:saveBtn msgs" />
+            <p:ajax event="rowEdit" partialSubmit="true" listener="#{viewNewProject.onRowEdit}" update="edProjForm:addDrPropBtn edProjForm:saveBtn msgs" />
             <p:ajax event="rowEditCancel" partialSubmit="true"/>
 
             <p:column headerText="Key">
@@ -108,32 +100,32 @@
                     <p:commandLink value="+" immediate="true" partialSubmit="true" title="Restore"
                                    process="@this" update="drProps edProjForm:saveBtn" style="text-decoration: none;"
                                    onstart="PF('buiProjects').show()" oncomplete="PF('buiProjects').hide()"
-                                   actionListener="#{viewEditProject.onRestoreProperty(row)}"/>
+                                   actionListener="#{viewNewProject.onRestoreProperty(row)}"/>
                 </ui:fragment>
                 <ui:fragment rendered="#{row.status != PojoStatus.TO_REMOVE}">
                     <p:commandLink value="-" immediate="true" partialSubmit="true" title="Remove"
                                    process="@this" update="drProps edProjForm:saveBtn" style="text-decoration: none;"
                                    onstart="PF('buiProjects').show()" oncomplete="PF('buiProjects').hide()"
-                                   actionListener="#{viewEditProject.onRemoveProperty(row)}"/>
+                                   actionListener="#{viewNewProject.onRemoveProperty(row)}"/>
                 </ui:fragment>
             </p:column>
         </p:dataTable>
 
         <p:commandButton id="addDrPropBtn" value="Add driver property" immediate="true" partialSubmit="true"
-                         process="@this" update="@this drProps edProjForm:saveBtn" disabled="#{viewEditProject.addDriverPropertyBtnDisabled}"
-                         actionListener="#{viewEditProject.onAddProperty()}" style="margin-top:10px;"
+                         process="@this" update="@this drProps edProjForm:saveBtn" disabled="#{viewNewProject.addDriverPropertyBtnDisabled}"
+                         actionListener="#{viewNewProject.onAddProperty()}" style="margin-top:10px;"
                          icon="ui-icon-plusthick"/>
 
         <p:separator />
         <p:panelGrid columns="2" styleClass="ui-panelgrid-blank">
             <p:commandButton id="validateBtn" value="Validate"
                              process="@form" update="@form msgs"
-                             actionListener="#{viewEditProject.validate}"
+                             actionListener="#{viewNewProject.validate}"
                              icon="ui-icon-search"/>
 
-            <p:commandButton id="saveBtn" value="Save" disabled="#{!viewEditProject.connectionValidated}"
+            <p:commandButton id="saveBtn" value="Save" disabled="#{!viewNewProject.connectionValidated}"
                              process="@this" update="edProjPanel"
-                             actionListener="#{viewEditProject.save}"
+                             actionListener="#{viewNewProject.save}"
                              icon="ui-icon-check"/>
         </p:panelGrid>
     </h:form>
@@ -143,7 +135,6 @@
 <p:blockUI widgetVar="buiProjects" block="edProjOutPanel" trigger="edProjForm:validateBtn edProjForm:saveBtn edProjForm:drProps edProjForm:addDrPropBtn" >
     <p:graphicImage library="images" name="ajaxloadingbar.gif"/>
 </p:blockUI>
-</ui:fragment>
 </ui:define>
 </ui:composition>
 

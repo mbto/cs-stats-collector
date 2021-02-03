@@ -7,7 +7,6 @@
       xmlns:p="http://primefaces.org/ui"
       xmlns:ui="http://xmlns.jcp.org/jsf/facelets">
 <f:metadata>
-    <f:loadBundle basename="application" var="springConfig" />
     <f:viewAction action="#{viewKnownServers.fetch()}" onPostback="false" immediate="true"/>
     <p:importEnum type="ru.csdm.stats.webapp.PojoStatus" var="PojoStatus"/>
 </f:metadata>
@@ -25,7 +24,12 @@
 
 <ui:define name="center">
 <ui:fragment rendered="#{not empty viewKnownServers.selectedProject}">
-<p:panel id="edKnServsPanel" header="#{'[' += viewKnownServers.selectedProject.id += '] ' += viewKnownServers.selectedProject.name}">
+<p:panel id="edKnServsPanel" header="[#{viewKnownServers.selectedProject.id}] #{viewKnownServers.selectedProject.name}">
+<p:button value="Edit project" outcome="/editProject" icon="ui-icon-arrowthick-1-w">
+    <f:param name="projectId" value="#{viewKnownServers.selectedProject.id}"/>
+</p:button>
+
+<p:separator/>
 <h:form id="edKnServsForm">
     <p:dataTable id="knServs" widgetVar="knServsW" value="#{viewKnownServers.currentInstanceRows}" var="row"
                  editable="true" rowIndexVar="rowIndex" emptyMessage="No known servers found"
@@ -33,7 +37,7 @@
                  styleClass="ui-fluid">
         <f:facet name="header">
             Known servers: #{viewKnownServers.currentInstanceRows.size()} |
-            Instance: [#{sessionInstanceHolder.currentInstanceId}] #{sessionInstanceHolder.availableInstances.get(sessionInstanceHolder.currentInstanceId).name}
+            Current instance: [#{sessionInstanceHolder.currentInstanceId}] #{sessionInstanceHolder.availableInstances.get(sessionInstanceHolder.currentInstanceId).name}
         </f:facet>
         <p:ajax event="rowEdit" partialSubmit="true" listener="#{viewKnownServers.onRowEdit}" update="edKnServsForm:addKnownServerBtn msgs" />
         <p:ajax event="rowEditCancel" partialSubmit="true"/>
@@ -116,10 +120,10 @@
 <p:separator rendered="#{not empty viewKnownServers.selectedProject and not empty viewKnownServers.otherInstanceRows}"/>
 
 <ui:repeat value="#{viewKnownServers.otherInstanceRows.entrySet()}" var="entry" rendered="#{not empty viewKnownServers.selectedProject and not empty viewKnownServers.otherInstanceRows}">
-    <p:dataTable value="#{entry.value}" var="row" style="margin-top: 10px;" styleClass="ui-fluid">
+    <p:dataTable value="#{entry.value}" var="row" style="margin-top:10px;" styleClass="ui-fluid">
         <f:facet name="header">
             Known servers: #{entry.value.size()} |
-            Instance: [#{entry.key}] #{sessionInstanceHolder.availableInstances.get(entry.key).name}
+            Other instance: [#{entry.key}] #{sessionInstanceHolder.availableInstances.get(entry.key).name}
         </f:facet>
 
         <p:column headerText="ip:port" width="200">

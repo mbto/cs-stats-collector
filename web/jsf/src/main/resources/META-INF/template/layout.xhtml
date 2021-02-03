@@ -6,20 +6,15 @@
       xmlns:h="http://xmlns.jcp.org/jsf/html"
       xmlns:p="http://primefaces.org/ui"
       xmlns:ui="http://xmlns.jcp.org/jsf/facelets">
-<f:metadata>
-    <f:loadBundle basename="application" var="springConfig" />
-</f:metadata>
-
 <h:head>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
     <meta name="robots" content="noindex"/>
 
     <link rel="shortcut icon" type="image/x-icon" href="#{resource['images/emblem.png']}"/>
-<!--    <title><ui:insert name="title">#{springConfig['collector.instance.name']}</ui:insert></title>-->
     <title><ui:insert name="title">
         <h:outputText value="#{'[' += sessionInstanceHolder.currentInstanceId += '] ' += sessionInstanceHolder.availableInstances.get(sessionInstanceHolder.currentInstanceId).name}"
                       rendered="#{not empty sessionInstanceHolder.currentInstanceId}" />
-        <h:outputText value="Instance not setted"
+        <h:outputText value="Unknown instance"
                       rendered="#{empty sessionInstanceHolder.currentInstanceId}" />
     </ui:insert></title>
 
@@ -32,6 +27,20 @@
 <!--    <p:tooltip position="bottom" />-->
 
     <div class="ui-g">
+        <div class="ui-g-12">
+            <div class="ui-g">
+                <div class="ui-g-12 ui-xl-12 ui-lg-12 ui-md-12 ui-sm-12 ui-g-nopad">
+                    <p:outputPanel style="margin-bottom:10px;">
+                        <p:button href="/" value="Dashboard"/>
+                        <p:button outcome="/projects" value="Projects"/>
+                        <p:button outcome="/managers" value="Managers"/>
+                    </p:outputPanel>
+                </div>
+                <div class="ui-g-12 ui-xl-12 ui-lg-12 ui-md-12 ui-sm-12 ui-g-nopad">
+                    <ui:insert name="center"/>
+                </div>
+            </div>
+        </div>
         <div class="ui-g-12">
             <p:outputPanel style="text-align:center;display:block;margin: 0 auto;">
                 <h:form>
@@ -46,20 +55,6 @@
                     </p:selectOneMenu>
                 </h:form>
             </p:outputPanel>
-        </div>
-        <div class="ui-g-12">
-            <div class="ui-g">
-                <div class="ui-g-12 ui-xl-12 ui-lg-12 ui-md-12 ui-sm-12 ui-g-nopad">
-                    <p:outputPanel style="margin-bottom:10px;">
-                        <p:button href="/" value="Dashboard"/>
-                        <p:button outcome="/projects" value="Projects"/>
-                        <p:button outcome="/managers" value="Managers"/>
-                    </p:outputPanel>
-                </div>
-                <div class="ui-g-12 ui-xl-12 ui-lg-12 ui-md-12 ui-sm-12 ui-g-nopad">
-                    <ui:insert name="center"/>
-                </div>
-            </div>
         </div>
     </div>
 
