@@ -2,6 +2,7 @@ package ru.csdm.stats.webapp.view;
 
 import lombok.Getter;
 import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
 
 import javax.annotation.PostConstruct;
 import javax.faces.view.ViewScoped;
@@ -11,6 +12,7 @@ import javax.inject.Named;
 @Setter
 @ViewScoped
 @Named
+@Slf4j
 public class StatusShower {
     private int processors;
     private String freeMemory;
@@ -20,6 +22,9 @@ public class StatusShower {
 
     @PostConstruct
     public void init() {
+        if(log.isDebugEnabled())
+            log.debug("\ninit()");
+
         calculate();
     }
 

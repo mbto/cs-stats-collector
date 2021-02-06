@@ -164,8 +164,11 @@ public class Application {
 //        servletContext.setInitParameter("javax.faces.PROJECT_STAGE", "Development");
             servletContext.setInitParameter("javax.faces.FACELETS_SKIP_COMMENTS", "true");
             servletContext.setInitParameter("javax.faces.DATETIMECONVERTER_DEFAULT_TIMEZONE_IS_SYSTEM_TIMEZONE", "true");
-            servletContext.setInitParameter("javax.faces.INTERPRET_EMPTY_STRING_SUBMITTED_VALUES_AS_NULL", "true");
             servletContext.setInitParameter("javax.faces.FACELETS_BUFFER_SIZE", "65535");
+
+            // Bug in ELResolver https://stackoverflow.com/questions/19575283/jsf-2-2-interpret-empty-string-submitted-values-as-null-not-working
+            // solutions don't work =/
+            servletContext.setInitParameter("javax.faces.INTERPRET_EMPTY_STRING_SUBMITTED_VALUES_AS_NULL", "true");
 
             servletContext.setInitParameter("com.sun.faces.enableRestoreView11Compatibility", "true");
             servletContext.setInitParameter("com.sun.faces.forceLoadConfiguration", "true");

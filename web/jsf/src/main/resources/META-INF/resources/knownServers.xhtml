@@ -103,17 +103,15 @@
             </ui:fragment>
         </p:column>
     </p:dataTable>
-    <p:panelGrid columns="2" style="margin-top:10px;" styleClass="ui-panelgrid-blank">
-        <p:commandButton id="addKnownServerBtn" value="Add server" immediate="true" partialSubmit="true"
-                         process="@this" update="@this knServs" disabled="#{viewKnownServers.addServerBtnDisabled}"
-                         actionListener="#{viewKnownServers.onAddKnownServer()}"
-                         icon="ui-icon-plusthick"/>
+    <p:commandButton id="addKnownServerBtn" value="Add server" immediate="true" partialSubmit="true"
+                     process="@this" update="@this knServs" disabled="#{viewKnownServers.addServerBtnDisabled}"
+                     actionListener="#{viewKnownServers.onAddKnownServer()}"
+                     icon="ui-icon-plusthick" style="margin: 10px 10px 0 0"/>
 
-        <p:commandButton id="saveBtn" value="Save"
-                         process="@this" update="@form msgs"
-                         actionListener="#{viewKnownServers.save}"
-                         icon="ui-icon-check"/>
-    </p:panelGrid>
+    <p:commandButton id="saveBtn" value="Save"
+                     process="@this" update="@form msgs"
+                     actionListener="#{viewKnownServers.save}"
+                     icon="ui-icon-check"/>
 </h:form>
 <p:messages id="msgs" showSummary="true" showDetail="true"/>
 

@@ -86,13 +86,15 @@ public class ViewEditProject {
             return;
         }
 
+        UInteger projectId = UInteger.valueOf(projectIdStr);
+
         selectedProject = collectorDsl.selectFrom(PROJECT)
-                .where(PROJECT.ID.eq(UInteger.valueOf(projectIdStr)))
+                .where(PROJECT.ID.eq(projectId))
                 .fetchOneInto(Project.class);
 
         if(Objects.isNull(selectedProject)) {
             fc.getExternalContext().setResponseStatus(HttpServletResponse.SC_NOT_FOUND);
-            fc.addMessage(null, new FacesMessage(SEVERITY_WARN, "Project [" + projectIdStr + "] not founded", ""));
+            fc.addMessage(null, new FacesMessage(SEVERITY_WARN, "Project [" + projectId + "] not founded", ""));
             return;
         }
 
@@ -295,8 +297,8 @@ public class ViewEditProject {
 
             if(knownServersAtAllInstances > 0) {
                 throw new IllegalStateException("You must delete " + knownServersAtAllInstances
-                        + " known server" + (knownServersAtAllInstances > 1 ? "s" : "") + " from all instances for this project "
-                        + "[" + selectedProject.getId() + "] " + selectedProject.getName());
+                        + " known server" + (knownServersAtAllInstances > 1 ? "s" : "") + " from all instances for delete this project"
+                        + " [" + selectedProject.getId() + "] " + selectedProject.getName());
             }
 
             collectorDsl.deleteFrom(PROJECT)

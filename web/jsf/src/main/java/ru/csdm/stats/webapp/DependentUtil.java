@@ -17,8 +17,8 @@ import java.util.Objects;
 
 import static ru.csdm.stats.common.Constants.PROJECT_DATABASE_SERVER_TIMEZONES;
 
-@Named
 @Dependent
+@Named
 @Slf4j
 public class DependentUtil implements Serializable {
     private static final long serialVersionUID = 1L;
@@ -31,6 +31,7 @@ public class DependentUtil implements Serializable {
     public String getAbsoluteContextPath(boolean addApplicationPath) {
         ExternalContext externalContext = FacesContext.getCurrentInstance().getExternalContext();
         HttpServletRequest request = (HttpServletRequest) externalContext.getRequest();
+//        request.getContextPath();
 
         StringBuilder buffer = new StringBuilder();
         buffer.append(request.getScheme());
@@ -54,10 +55,11 @@ public class DependentUtil implements Serializable {
         return buffer.toString();
     }
 
-    public void sendRedirect(String url) {
+    public void sendRedirect(String url) { //TODO: test redirect without getAbsoluteContextPath
         FacesContext fc = FacesContext.getCurrentInstance();
         ExternalContext exCtx = fc.getExternalContext();
         try {
+//            exCtx.getRequestContextPath();
             exCtx.redirect(url);
         } catch (IOException e) {
             String msg = "Failed redirect to '" + url + "'";

@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html
+        PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+        "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:f="http://xmlns.jcp.org/jsf/core"
+      xmlns:h="http://xmlns.jcp.org/jsf/html"
+      xmlns:p="http://primefaces.org/ui"
+      xmlns:ui="http://xmlns.jcp.org/jsf/facelets">
+<f:metadata>
+    <f:viewAction action="#{instanceOperations.fetch()}" onPostback="false" immediate="true"/>
+</f:metadata>
+
+<ui:composition template="../template/layout.xhtml">
+<ui:define name="head">
+<style type="text/css">
+.currentInstance {
+    background-color: #d7ffd7 !important;
+    background-image: none !important;
+    color: #000000 !important;
+}
+</style>
+</ui:define>
+<ui:define name="center">
+<h:form id="showInstForm">
+    <p:button value="New instance" outcome="/newInstance" style="margin-bottom:10px;" icon="ui-icon-arrowthick-1-e"/>
+
+    <p:dataTable id="instTblId" value="#{instanceOperations.instances}" var="instance"
+                 selectionMode="single" rowKey="#{instance.id}" reflow="true"
+                 rowStyleClass="#{instance.id == sessionInstanceHolder.currentInstanceId ? 'currentInstance' : null}">
+        <f:facet name="header">Instances</f:facet>
+
+        <p:ajax event="rowSelect" listener="#{instanceOperations.onRowSelect()}" immediate="true" process="@this" update="@none" />
+
+        <p:column headerText="Reg date" width="180">
+            <h:outputText value="#{instance.regDatetime}">
+                <f:convertDateTime pattern="yyyy-MM-dd HH:mm:ss" type="localDateTime"/>
+            </h:outputText>
+        </p:column>
+
+        <p:column headerText="Name">
+            <h:outputText value="[#{instance.id}] #{instance.name}" />
+        </p:column>
+
+        <p:column headerText="Description">
+            <h:outputText value="#{instance.description}" />
+        </p:column>
+
+        <p:column headerText="Known servers" width="120">
+            <h:outputText value="#{instanceOperations.knownServersAtAllInstances.get(instance.id)}" />
+        </p:column>
+    </p:dataTable>
+</h:form>
+</ui:define>
+</ui:composition>
+
+</html>

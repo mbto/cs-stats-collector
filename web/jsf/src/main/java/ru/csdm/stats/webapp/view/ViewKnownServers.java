@@ -48,7 +48,7 @@ public class ViewKnownServers {
     @Getter
     private boolean addServerBtnDisabled;
 
-    private int changesCount = 0;
+    private int changesCount;
 
     public void fetch() {
         if(log.isDebugEnabled())

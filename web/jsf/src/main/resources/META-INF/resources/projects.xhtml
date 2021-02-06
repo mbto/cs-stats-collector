@@ -6,19 +6,20 @@
       xmlns:h="http://xmlns.jcp.org/jsf/html"
       xmlns:p="http://primefaces.org/ui"
       xmlns:ui="http://xmlns.jcp.org/jsf/facelets">
+<f:metadata>
+    <f:viewAction action="#{projectOperations.fetch()}" onPostback="false" immediate="true"/>
+</f:metadata>
 
 <ui:composition template="../template/layout.xhtml">
 <ui:define name="center">
 <h:form id="showProjForm">
     <p:button value="New project" outcome="/newProject" style="margin-bottom:10px;" icon="ui-icon-arrowthick-1-e"/>
 
-    <p:dataTable value="#{projectOperations.projects}" var="project"
-                 selectionMode="single"
-                 rowKey="#{project.id}" reflow="true">
+    <p:dataTable id="projTblId" value="#{projectOperations.projects}" var="project"
+                 selectionMode="single" rowKey="#{project.id}" reflow="true">
         <f:facet name="header">Projects</f:facet>
 
-        <p:ajax event="rowSelect" listener="#{projectOperations.onRowSelect}" immediate="true"
-            process="@this" update="@none"/>
+        <p:ajax event="rowSelect" listener="#{projectOperations.onRowSelect()}" immediate="true" process="@this" update="@none"/>
 
         <p:column headerText="Reg date" width="180">
             <h:outputText value="#{project.regDatetime}">
@@ -39,7 +40,6 @@
         </p:column>
 
         <p:column headerText="DB server timezone" width="200">
-<!--            <h:outputText value="#{projectOperations.literalOfProjectDatabaseServerTimezone(project.databaseServerTimezone)}" />-->
             <h:outputText value="#{project.databaseServerTimezone.getLiteral()}" />
         </p:column>
     </p:dataTable>

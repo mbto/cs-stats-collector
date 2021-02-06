@@ -35,21 +35,21 @@
 <ui:fragment rendered="#{not empty viewEditProject.selectedProject}">
 <p:outputPanel id="edProjOutPanel" style="width:600px;">
 <p:panel id="edProjPanel" header="[#{viewEditProject.selectedProject.id}] #{viewEditProject.selectedProject.name}">
-    <p:button value="Edit known servers [#{viewEditProject.knownServersAtInstance} of #{viewEditProject.knownServersAtAllInstances}]"
+    <p:button id="edBtnKnServers" value="Edit known servers [#{viewEditProject.knownServersAtInstance} of #{viewEditProject.knownServersAtAllInstances}]"
               outcome="/knownServers" icon="ui-icon-arrowthick-1-e">
         <f:param name="projectId" value="#{viewEditProject.selectedProject.id}"/>
     </p:button>
 
     <p:separator/>
     <h:form id="edProjForm">
-        <p:panelGrid columns="2" styleClass="ui-panelgrid-blank ui-fluid">
+        <p:panelGrid columns="2" style="width:100%;" styleClass="ui-panelgrid-blank ui-fluid">
             <h:outputText value="Reg date" />
             <h:outputText value="#{viewEditProject.selectedProject.regDatetime}">
                 <f:convertDateTime pattern="yyyy-MM-dd HH:mm:ss" type="localDateTime"/>
             </h:outputText>
 
             <p:outputLabel value="Name" for="iName" />
-            <p:inputText id="iName" value="#{viewEditProject.selectedProject.name}" required="true" placeholder="Some CS project" />
+            <p:inputText id="iName" value="#{viewEditProject.selectedProject.name}" required="true" placeholder="Some CS project"/>
 
             <p:outputLabel value="Description" for="iDesc" />
             <p:inputTextarea id="iDesc" value="#{viewEditProject.selectedProject.description}" />
@@ -95,7 +95,7 @@
             <p:column headerText="Value">
                 <p:cellEditor>
                     <f:facet name="output"><h:outputText value="#{row.pojo.value}" /></f:facet>
-                    <f:facet name="input"><p:inputText value="#{row.pojo.value}" required="true" label="Value" placeholder="Value" /></f:facet>
+                    <f:facet name="input"><p:inputText value="#{row.pojo.value}" converter="#{stringAddSpaceIfEmptyConverter}" required="true" label="Value" placeholder="Value" /></f:facet>
                 </p:cellEditor>
             </p:column>
             <p:column style="width:32px">
@@ -134,14 +134,14 @@
                          icon="ui-icon-check" style="margin-left:10px;"/>
 
         <p:commandButton type="button" value="Delete" onclick="PF('confDialDelete').show()"
-                         icon="ui-icon-closethick" style="float: right;" styleClass="ui-button-danger"/>
+                         icon="ui-icon-closethick" style="float:right;" styleClass="ui-button-danger"/>
         <p:confirmDialog widgetVar="confDialDelete" header="Confirm"
             message="Are you sure you want to delete project [#{viewEditProject.selectedProject.id}] #{viewEditProject.selectedProject.name} ?">
 
             <p:commandButton id="deleteBtn" value="Delete"
-                         process="@this" update="msgs" oncomplete="PF('confDialDelete').hide()"
+                         process="@this" update="edBtnKnServers msgs" oncomplete="PF('confDialDelete').hide()" style="margin-left:10px;"
                          action="#{viewEditProject.delete}" icon="ui-icon-closethick"/>
-            <p:commandButton type="button" value="Cancel" onclick="PF('confDialDelete').hide()" style="float: right;"
+            <p:commandButton type="button" value="Cancel" onclick="PF('confDialDelete').hide()" style="float:right;"
                          icon="ui-icon-cancel"/>
         </p:confirmDialog>
     </h:form>

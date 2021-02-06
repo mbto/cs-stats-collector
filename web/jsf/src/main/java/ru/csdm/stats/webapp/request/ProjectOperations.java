@@ -1,22 +1,22 @@
 package ru.csdm.stats.webapp.request;
 
 import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
 import org.jooq.DSLContext;
-import org.jooq.types.UInteger;
-import org.primefaces.event.SelectEvent;
 import org.springframework.beans.factory.annotation.Autowired;
 import ru.csdm.stats.common.model.collector.tables.pojos.Project;
 import ru.csdm.stats.webapp.DependentUtil;
 
-import javax.annotation.PostConstruct;
 import javax.enterprise.context.RequestScoped;
+import javax.faces.context.FacesContext;
 import javax.inject.Named;
 import java.util.List;
 
 import static ru.csdm.stats.common.model.collector.tables.Project.PROJECT;
 
-@Named
 @RequestScoped
+@Named
+@Slf4j
 public class ProjectOperations {
     @Autowired
     private DSLContext collectorDsl;
@@ -26,16 +26,20 @@ public class ProjectOperations {
     @Getter
     private List<Project> projects;
 
-    @PostConstruct
-    public void init() {
+    public void fetch() {
+        if(log.isDebugEnabled())
+            log.debug("\nfetch");
+
         projects = collectorDsl.selectFrom(PROJECT)
                 .orderBy(PROJECT.REG_DATETIME.desc())
                 .fetchInto(Project.class);
     }
 
-    public void onRowSelect(SelectEvent event) {
-        UInteger projectId = ((Project) event.getObject()).getId();
-
+    public void onRowSelect() {
+        String projectId = FacesContext.getCurrentInstance()
+                .getExternalContext()
+                .getRequestParameterMap()
+                .get("showProjForm:projTblId_instantSelectedRowKey");
         util.sendRedirect(util.getAbsoluteContextPath(true) + "/editProject?projectId=" + projectId);
     }
 }

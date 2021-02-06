@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html
+        PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+        "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:f="http://xmlns.jcp.org/jsf/core"
+      xmlns:h="http://xmlns.jcp.org/jsf/html"
+      xmlns:p="http://primefaces.org/ui"
+      xmlns:ui="http://xmlns.jcp.org/jsf/facelets">
+<f:metadata>
+    <f:viewAction action="#{viewEditInstance.fetch()}" onPostback="false" immediate="true"/>
+</f:metadata>
+
+<ui:composition template="../template/layout.xhtml">
+<ui:define name="center">
+<ui:fragment rendered="#{not empty viewEditInstance.selectedInstance}">
+<p:outputPanel id="edInstOutPanel" style="width:500px;">
+<p:panel id="edInstPanel" header="[#{viewEditInstance.selectedInstance.id}] #{viewEditInstance.selectedInstance.name}">
+    <p:button id="showBtnKnServers" value="Show known servers [#{viewEditInstance.knownServersAtInstance} of #{viewEditInstance.knownServersAtAllInstances}]"
+              outcome="/knownServers" icon="ui-icon-arrowthick-1-e">
+        <f:param name="instanceId" value="#{viewEditInstance.selectedInstance.id}"/>
+    </p:button>
+
+    <p:separator/>
+    <h:form id="edInstForm">
+        <p:panelGrid columns="2" style="width:100%;" styleClass="ui-panelgrid-blank ui-fluid">
+            <h:outputText value="Reg date" />
+            <h:outputText value="#{viewEditInstance.selectedInstance.regDatetime}">
+                <f:convertDateTime pattern="yyyy-MM-dd HH:mm:ss" type="localDateTime"/>
+            </h:outputText>
+
+            <p:outputLabel value="Name" for="iName" />
+            <p:inputText id="iName" value="#{viewEditInstance.selectedInstance.name}" required="true" placeholder="instance_N" />
+
+            <p:outputLabel value="Description" for="iDesc" />
+            <p:inputTextarea id="iDesc" value="#{viewEditInstance.selectedInstance.description}" />
+        </p:panelGrid>
+
+        <p:separator />
+
+        <p:commandButton id="saveBtn" value="Save" disabled="#{viewEditInstance.selectedInstance.id != sessionInstanceHolder.currentInstanceId}"
+                         process="@form" update="edInstPanel"
+                         actionListener="#{viewEditInstance.save}"
+                         icon="ui-icon-check"/>
+
+        <p:commandButton type="button" value="Delete" onclick="PF('confDialDelete').show()"
+                         icon="ui-icon-closethick" style="float:right;" styleClass="ui-button-danger"/>
+        <p:confirmDialog widgetVar="confDialDelete" header="Confirm"
+            message="Are you sure you want to delete instance [#{viewEditInstance.selectedInstance.id}] #{viewEditInstance.selectedInstance.name} ?">
+
+            <p:commandButton id="deleteBtn" value="Delete"
+                         process="@this" update="msgs" oncomplete="PF('confDialDelete').hide()" style="margin-left:10px;"
+                         action="#{viewEditInstance.delete}" icon="ui-icon-closethick"/>
+            <p:commandButton type="button" value="Cancel" onclick="PF('confDialDelete').hide()" style="float:right;"
+                         icon="ui-icon-cancel"/>
+        </p:confirmDialog>
+    </h:form>
+<p:messages id="msgs" showSummary="true" showDetail="true"/>
+</p:panel>
+</p:outputPanel>
+<p:blockUI widgetVar="buiInstects" block="edInstOutPanel" trigger="edInstForm:saveBtn edInstForm:deleteBtn" >
+    <p:graphicImage library="images" name="ajaxloadingbar.gif"/>
+</p:blockUI>
+</ui:fragment>
+</ui:define>
+</ui:composition>
+
+</html>

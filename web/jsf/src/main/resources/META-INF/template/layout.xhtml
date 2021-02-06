@@ -12,7 +12,7 @@
 
     <link rel="shortcut icon" type="image/x-icon" href="#{resource['images/favicon.png']}"/>
     <title><ui:insert name="title">
-        <h:outputText value="#{'[' += sessionInstanceHolder.currentInstanceId += '] ' += sessionInstanceHolder.availableInstances.get(sessionInstanceHolder.currentInstanceId).name}"
+        <h:outputText value="[#{sessionInstanceHolder.currentInstanceId}] #{sessionInstanceHolder.availableInstances.get(sessionInstanceHolder.currentInstanceId).name}"
                       rendered="#{not empty sessionInstanceHolder.currentInstanceId}" />
         <h:outputText value="Unknown instance"
                       rendered="#{empty sessionInstanceHolder.currentInstanceId}" />
@@ -24,8 +24,6 @@
 
 <h:body>
     <p:growl id="growl" life="5000" severity="warn" globalOnly="true" />
-<!--    <p:tooltip position="bottom" />-->
-
     <div class="ui-g">
         <div class="ui-g-12">
             <div class="ui-g">
@@ -33,6 +31,7 @@
                     <p:outputPanel style="margin-bottom:10px;">
                         <p:button href="/" value="Dashboard"/>
                         <p:button outcome="/projects" value="Projects"/>
+                        <p:button outcome="/instances" value="Instances"/>
                         <p:button outcome="/managers" value="Managers"/>
                     </p:outputPanel>
                 </div>
@@ -47,7 +46,7 @@
                     <p:selectOneMenu value="#{sessionInstanceHolder.currentInstanceId}" style="width: 200px;">
                         <f:selectItem itemLabel="Select instance" noSelectionOption="true" itemDisabled="true"/>
                         <f:selectItems value="#{sessionInstanceHolder.availableInstances.entrySet()}" var="entry"
-                                       itemLabel="#{'[' += entry.key += '] ' += entry.value.name += (empty entry.value.description ? '' : (' (' += entry.value.description += ')'))}"
+                                       itemLabel="[#{entry.key}] #{entry.value.name}#{empty entry.value.description ? '' : (' (' += entry.value.description += ')')}"
                                        itemValue="#{entry.value.id}"/>
 
                         <p:ajax event="change" process="@this" update="@none" immediate="true"
@@ -61,10 +60,10 @@
     <ui:insert name="excepts">
         <p:ajaxExceptionHandler onexception="PF('excWid').show();" update="expDialog" type="java.lang.Throwable"/>
 
-        <p:dialog id="expDialog" widgetVar="excWid" header="Ошибка на странице - #{pfExceptionHandler.type}"
+        <p:dialog id="expDialog" widgetVar="excWid" header="Error on page - #{pfExceptionHandler.type}"
                              width="800" height="600" position="center,center" fitViewport="true" modal="true">
-        <h:outputText value="Обратитесь в тех. поддержку"/> <br />
-        <p:button value="Перезагрузить страницу" style="margin:20px 5px 20px 5px" onclick="document.location.href = document.location.href;"/><br/>
+        <h:outputText value="Refresh the page or contact tech. support"/> <br />
+        <p:button value="Reload page" style="margin:20px 5px 20px 5px" onclick="document.location.href = document.location.href;"/><br/>
         <h:outputText value="#{pfExceptionHandler.message}"/><br/>
         <h:outputText value="#{pfExceptionHandler.formattedTimestamp}"/><br/>
         <h:outputText value="#{pfExceptionHandler.formattedStackTrace.substring(0,pfExceptionHandler.formattedStackTrace.length()>570?570:pfExceptionHandler.formattedStackTrace.length())}" escape="false"/><br/>

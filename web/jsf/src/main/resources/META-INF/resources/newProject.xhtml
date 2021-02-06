@@ -88,7 +88,7 @@
             <p:column headerText="Value">
                 <p:cellEditor>
                     <f:facet name="output"><h:outputText value="#{row.pojo.value}" /></f:facet>
-                    <f:facet name="input"><p:inputText value="#{row.pojo.value}" required="true" label="Value" placeholder="Value" /></f:facet>
+                    <f:facet name="input"><p:inputText value="#{row.pojo.value}" converter="#{stringAddSpaceIfEmptyConverter}" required="true" label="Value" placeholder="Value" /></f:facet>
                 </p:cellEditor>
             </p:column>
             <p:column style="width:32px">

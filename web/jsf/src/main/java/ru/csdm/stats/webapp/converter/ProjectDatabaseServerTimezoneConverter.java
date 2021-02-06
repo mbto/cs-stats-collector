@@ -8,8 +8,8 @@ import javax.faces.convert.Converter;
 import javax.faces.convert.FacesConverter;
 import javax.inject.Named;
 
-@Named
 @FacesConverter(forClass = ProjectDatabaseServerTimezone.class)
+@Named
 public class ProjectDatabaseServerTimezoneConverter implements Converter<ProjectDatabaseServerTimezone> {
     @Override
     public String getAsString(FacesContext context, UIComponent component, ProjectDatabaseServerTimezone value) {
