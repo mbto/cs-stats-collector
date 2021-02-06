@@ -93,7 +93,6 @@ CREATE TABLE `known_server` (
   `start_session_on_action` tinyint unsigned NOT NULL DEFAULT '0' COMMENT '1-start player''s session on event "... killed ... with ..." (not for kreedz servers); 0-start player''s session on event "... connected, address ..." or "... entered the game"',
   PRIMARY KEY (`id`),
   UNIQUE KEY `id_UNIQUE` (`id`),
-  UNIQUE KEY `ipport_UNIQUE` (`ipport`),
   KEY `known_server_project_id_idx` (`project_id`),
   KEY `known_server_instance_id_idx` (`instance_id`),
   CONSTRAINT `known_server_instance_id_fk` FOREIGN KEY (`instance_id`) REFERENCES `instance` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE,
@@ -122,10 +121,21 @@ commit;
 /*!50032 DROP TRIGGER IF EXISTS known_server_BEFORE_INSERT */;
 DELIMITER ;;
 /*!50003 CREATE*/ /*!50017 DEFINER=`root`@`%`*/ /*!50003 TRIGGER `known_server_BEFORE_INSERT` BEFORE INSERT ON `known_server` FOR EACH ROW BEGIN
-	declare error_msg VARCHAR(32);
+	declare error_msg VARCHAR(107);
+    declare existed_id int unsigned;
     
     if( !is_valid_ip(NEW.ipport, false, true)) then
 		set error_msg = concat('Invalid ip=', ifnull(NEW.ipport, ''));
+		SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = error_msg;
+    end if;
+    
+    select id into existed_id from `known_server` 
+		where instance_id = NEW.instance_id
+        and ipport = NEW.ipport limit 1;
+    
+	if(existed_id is not null) then
+		/* Unable to insert ipport=255.255.255.255:65535, due already existed at instance_id=4294967295, id=4294967295 @ len=107 */
+		set error_msg = concat('Unable to insert ipport=', NEW.ipport, ', due already existed at instance_id=', NEW.instance_id, ', id=', existed_id);
 		SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = error_msg;
     end if;
 END */;;
@@ -145,10 +155,22 @@ DELIMITER ;
 /*!50032 DROP TRIGGER IF EXISTS known_server_BEFORE_UPDATE */;
 DELIMITER ;;
 /*!50003 CREATE*/ /*!50017 DEFINER=`root`@`%`*/ /*!50003 TRIGGER `known_server_BEFORE_UPDATE` BEFORE UPDATE ON `known_server` FOR EACH ROW BEGIN
-	declare error_msg VARCHAR(32);
+	declare error_msg VARCHAR(122);
+    declare existed_id int unsigned;
     
     if( !is_valid_ip(NEW.ipport, false, true)) then
 		set error_msg = concat('Invalid ip=', ifnull(NEW.ipport, ''));
+		SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = error_msg;
+    end if;
+    
+    select id into existed_id from `known_server` 
+		where instance_id = NEW.instance_id
+        and ipport = NEW.ipport
+        and id != OLD.id limit 1;
+    
+	if(existed_id is not null) then
+		/* Unable to update ipport from 255.255.255.255:65534 to 255.255.255.255:65535, due already existed at instance_id=4294967295, id=4294967295 @ len=107 */
+		set error_msg = concat('Unable to update ipport from ', OLD.ipport, ' to ', NEW.ipport, ', due already existed at instance_id=', NEW.instance_id, ', id=', existed_id);
 		SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = error_msg;
     end if;
 END */;;
@@ -267,4 +289,4 @@ DELIMITER ;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2020-08-22  4:23:19
+-- Dump completed on 2021-02-06 21:43:37

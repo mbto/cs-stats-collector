@@ -7,7 +7,7 @@
       xmlns:p="http://primefaces.org/ui"
       xmlns:ui="http://xmlns.jcp.org/jsf/facelets">
 <f:metadata>
-    <f:viewAction action="#{viewKnownServers.fetch()}" onPostback="false" immediate="true"/>
+    <f:viewAction action="#{viewKnownServersByProjectId.fetch()}" onPostback="false" immediate="true"/>
     <p:importEnum type="ru.csdm.stats.webapp.PojoStatus" var="PojoStatus"/>
 </f:metadata>
 
@@ -23,23 +23,23 @@
 </ui:define>
 
 <ui:define name="center">
-<ui:fragment rendered="#{not empty viewKnownServers.selectedProject}">
-<p:panel id="edKnServsPanel" header="[#{viewKnownServers.selectedProject.id}] #{viewKnownServers.selectedProject.name}">
+<ui:fragment rendered="#{not empty viewKnownServersByProjectId.selectedProject}">
+<p:panel id="edKnServsPanel" header="[#{viewKnownServersByProjectId.selectedProject.id}] #{viewKnownServersByProjectId.selectedProject.name}">
 <p:button value="Edit project" outcome="/editProject" icon="ui-icon-arrowthick-1-w">
-    <f:param name="projectId" value="#{viewKnownServers.selectedProject.id}"/>
+    <f:param name="projectId" value="#{viewKnownServersByProjectId.selectedProject.id}"/>
 </p:button>
 
 <p:separator/>
 <h:form id="edKnServsForm">
-    <p:dataTable id="knServs" widgetVar="knServsW" value="#{viewKnownServers.currentInstanceRows}" var="row"
-                 editable="true" rowIndexVar="rowIndex" emptyMessage="No known servers found"
+    <p:dataTable id="knServs" widgetVar="knServsW" value="#{viewKnownServersByProjectId.currentInstanceRows}" var="row"
+                 editable="true" emptyMessage="No known servers found"
                  rowStyleClass="#{row.status == PojoStatus.TO_REMOVE ? 'propToRemove' : null}"
                  styleClass="ui-fluid">
         <f:facet name="header">
-            Known servers: #{viewKnownServers.currentInstanceRows.size()} |
+            Known servers: #{viewKnownServersByProjectId.currentInstanceRows.size()} |
             Current instance: [#{sessionInstanceHolder.currentInstanceId}] #{sessionInstanceHolder.availableInstances.get(sessionInstanceHolder.currentInstanceId).name}
         </f:facet>
-        <p:ajax event="rowEdit" partialSubmit="true" listener="#{viewKnownServers.onRowEdit}" update="edKnServsForm:addKnownServerBtn msgs" />
+        <p:ajax event="rowEdit" partialSubmit="true" listener="#{viewKnownServersByProjectId.onRowEdit}" update="edKnServsForm:addKnownServerBtn msgs" />
         <p:ajax event="rowEditCancel" partialSubmit="true"/>
 
         <p:column headerText="ip:port" width="200">
@@ -93,31 +93,32 @@
                 <p:commandLink value="+" immediate="true" partialSubmit="true" title="Restore"
                                process="@this" update="knServs" style="text-decoration: none;"
                                onstart="PF('buiKnServs').show()" oncomplete="PF('buiKnServs').hide()"
-                               actionListener="#{viewKnownServers.onRestoreRow(row)}"/>
+                               actionListener="#{viewKnownServersByProjectId.onRestoreRow(row)}"/>
             </ui:fragment>
             <ui:fragment rendered="#{row.status != PojoStatus.TO_REMOVE}">
                 <p:commandLink value="-" immediate="true" partialSubmit="true" title="Remove"
                                process="@this" update="knServs" style="text-decoration: none;"
                                onstart="PF('buiKnServs').show()" oncomplete="PF('buiKnServs').hide()"
-                               actionListener="#{viewKnownServers.onRemoveRow(row)}"/>
+                               actionListener="#{viewKnownServersByProjectId.onRemoveRow(row)}"/>
             </ui:fragment>
         </p:column>
     </p:dataTable>
     <p:commandButton id="addKnownServerBtn" value="Add server" immediate="true" partialSubmit="true"
-                     process="@this" update="@this knServs" disabled="#{viewKnownServers.addServerBtnDisabled}"
-                     actionListener="#{viewKnownServers.onAddKnownServer()}"
+                     process="@this" update="@this knServs" disabled="#{viewKnownServersByProjectId.addServerBtnDisabled}"
+                     actionListener="#{viewKnownServersByProjectId.onAddKnownServer()}"
                      icon="ui-icon-plusthick" style="margin: 10px 10px 0 0"/>
 
     <p:commandButton id="saveBtn" value="Save"
                      process="@this" update="@form msgs"
-                     actionListener="#{viewKnownServers.save}"
+                     actionListener="#{viewKnownServersByProjectId.save}"
                      icon="ui-icon-check"/>
 </h:form>
 <p:messages id="msgs" showSummary="true" showDetail="true"/>
 
-<p:separator rendered="#{not empty viewKnownServers.selectedProject and not empty viewKnownServers.otherInstanceRows}"/>
+<p:separator rendered="#{not empty viewKnownServersByProjectId.selectedProject and not empty viewKnownServersByProjectId.otherInstanceRows}"/>
 
-<ui:repeat value="#{viewKnownServers.otherInstanceRows.entrySet()}" var="entry" rendered="#{not empty viewKnownServers.selectedProject and not empty viewKnownServers.otherInstanceRows}">
+<ui:repeat value="#{viewKnownServersByProjectId.otherInstanceRows.entrySet()}" var="entry"
+           rendered="#{not empty viewKnownServersByProjectId.selectedProject and not empty viewKnownServersByProjectId.otherInstanceRows}">
     <p:dataTable value="#{entry.value}" var="row" style="margin-top:10px;" styleClass="ui-fluid">
         <f:facet name="header">
             Known servers: #{entry.value.size()} |

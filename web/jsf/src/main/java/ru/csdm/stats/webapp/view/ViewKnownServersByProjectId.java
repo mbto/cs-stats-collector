@@ -31,7 +31,7 @@ import static ru.csdm.stats.webapp.PojoStatus.*;
 @ViewScoped
 @Named
 @Slf4j
-public class ViewKnownServers {
+public class ViewKnownServersByProjectId {
     @Autowired
     private DSLContext collectorDsl;
     @Autowired

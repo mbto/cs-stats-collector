@@ -5,13 +5,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.jooq.DSLContext;
 import org.jooq.impl.DSL;
 import org.jooq.types.UInteger;
-import org.primefaces.event.SelectEvent;
 import org.springframework.beans.factory.annotation.Autowired;
 import ru.csdm.stats.common.model.collector.tables.pojos.Instance;
-import ru.csdm.stats.webapp.DependentUtil;
 
 import javax.enterprise.context.RequestScoped;
-import javax.faces.context.FacesContext;
 import javax.inject.Named;
 import java.util.List;
 import java.util.Map;
@@ -25,12 +22,9 @@ import static ru.csdm.stats.common.model.collector.tables.KnownServer.KNOWN_SERV
 public class InstanceOperations {
     @Autowired
     private DSLContext collectorDsl;
-    @Autowired
-    private DependentUtil util;
 
     @Getter
     private List<Instance> instances;
-
     @Getter
     private Map<UInteger, Integer> knownServersAtAllInstances;
 
@@ -47,13 +41,5 @@ public class InstanceOperations {
                 .join(KNOWN_SERVER).on(INSTANCE.ID.eq(KNOWN_SERVER.INSTANCE_ID))
                 .groupBy(INSTANCE.ID)
                 .fetchMap(INSTANCE.ID, DSL.count());
-    }
-
-    public void onRowSelect() {
-        String instanceId = FacesContext.getCurrentInstance()
-                .getExternalContext()
-                .getRequestParameterMap()
-                .get("showInstForm:instTblId_instantSelectedRowKey");
-        util.sendRedirect(util.getAbsoluteContextPath(true) + "/editInstance?instanceId=" + instanceId);
     }
 }

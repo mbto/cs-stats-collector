@@ -16,7 +16,7 @@
 <p:outputPanel id="edInstOutPanel" style="width:500px;">
 <p:panel id="edInstPanel" header="[#{viewEditInstance.selectedInstance.id}] #{viewEditInstance.selectedInstance.name}">
     <p:button id="showBtnKnServers" value="Show known servers [#{viewEditInstance.knownServersAtInstance} of #{viewEditInstance.knownServersAtAllInstances}]"
-              outcome="/knownServers" icon="ui-icon-arrowthick-1-e">
+              outcome="/instanceKnownServers" icon="ui-icon-arrowthick-1-e">
         <f:param name="instanceId" value="#{viewEditInstance.selectedInstance.id}"/>
     </p:button>
 
@@ -28,8 +28,8 @@
                 <f:convertDateTime pattern="yyyy-MM-dd HH:mm:ss" type="localDateTime"/>
             </h:outputText>
 
-            <p:outputLabel value="Name" for="iName" />
-            <p:inputText id="iName" value="#{viewEditInstance.selectedInstance.name}" required="true" placeholder="instance_N" />
+            <h:outputText value="Name"/>
+            <h:outputText value="#{viewEditInstance.selectedInstance.name}" />
 
             <p:outputLabel value="Description" for="iDesc" />
             <p:inputTextarea id="iDesc" value="#{viewEditInstance.selectedInstance.description}" />
@@ -37,7 +37,7 @@
 
         <p:separator />
 
-        <p:commandButton id="saveBtn" value="Save" disabled="#{viewEditInstance.selectedInstance.id != sessionInstanceHolder.currentInstanceId}"
+        <p:commandButton id="saveBtn" value="Save"
                          process="@form" update="edInstPanel"
                          actionListener="#{viewEditInstance.save}"
                          icon="ui-icon-check"/>

@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html
+        PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+        "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:f="http://xmlns.jcp.org/jsf/core"
+      xmlns:h="http://xmlns.jcp.org/jsf/html"
+      xmlns:p="http://primefaces.org/ui"
+      xmlns:ui="http://xmlns.jcp.org/jsf/facelets">
+<f:metadata>
+    <f:viewAction action="#{requestKnownServersByInstanceId.fetch()}" onPostback="false" immediate="true"/>
+</f:metadata>
+
+<ui:composition template="../template/layout.xhtml">
+<ui:define name="center">
+<ui:fragment rendered="#{not empty requestKnownServersByInstanceId.selectedInstance}">
+<h:form id="showKnServsForm">
+<p:dataTable id="knServsTblId" value="#{requestKnownServersByInstanceId.currentKnownServers}" var="knownServer" emptyMessage="No known servers found"
+             selectionMode="single" rowKey="#{knownServer.projectId}" reflow="true">
+    <f:facet name="header">
+        Known servers: #{requestKnownServersByInstanceId.currentKnownServers.size()} |
+        instance: [#{requestKnownServersByInstanceId.selectedInstance.id}] #{requestKnownServersByInstanceId.selectedInstance.name}
+    </f:facet>
+
+    <p:ajax event="rowSelect" immediate="true" process="@this" update="@none" skipChildren="true"/>
+
+    <p:column headerText="Project" width="400">
+        <h:outputText value="[#{knownServer.projectId}] #{requestKnownServersByInstanceId.projectNameByProjectId.get(knownServer.projectId)}"/>
+    </p:column>
+
+    <p:column headerText="ip:port" width="200" selectRow="true">
+        <h:outputText value="#{knownServer.ipport}"/>
+    </p:column>
+
+    <p:column headerText="Name" width="100%">
+        <h:outputText value="#{knownServer.name}"/>
+    </p:column>
+
+    <p:column headerText="Active" width="60">
+        <h:outputText value="#{knownServer.active ? 'Yes' : 'No'}" rendered="#{not empty knownServer.active}"/>
+    </p:column>
+
+    <p:column headerText="FFA" width="60">
+        <h:outputText value="#{knownServer.ffa ? 'Yes' : 'No'}" rendered="#{not empty knownServer.ffa}"/>
+    </p:column>
+
+    <p:column headerText="Ignore bots" width="120">
+        <h:outputText value="#{knownServer.ignoreBots ? 'Yes' : 'No'}" rendered="#{not empty knownServer.ignoreBots}"/>
+    </p:column>
+
+    <p:column headerText="Start session on action" width="120">
+        <h:outputText value="#{knownServer.startSessionOnAction ? 'Yes' : 'No'}" rendered="#{not empty knownServer.startSessionOnAction}"/>
+    </p:column>
+</p:dataTable>
+</h:form>
+</ui:fragment>
+</ui:define>
+</ui:composition>
+
+</html>

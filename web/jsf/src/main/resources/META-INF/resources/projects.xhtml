@@ -13,36 +13,37 @@
 <ui:composition template="../template/layout.xhtml">
 <ui:define name="center">
 <h:form id="showProjForm">
-    <p:button value="New project" outcome="/newProject" style="margin-bottom:10px;" icon="ui-icon-arrowthick-1-e"/>
+<p:button value="New project" outcome="/newProject" style="margin-bottom:10px;" icon="ui-icon-arrowthick-1-e"/>
 
-    <p:dataTable id="projTblId" value="#{projectOperations.projects}" var="project"
-                 selectionMode="single" rowKey="#{project.id}" reflow="true">
-        <f:facet name="header">Projects</f:facet>
+<p:dataTable id="projTblId" value="#{projectOperations.projects}" var="project" emptyMessage="No projects found"
+             selectionMode="single" rowKey="#{project.id}" reflow="true">
+    <f:facet name="header">Projects</f:facet>
 
-        <p:ajax event="rowSelect" listener="#{projectOperations.onRowSelect()}" immediate="true" process="@this" update="@none"/>
+    <p:ajax event="rowSelect" listener="#{redirectByEvent.onRowSelect('showProjForm','projTblId','editProject','projectId')}"
+            immediate="true" process="@this" update="@none"/>
 
-        <p:column headerText="Reg date" width="180">
-            <h:outputText value="#{project.regDatetime}">
-                <f:convertDateTime pattern="yyyy-MM-dd HH:mm:ss" type="localDateTime"/>
-            </h:outputText>
-        </p:column>
+    <p:column headerText="Reg date" width="180">
+        <h:outputText value="#{project.regDatetime}">
+            <f:convertDateTime pattern="yyyy-MM-dd HH:mm:ss" type="localDateTime"/>
+        </h:outputText>
+    </p:column>
 
-        <p:column headerText="Name">
-            <h:outputText value="[#{project.id}] #{project.name}" />
-        </p:column>
+    <p:column headerText="Name">
+        <h:outputText value="[#{project.id}] #{project.name}" />
+    </p:column>
 
-        <p:column headerText="Description">
-            <h:outputText value="#{project.description}" />
-        </p:column>
+    <p:column headerText="Description">
+        <h:outputText value="#{project.description}" />
+    </p:column>
 
-        <p:column headerText="DB host:port/schema">
-            <h:outputText value="#{project.databaseHostport}/#{project.databaseSchema}" />
-        </p:column>
+    <p:column headerText="DB host:port/schema">
+        <h:outputText value="#{project.databaseHostport}/#{project.databaseSchema}" />
+    </p:column>
 
-        <p:column headerText="DB server timezone" width="200">
-            <h:outputText value="#{project.databaseServerTimezone.getLiteral()}" />
-        </p:column>
-    </p:dataTable>
+    <p:column headerText="DB server timezone" width="200">
+        <h:outputText value="#{project.databaseServerTimezone.getLiteral()}" />
+    </p:column>
+</p:dataTable>
 </h:form>
 </ui:define>
 </ui:composition>

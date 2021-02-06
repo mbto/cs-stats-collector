@@ -29,7 +29,8 @@
                  rowStyleClass="#{instance.id == sessionInstanceHolder.currentInstanceId ? 'currentInstance' : null}">
         <f:facet name="header">Instances</f:facet>
 
-        <p:ajax event="rowSelect" listener="#{instanceOperations.onRowSelect()}" immediate="true" process="@this" update="@none" />
+        <p:ajax event="rowSelect" listener="#{redirectByEvent.onRowSelect('showInstForm','instTblId','editInstance','instanceId')}"
+                immediate="true" process="@this" update="@none" />
 
         <p:column headerText="Reg date" width="180">
             <h:outputText value="#{instance.regDatetime}">

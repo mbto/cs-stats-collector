@@ -68,13 +68,6 @@ public class ViewEditInstance {
             return;
         }
 
-        if(!sessionInstanceHolder.getCurrentInstanceId().equals(instanceId)) {
-            fc.addMessage("msg", new FacesMessage(SEVERITY_WARN,
-                    "You can't modify instance [" + instanceId + "] " + selectedInstance.getName() + ", " +
-                            "your instance is [" + sessionInstanceHolder.getCurrentInstanceId() + "] "
-                            + sessionInstanceHolder.getAvailableInstances().get(sessionInstanceHolder.getCurrentInstanceId()).getName(), ""));
-        }
-
         fetchKnownServersCounts();
     }
 
@@ -105,7 +98,6 @@ public class ViewEditInstance {
                 DSLContext transactionalDsl = DSL.using(config);
 
                 changesCount += transactionalDsl.update(INSTANCE)
-                        .set(INSTANCE.NAME, selectedInstance.getName())
                         .set(INSTANCE.DESCRIPTION, StringUtils.isBlank(selectedInstance.getDescription()) ? null : selectedInstance.getDescription())
                         .where(INSTANCE.ID.eq(selectedInstance.getId()))
                         .execute();
