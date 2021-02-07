@@ -58,8 +58,8 @@ public class DependentUtil implements Serializable {
 
     // showKnServsForm:knServsTblId_instantSelectedRowKey 7
     // showKnServsForm:knServsTblId_selection 7
-    // listener="#{redirectByEvent.onRowSelect('showKnServsForm','knServsTblId','projectKnownServers','projectId')}"
-    public boolean sendRedirect(String formId, String dataTableId, String viewName, String paramName) {
+    // listener="#{redirectByEvent.onRowSelect('showKnServsForm','knServsTblId','knownServersByProject','projectId')}"
+    public boolean trySendRedirect(String formId, String dataTableId, String viewName, String paramName) {
         String paramValue = FacesContext.getCurrentInstance()
                 .getExternalContext()
                 .getRequestParameterMap().get(formId + ":" + dataTableId + "_selection");
@@ -87,7 +87,7 @@ public class DependentUtil implements Serializable {
         } catch (IOException e) {
             String msg = "Failed redirect to '" + url + "'";
             log.warn(msg, e);
-            fc.addMessage(null, new FacesMessage(FacesMessage.SEVERITY_WARN, msg, ""));
+//            fc.addMessage(null, new FacesMessage(FacesMessage.SEVERITY_WARN, msg, ""));
 
             return false;
         } finally {

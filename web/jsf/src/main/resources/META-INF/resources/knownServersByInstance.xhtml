@@ -12,6 +12,7 @@
 
 <ui:composition template="../template/layout.xhtml">
 <ui:define name="center">
+<p:messages id="fetchMsgs" showSummary="true" showDetail="true" rendered="#{empty requestKnownServersByInstanceId.selectedInstance}"/>
 <ui:fragment rendered="#{not empty requestKnownServersByInstanceId.selectedInstance}">
 <h:form id="showKnServsForm">
 <p:dataTable id="knServsTblId" value="#{requestKnownServersByInstanceId.currentKnownServers}" var="knownServer" emptyMessage="No known servers found"
@@ -21,7 +22,7 @@
         instance: [#{requestKnownServersByInstanceId.selectedInstance.id}] #{requestKnownServersByInstanceId.selectedInstance.name}
     </f:facet>
 
-    <p:ajax event="rowSelect" immediate="true" process="@this" update="@none" skipChildren="true"/>
+    <p:ajax event="rowSelect" immediate="true" process="@this" update="@none"/>
 
     <p:column headerText="Project" width="400">
         <h:outputText value="[#{knownServer.projectId}] #{requestKnownServersByInstanceId.projectNameByProjectId.get(knownServer.projectId)}"/>

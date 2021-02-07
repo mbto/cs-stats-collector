@@ -23,6 +23,7 @@
 </ui:define>
 
 <ui:define name="center">
+<p:messages id="fetchMsgs" showSummary="true" showDetail="true" rendered="#{empty viewKnownServersByProjectId.selectedProject}"/>
 <ui:fragment rendered="#{not empty viewKnownServersByProjectId.selectedProject}">
 <p:panel id="edKnServsPanel" header="[#{viewKnownServersByProjectId.selectedProject.id}] #{viewKnownServersByProjectId.selectedProject.name}">
 <p:button value="Edit project" outcome="/editProject" icon="ui-icon-arrowthick-1-w">
@@ -32,7 +33,7 @@
 <p:separator/>
 <h:form id="edKnServsForm">
     <p:dataTable id="knServs" widgetVar="knServsW" value="#{viewKnownServersByProjectId.currentInstanceRows}" var="row"
-                 editable="true" emptyMessage="No known servers found"
+                 editable="true" emptyMessage="No known servers found" rowIndexVar="rowIndexVar"
                  rowStyleClass="#{row.status == PojoStatus.TO_REMOVE ? 'propToRemove' : null}"
                  styleClass="ui-fluid">
         <f:facet name="header">
@@ -46,7 +47,11 @@
             <p:cellEditor>
                 <f:facet name="output"><h:outputText value="#{row.pojo.ipport}"/></f:facet>
                 <f:facet name="input"><p:inputText value="#{row.pojo.ipport}" required="true" label="ip:port" placeholder="127.0.0.1:27015"
-                                                   validator="ipPortValidator" maxlength="21" onkeypress="if(event.keyCode == 13) { return false; }"/></f:facet>
+                                                   validator="checkUniqueIpPortValidator" maxlength="21" onkeypress="if(event.keyCode == 13) { return false; }">
+                    <f:attribute name="rowIndexVar" value="#{rowIndexVar}"/>
+                    <f:attribute name="currentInstanceRows" value="#{viewKnownServersByProjectId.currentInstanceRows}"/>
+                </p:inputText>
+                </f:facet>
             </p:cellEditor>
         </p:column>
 

@@ -12,11 +12,12 @@
 
 <ui:composition template="../template/layout.xhtml">
 <ui:define name="center">
+<p:messages id="fetchMsgs" showSummary="true" showDetail="true" rendered="#{empty viewEditInstance.selectedInstance}"/>
 <ui:fragment rendered="#{not empty viewEditInstance.selectedInstance}">
 <p:outputPanel id="edInstOutPanel" style="width:500px;">
 <p:panel id="edInstPanel" header="[#{viewEditInstance.selectedInstance.id}] #{viewEditInstance.selectedInstance.name}">
-    <p:button id="showBtnKnServers" value="Show known servers [#{viewEditInstance.knownServersAtInstance} of #{viewEditInstance.knownServersAtAllInstances}]"
-              outcome="/instanceKnownServers" icon="ui-icon-arrowthick-1-e">
+    <p:button id="showBtnKnServers" value="Show #{viewEditInstance.knownServersAtAllInstances} known servers"
+              outcome="/knownServersByInstance" icon="ui-icon-arrowthick-1-e" disabled="#{viewEditInstance.knownServersAtAllInstances == 0}">
         <f:param name="instanceId" value="#{viewEditInstance.selectedInstance.id}"/>
     </p:button>
 

@@ -32,11 +32,12 @@
 </ui:define>
 
 <ui:define name="center">
+<p:messages id="fetchMsgs" showSummary="true" showDetail="true" rendered="#{empty viewEditProject.selectedProject}"/>
 <ui:fragment rendered="#{not empty viewEditProject.selectedProject}">
 <p:outputPanel id="edProjOutPanel" style="width:600px;">
 <p:panel id="edProjPanel" header="[#{viewEditProject.selectedProject.id}] #{viewEditProject.selectedProject.name}">
     <p:button id="edBtnKnServers" value="Edit known servers [#{viewEditProject.knownServersAtInstance} of #{viewEditProject.knownServersAtAllInstances}]"
-              outcome="/projectKnownServers" icon="ui-icon-arrowthick-1-e">
+              outcome="/knownServersByProject" icon="ui-icon-arrowthick-1-e">
         <f:param name="projectId" value="#{viewEditProject.selectedProject.id}"/>
     </p:button>
 

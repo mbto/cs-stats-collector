@@ -14,7 +14,6 @@ import javax.annotation.PostConstruct;
 import javax.enterprise.context.RequestScoped;
 import javax.faces.application.FacesMessage;
 import javax.faces.context.FacesContext;
-import javax.faces.view.ViewScoped;
 import javax.inject.Named;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -50,7 +49,7 @@ public class RequestKnownServersByInstanceId {
 
         FacesContext fc = FacesContext.getCurrentInstance();
         if(fc.isPostback()) {
-            if(util.sendRedirect("showKnServsForm", "knServsTblId", "projectKnownServers", "projectId"))
+            if(util.trySendRedirect("showKnServsForm", "knServsTblId", "knownServersByProject", "projectId"))
                 return;
         }
     }
@@ -65,7 +64,7 @@ public class RequestKnownServersByInstanceId {
         FacesContext fc = FacesContext.getCurrentInstance();
 
         if (!StringUtils.isNumeric(instanceIdStr)) {
-            fc.addMessage(null, new FacesMessage(SEVERITY_WARN, "Invalid instanceId", ""));
+            fc.addMessage("fetchMsgs", new FacesMessage(SEVERITY_WARN, "Invalid instanceId", ""));
             return;
         }
 
@@ -76,7 +75,7 @@ public class RequestKnownServersByInstanceId {
 
         if(Objects.isNull(selectedInstance)) {
             fc.getExternalContext().setResponseStatus(HttpServletResponse.SC_NOT_FOUND);
-            fc.addMessage(null/*TODO:try use "msgs"*/, new FacesMessage(SEVERITY_WARN,
+            fc.addMessage("fetchMsgs", new FacesMessage(SEVERITY_WARN,
                     "Instance [" + instanceIdStr + "] not founded", ""));
             return;
         }

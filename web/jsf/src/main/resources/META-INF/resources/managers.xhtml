@@ -6,30 +6,48 @@
       xmlns:p="http://primefaces.org/ui"
       xmlns:ui="http://xmlns.jcp.org/jsf/facelets"
       xmlns:f="http://xmlns.jcp.org/jsf/core">
+<f:metadata>
+    <f:viewAction action="#{requestManagers.fetch()}" onPostback="false" immediate="true"/>
+</f:metadata>
 
 <ui:composition template="../template/layout.xhtml">
-    <ui:define name="center">
-        <h:form id="mngrsForm">
-            <p:dataTable var="car" value="#{dtBasicView.cars}" reflow="true">
-                <f:facet name="header">Managers</f:facet>
-                <p:column headerText="Id">
-                    <h:outputText value="#{car.id}" />
-                </p:column>
+<ui:define name="center">
+<h:form id="mngrsForm">
+    <p:dataTable value="#{requestManagers.managers}" var="manager" reflow="true">
+        <f:facet name="header">Managers</f:facet>
 
-                <p:column headerText="Name">
-                    <h:outputText value="#{car.year}" />
-                </p:column>
+        <p:column headerText="Reg date" width="180">
+            <h:outputText value="#{manager.regDatetime}">
+                <f:convertDateTime pattern="yyyy-MM-dd HH:mm:ss" type="localDateTime"/>
+            </h:outputText>
+        </p:column>
 
-                <p:column headerText="Description">
-                    <h:outputText value="#{car.brand}" />
-                </p:column>
+        <p:column headerText="Name">
+            <h:outputText value="#{manager.username}" />
+        </p:column>
 
-                <p:column headerText="R">
-                    <h:outputText value="#{car.color}" />
-                </p:column>
-            </p:dataTable>
-        </h:form>
-    </ui:define>
+        <p:column headerText="password">
+            <h:outputText value="#{manager.password}" />
+        </p:column>
+
+        <p:column headerText="Description">
+            <h:outputText value="#{manager.active}" />
+        </p:column>
+
+        <p:column headerText="Active">
+            <h:outputText value="#{manager.active}" />
+        </p:column>
+
+        <p:column headerText="manageHosting">
+            <h:outputText value="#{manager.manageHosting}" />
+        </p:column>
+
+        <p:column headerText="projectId">
+            <h:outputText value="#{manager.projectId}" />
+        </p:column>
+    </p:dataTable>
+</h:form>
+</ui:define>
 </ui:composition>
 
 </html>

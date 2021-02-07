@@ -4,12 +4,10 @@ import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.jooq.DSLContext;
-import org.jooq.Record2;
 import org.jooq.impl.DSL;
 import org.jooq.types.UInteger;
 import org.springframework.beans.factory.annotation.Autowired;
 import ru.csdm.stats.common.model.collector.tables.pojos.Instance;
-import ru.csdm.stats.webapp.session.SessionInstanceHolder;
 
 import javax.faces.application.FacesMessage;
 import javax.faces.context.FacesContext;
@@ -29,14 +27,10 @@ import static ru.csdm.stats.common.model.collector.tables.KnownServer.KNOWN_SERV
 public class ViewEditInstance {
     @Autowired
     private DSLContext collectorDsl;
-    @Autowired
-    private SessionInstanceHolder sessionInstanceHolder;
 
     @Getter
     private Instance selectedInstance;
 
-    @Getter
-    private int knownServersAtInstance;
     @Getter
     private int knownServersAtAllInstances;
 
@@ -52,7 +46,7 @@ public class ViewEditInstance {
         FacesContext fc = FacesContext.getCurrentInstance();
 
         if (!StringUtils.isNumeric(instanceIdStr)) {
-            fc.addMessage(null, new FacesMessage(SEVERITY_WARN, "Invalid instanceId", ""));
+            fc.addMessage("fetchMsgs", new FacesMessage(SEVERITY_WARN, "Invalid instanceId", ""));
             return;
         }
 
@@ -64,7 +58,7 @@ public class ViewEditInstance {
 
         if(Objects.isNull(selectedInstance)) {
             fc.getExternalContext().setResponseStatus(HttpServletResponse.SC_NOT_FOUND);
-            fc.addMessage(null, new FacesMessage(SEVERITY_WARN, "Instance [" + instanceId + "] not founded", ""));
+            fc.addMessage("fetchMsgs", new FacesMessage(SEVERITY_WARN, "Instance [" + instanceId + "] not founded", ""));
             return;
         }
 
@@ -72,21 +66,10 @@ public class ViewEditInstance {
     }
 
     private void fetchKnownServersCounts() {
-        Record2<Integer, Integer> knownServersCounts = collectorDsl.select(
-                DSL.selectCount()
-                        .from(KNOWN_SERVER)
-                        .join(INSTANCE).on(KNOWN_SERVER.INSTANCE_ID.eq(INSTANCE.ID))
-                        .where(KNOWN_SERVER.INSTANCE_ID.eq(selectedInstance.getId()),
-                                INSTANCE.ID.eq(sessionInstanceHolder.getCurrentInstanceId()))
-                        .<Integer>asField("at_instance"),
-                DSL.selectCount()
-                        .from(KNOWN_SERVER)
-                        .where(KNOWN_SERVER.INSTANCE_ID.eq(selectedInstance.getId()))
-                        .<Integer>asField("at_all_instances")
-        ).fetchOne();
-
-        knownServersAtInstance = knownServersCounts.getValue("at_instance", Integer.class);
-        knownServersAtAllInstances = knownServersCounts.getValue("at_all_instances", Integer.class);
+        knownServersAtAllInstances = collectorDsl.selectCount()
+                .from(KNOWN_SERVER)
+                .where(KNOWN_SERVER.INSTANCE_ID.eq(selectedInstance.getId()))
+                .fetchOne(DSL.count());
     }
 
     public void save() {
@@ -103,10 +86,11 @@ public class ViewEditInstance {
                         .execute();
             });
 
-            fc.addMessage("msgs", new FacesMessage("Instance [" + selectedInstance.getId() + "] saved, " + changesCount + " changes", ""));
+            fc.addMessage("msgs", new FacesMessage("Instance [" + selectedInstance.getId() + "] "
+                    + selectedInstance.getName() + " saved", changesCount + " changes"));
         } catch (Exception e) {
             fc.addMessage("msgs", new FacesMessage(SEVERITY_WARN,
-                    "Failed save instance [" + selectedInstance.getId() + "]",
+                    "Failed save instance [" + selectedInstance.getId() + "] " + selectedInstance.getName(),
                     e.toString()));
         }
     }

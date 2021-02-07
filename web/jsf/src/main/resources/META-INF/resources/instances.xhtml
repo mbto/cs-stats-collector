@@ -7,7 +7,7 @@
       xmlns:p="http://primefaces.org/ui"
       xmlns:ui="http://xmlns.jcp.org/jsf/facelets">
 <f:metadata>
-    <f:viewAction action="#{instanceOperations.fetch()}" onPostback="false" immediate="true"/>
+    <f:viewAction action="#{requestInstances.fetch()}" onPostback="false" immediate="true"/>
 </f:metadata>
 
 <ui:composition template="../template/layout.xhtml">
@@ -24,13 +24,12 @@
 <h:form id="showInstForm">
     <p:button value="New instance" outcome="/newInstance" style="margin-bottom:10px;" icon="ui-icon-arrowthick-1-e"/>
 
-    <p:dataTable id="instTblId" value="#{instanceOperations.instances}" var="instance"
+    <p:dataTable id="instTblId" value="#{requestInstances.instances}" var="instance"
                  selectionMode="single" rowKey="#{instance.id}" reflow="true"
                  rowStyleClass="#{instance.id == sessionInstanceHolder.currentInstanceId ? 'currentInstance' : null}">
         <f:facet name="header">Instances</f:facet>
 
-        <p:ajax event="rowSelect" listener="#{redirectByEvent.onRowSelect('showInstForm','instTblId','editInstance','instanceId')}"
-                immediate="true" process="@this" update="@none" />
+        <p:ajax event="rowSelect" immediate="true" process="@this" update="@none" />
 
         <p:column headerText="Reg date" width="180">
             <h:outputText value="#{instance.regDatetime}">
@@ -47,7 +46,7 @@
         </p:column>
 
         <p:column headerText="Known servers" width="120">
-            <h:outputText value="#{instanceOperations.knownServersAtAllInstances.get(instance.id)}" />
+            <h:outputText value="#{requestInstances.knownServersAtAllInstances.get(instance.id)}" />
         </p:column>
     </p:dataTable>
 </h:form>

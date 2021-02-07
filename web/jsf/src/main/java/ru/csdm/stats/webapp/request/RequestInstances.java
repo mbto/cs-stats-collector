@@ -7,8 +7,11 @@ import org.jooq.impl.DSL;
 import org.jooq.types.UInteger;
 import org.springframework.beans.factory.annotation.Autowired;
 import ru.csdm.stats.common.model.collector.tables.pojos.Instance;
+import ru.csdm.stats.webapp.DependentUtil;
 
+import javax.annotation.PostConstruct;
 import javax.enterprise.context.RequestScoped;
+import javax.faces.context.FacesContext;
 import javax.inject.Named;
 import java.util.List;
 import java.util.Map;
@@ -19,14 +22,28 @@ import static ru.csdm.stats.common.model.collector.tables.KnownServer.KNOWN_SERV
 @RequestScoped
 @Named
 @Slf4j
-public class InstanceOperations {
+public class RequestInstances {
     @Autowired
     private DSLContext collectorDsl;
+    @Autowired
+    private DependentUtil util;
 
     @Getter
     private List<Instance> instances;
     @Getter
     private Map<UInteger, Integer> knownServersAtAllInstances;
+
+    @PostConstruct
+    public void init() {
+        if(log.isDebugEnabled())
+            log.debug("\ninit");
+
+        FacesContext fc = FacesContext.getCurrentInstance();
+        if(fc.isPostback()) {
+            if(util.trySendRedirect("showInstForm", "instTblId", "editInstance", "instanceId"))
+                return;
+        }
+    }
 
     public void fetch() {
         if(log.isDebugEnabled())
@@ -38,7 +55,7 @@ public class InstanceOperations {
 
         knownServersAtAllInstances = collectorDsl.select(INSTANCE.ID, DSL.countDistinct(KNOWN_SERVER.ID))
                 .from(INSTANCE)
-                .join(KNOWN_SERVER).on(INSTANCE.ID.eq(KNOWN_SERVER.INSTANCE_ID))
+                .leftJoin(KNOWN_SERVER).on(INSTANCE.ID.eq(KNOWN_SERVER.INSTANCE_ID))
                 .groupBy(INSTANCE.ID)
                 .fetchMap(INSTANCE.ID, DSL.count());
     }

@@ -82,7 +82,7 @@ public class ViewEditProject {
         FacesContext fc = FacesContext.getCurrentInstance();
 
         if (!StringUtils.isNumeric(projectIdStr)) {
-            fc.addMessage(null, new FacesMessage(SEVERITY_WARN, "Invalid projectId", ""));
+            fc.addMessage("fetchMsgs", new FacesMessage(SEVERITY_WARN, "Invalid projectId", ""));
             return;
         }
 
@@ -94,7 +94,7 @@ public class ViewEditProject {
 
         if(Objects.isNull(selectedProject)) {
             fc.getExternalContext().setResponseStatus(HttpServletResponse.SC_NOT_FOUND);
-            fc.addMessage(null, new FacesMessage(SEVERITY_WARN, "Project [" + projectId + "] not founded", ""));
+            fc.addMessage("fetchMsgs", new FacesMessage(SEVERITY_WARN, "Project [" + projectId + "] not founded", ""));
             return;
         }
 
@@ -203,7 +203,7 @@ public class ViewEditProject {
             tablesCount = null;
 
             fc.addMessage("msgs", new FacesMessage(SEVERITY_WARN,
-                    "Failed validation project [" + selectedProject.getId() + "]",
+                    "Failed validation project [" + selectedProject.getId() + "] " + selectedProject.getName(),
                     e.toString()));
 
             return;
@@ -213,13 +213,14 @@ public class ViewEditProject {
 
         if(tablesCount != 5) {
             fc.addMessage("msgs", new FacesMessage(SEVERITY_WARN,
-                    "Failed validation project [" + selectedProject.getId() + "]",
+                    "Failed validation project [" + selectedProject.getId() + "] " + selectedProject.getName(),
                     "One of 5 database tables is missing"));
 
             return;
         }
 
-        fc.addMessage("msgs", new FacesMessage("Project [" + selectedProject.getId() + "] settings validated", ""));
+        fc.addMessage("msgs", new FacesMessage("Project [" + selectedProject.getId() + "] "
+                + selectedProject.getName() + " settings validated", ""));
         connectionValidated = true;
     }
 
@@ -280,10 +281,11 @@ public class ViewEditProject {
 
             fetchDriverProperties();
 
-            fc.addMessage("msgs", new FacesMessage("Project [" + selectedProject.getId() + "] saved, " + changesCount + " changes", ""));
+            fc.addMessage("msgs", new FacesMessage("Project [" + selectedProject.getId() + "] " +
+                    selectedProject.getName() + " saved", changesCount + " changes"));
         } catch (Exception e) {
             fc.addMessage("msgs", new FacesMessage(SEVERITY_WARN,
-                    "Failed save project [" + selectedProject.getId() + "]",
+                    "Failed save project [" + selectedProject.getId() + "] " + selectedProject.getName(),
                     e.toString()));
         } finally {
             connectionValidated = false;

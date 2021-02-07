@@ -20,6 +20,7 @@ import javax.faces.view.ViewScoped;
 import javax.inject.Named;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import javax.validation.Validation;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -60,7 +61,7 @@ public class ViewKnownServersByProjectId {
         FacesContext fc = FacesContext.getCurrentInstance();
 
         if (!StringUtils.isNumeric(projectIdStr)) {
-            fc.addMessage(null, new FacesMessage(SEVERITY_WARN, "Invalid projectId", ""));
+            fc.addMessage("fetchMsgs", new FacesMessage(SEVERITY_WARN, "Invalid projectId", ""));
             return;
         }
 
@@ -71,7 +72,7 @@ public class ViewKnownServersByProjectId {
 
         if(Objects.isNull(selectedProject)) {
             fc.getExternalContext().setResponseStatus(HttpServletResponse.SC_NOT_FOUND);
-            fc.addMessage(null, new FacesMessage(SEVERITY_WARN, "Project [" + projectIdStr + "] not founded", ""));
+            fc.addMessage("fetchMsgs", new FacesMessage(SEVERITY_WARN, "Project [" + projectIdStr + "] not founded", ""));
             return;
         }
 
@@ -81,7 +82,7 @@ public class ViewKnownServersByProjectId {
     private void fetchKnownServers() {
         List<Row<KnownServer>> knownServerRows = collectorDsl.selectFrom(KNOWN_SERVER)
                 .where(KNOWN_SERVER.PROJECT_ID.eq(selectedProject.getId()))
-                .orderBy(KNOWN_SERVER.ID.asc())
+                .orderBy(KNOWN_SERVER.INSTANCE_ID.desc(), KNOWN_SERVER.ID.asc())
                 .fetchInto(KnownServer.class)
                 .stream()
                 .map(knownServer -> new Row<>(knownServer, EXISTED))
@@ -169,10 +170,11 @@ public class ViewKnownServersByProjectId {
 
             fetchKnownServers();
 
-            fc.addMessage("msgs", new FacesMessage("Project [" + selectedProject.getId() + "] saved, " + changesCount + " changes", ""));
+            fc.addMessage("msgs", new FacesMessage("Project [" + selectedProject.getId() + "] "
+                    + selectedProject.getName() + " saved", changesCount + " changes"));
         } catch (Exception e) {
             fc.addMessage("msgs", new FacesMessage(SEVERITY_WARN,
-                    "Failed save project [" + selectedProject.getId() + "]",
+                    "Failed save project [" + selectedProject.getId() + "] " + selectedProject.getName(),
                     e.toString()));
         } finally {
             addServerBtnDisabled = false;

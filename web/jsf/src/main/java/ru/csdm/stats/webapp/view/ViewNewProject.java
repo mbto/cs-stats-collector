@@ -139,10 +139,8 @@ public class ViewNewProject {
             });
         } catch (Exception e) {
             tablesCount = null;
-
             fc.addMessage("msgs", new FacesMessage(SEVERITY_WARN,
-                    "Failed validation new project",
-                    e.toString()));
+                    "Failed validation new project", e.toString()));
 
             return;
         } finally {
@@ -195,7 +193,8 @@ public class ViewNewProject {
             return "/editProject?faces-redirect=true&projectId=" + selectedProject.getId();
         } catch (Exception e) {
             selectedProject.setId(null);
-            fc.addMessage("msgs", new FacesMessage(SEVERITY_WARN, "Failed save new project", e.toString()));
+            fc.addMessage("msgs", new FacesMessage(SEVERITY_WARN,
+                    "Failed save new project", e.toString()));
 
             return null;
         } finally {
