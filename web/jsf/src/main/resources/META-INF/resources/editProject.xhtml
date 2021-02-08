@@ -82,7 +82,7 @@
                      rowStyleClass="#{row.status == PojoStatus.TO_REMOVE ? 'propToRemove' : null}"
                      style="margin-top:10px;" styleClass="ui-fluid">
             <f:facet name="header">
-                <p:link value="Driver properties" href="https://dev.mysql.com/doc/connector-j/8.0/en/connector-j-reference-configuration-properties.html" style="font-weight:normal;" />
+                <p:link value="Driver properties (dev.mysql.com)" href="https://dev.mysql.com/doc/connector-j/8.0/en/connector-j-reference-configuration-properties.html" style="font-weight:normal;" />
             </f:facet>
             <p:ajax event="rowEdit" partialSubmit="true" listener="#{viewEditProject.onRowEdit}" update="edProjForm:addDrPropBtn edProjForm:saveBtn msgs" />
             <p:ajax event="rowEditCancel" partialSubmit="true"/>
@@ -137,13 +137,14 @@
         <p:commandButton type="button" value="Delete" onclick="PF('confDialDelete').show()"
                          icon="ui-icon-closethick" style="float:right;" styleClass="ui-button-danger"/>
         <p:confirmDialog widgetVar="confDialDelete" header="Confirm"
-            message="Are you sure you want to delete project [#{viewEditProject.selectedProject.id}] #{viewEditProject.selectedProject.name} ?">
+                         message="Are you sure you want to delete project [#{viewEditProject.selectedProject.id}] #{viewEditProject.selectedProject.name} ?">
 
-            <p:commandButton id="deleteBtn" value="Delete"
-                         process="@this" update="edBtnKnServers msgs" oncomplete="PF('confDialDelete').hide()" style="margin-left:10px;"
-                         action="#{viewEditProject.delete}" icon="ui-icon-closethick"/>
-            <p:commandButton type="button" value="Cancel" onclick="PF('confDialDelete').hide()" style="float:right;"
-                         icon="ui-icon-cancel"/>
+            <p:commandButton id="deleteBtn" value="Delete" action="#{viewEditProject.delete}"
+                         process="@this" update="edBtnKnServers msgs"
+                         onstart="PF('confDialDelete').hide()"
+                         style="margin-left:10px;" icon="ui-icon-closethick"/>
+            <p:commandButton type="button" value="Cancel" onclick="PF('confDialDelete').hide()"
+                         style="float:right;" icon="ui-icon-cancel"/>
         </p:confirmDialog>
     </h:form>
 <p:messages id="msgs" showSummary="true" showDetail="true"/>

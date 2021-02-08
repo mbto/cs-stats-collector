@@ -4,7 +4,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.tuple.Pair;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.Cache;
-import org.springframework.cache.CacheManager;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
@@ -48,16 +47,9 @@ public class CollectorEndpoint {
     private CollectorService collectorService;
 
     @Autowired
-    private DatagramsConsumer datagramsConsumer;
-
-    @Autowired
     private SettingsService settingsService;
 
-    @Autowired
-    private CacheManager cacheManager;
-
     @PostMapping(value = "/flush")
-    @PreAuthorize("hasRole('manager')")
     public Map<String, String> flush(Principal principal) {
         log.info("Manager '" + Optional.ofNullable(principal)
                 .map(Principal::getName)
@@ -68,20 +60,15 @@ public class CollectorEndpoint {
 
     @PostMapping(value = "/updateSettings")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    @PreAuthorize("hasRole('manager')")
     public void updateSettings(Principal principal) {
         log.info("Manager '" + Optional.ofNullable(principal)
                 .map(Principal::getName)
                 .orElse("") + "' requested /stats/updateSettings");
 
-        Optional.ofNullable(cacheManager.getCache("managers")) /* Cache "managers" existed only in "default" profile */
-                .ifPresent(Cache::clear);
-
         settingsService.updateSettings(false);
     }
 
     @GetMapping(value = "", produces = MediaType.APPLICATION_JSON_UTF8_VALUE)
-    @PreAuthorize("hasRole('manager')")
     public Map<String, Object> stats(Principal principal) {
         log.info("Manager '" + Optional.ofNullable(principal)
                 .map(Principal::getName)

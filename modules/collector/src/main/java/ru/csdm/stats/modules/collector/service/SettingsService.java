@@ -1,6 +1,7 @@
 package ru.csdm.stats.modules.collector.service;
 
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.jooq.types.UInteger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -10,9 +11,11 @@ import org.springframework.stereotype.Service;
 import ru.csdm.stats.common.dto.CollectorData;
 import ru.csdm.stats.common.dto.ServerData;
 import ru.csdm.stats.common.model.collector.tables.pojos.DriverProperty;
+import ru.csdm.stats.common.model.collector.tables.pojos.Instance;
 import ru.csdm.stats.common.model.collector.tables.pojos.KnownServer;
 import ru.csdm.stats.common.model.collector.tables.pojos.Project;
 import ru.csdm.stats.dao.CollectorDao;
+import ru.csdm.stats.service.InstanceHolder;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -31,16 +34,20 @@ public class SettingsService {
 
     @Autowired
     private CollectorDao collectorDao;
-
-    @Value("${collector.instance.name}")
-    private String collectorInstanceName;
+    @Autowired
+    private InstanceHolder instanceHolder;
 
     public void updateSettings(boolean firstLoading) {
-        log.info("Updating servers settings from database, instance name: " + collectorInstanceName);
+        Instance instance = instanceHolder.getAvailableInstances()
+                .get(instanceHolder.getCurrentInstanceId());
+
+        log.info("Updating servers settings from database, instance: "
+                + "[" + instance.getId() + "] "
+                + instance.getName() + (StringUtils.isBlank(instance.getDescription()) ? "" : " (" + instance.getDescription() + ")"));
 
         CollectorData collectorData = null;
         try {
-            collectorData = collectorDao.fetchCollectorData(collectorInstanceName);
+            collectorData = collectorDao.fetchCollectorData();
         } catch (Throwable e) {
             log.warn("Unable to fetch collector data from database", e);
         }

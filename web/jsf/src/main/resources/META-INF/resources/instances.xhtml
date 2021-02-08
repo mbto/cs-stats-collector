@@ -26,7 +26,7 @@
 
     <p:dataTable id="instTblId" value="#{requestInstances.instances}" var="instance"
                  selectionMode="single" rowKey="#{instance.id}" reflow="true"
-                 rowStyleClass="#{instance.id == sessionInstanceHolder.currentInstanceId ? 'currentInstance' : null}">
+                 rowStyleClass="#{instance.id == instanceHolder.currentInstanceId ? 'currentInstance' : null}">
         <f:facet name="header">Instances</f:facet>
 
         <p:ajax event="rowSelect" immediate="true" process="@this" update="@none" />

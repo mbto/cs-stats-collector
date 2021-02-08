@@ -74,7 +74,7 @@
                      rowStyleClass="#{row.status == PojoStatus.TO_REMOVE ? 'propToRemove' : null}"
                      style="margin-top:10px;" styleClass="ui-fluid">
             <f:facet name="header">
-                <p:link value="Driver properties" href="https://dev.mysql.com/doc/connector-j/8.0/en/connector-j-reference-configuration-properties.html" style="font-weight:normal;" />
+                <p:link value="Driver properties (dev.mysql.com)" href="https://dev.mysql.com/doc/connector-j/8.0/en/connector-j-reference-configuration-properties.html" style="font-weight:normal;" />
             </f:facet>
             <p:ajax event="rowEdit" partialSubmit="true" listener="#{viewNewProject.onRowEdit}" update="edProjForm:addDrPropBtn edProjForm:saveBtn msgs" />
             <p:ajax event="rowEditCancel" partialSubmit="true"/>

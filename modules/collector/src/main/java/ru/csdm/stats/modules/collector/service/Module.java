@@ -17,27 +17,14 @@ import javax.annotation.PostConstruct;
 @Slf4j
 public class Module {
     @Autowired
-    private ApplicationContext applicationContext;
-
-    @Autowired
     private Listener listener;
     @Autowired
     private SettingsService settingsService;
-
-    @Value("${collector.instance.name}")
-    private String collectorInstanceName;
 
     @PostConstruct
     public void init() {
         if(log.isDebugEnabled())
             log.debug("init() start");
-
-        if(StringUtils.isBlank(collectorInstanceName)) {
-            log.warn("Failed initialize module, due empty property 'collector.instance.name'");
-
-            int code = SpringApplication.exit(applicationContext, () -> 1);
-            System.exit(code);
-        }
 
         log.info("Available processors: " + Runtime.getRuntime().availableProcessors());
 

@@ -7,7 +7,10 @@ import org.jooq.DSLContext;
 import org.jooq.impl.DSL;
 import org.jooq.types.UInteger;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.SpringApplication;
+import org.springframework.context.ApplicationContext;
 import ru.csdm.stats.common.model.collector.tables.pojos.Instance;
+import ru.csdm.stats.service.InstanceHolder;
 
 import javax.faces.application.FacesMessage;
 import javax.faces.context.FacesContext;
@@ -26,7 +29,11 @@ import static ru.csdm.stats.common.model.collector.tables.KnownServer.KNOWN_SERV
 @Slf4j
 public class ViewEditInstance {
     @Autowired
+    private ApplicationContext applicationContext;
+    @Autowired
     private DSLContext collectorDsl;
+    @Autowired
+    private InstanceHolder instanceHolder;
 
     @Getter
     private Instance selectedInstance;
@@ -52,9 +59,8 @@ public class ViewEditInstance {
 
         UInteger instanceId = UInteger.valueOf(instanceIdStr);
 
-        selectedInstance = collectorDsl.selectFrom(INSTANCE)
-                .where(INSTANCE.ID.eq(instanceId))
-                .fetchOneInto(Instance.class);
+        selectedInstance = instanceHolder.getAvailableInstances(true)
+                .get(instanceId);
 
         if(Objects.isNull(selectedInstance)) {
             fc.getExternalContext().setResponseStatus(HttpServletResponse.SC_NOT_FOUND);
@@ -86,6 +92,8 @@ public class ViewEditInstance {
                         .execute();
             });
 
+            instanceHolder.getAvailableInstances(true);
+
             fc.addMessage("msgs", new FacesMessage("Instance [" + selectedInstance.getId() + "] "
                     + selectedInstance.getName() + " saved", changesCount + " changes"));
         } catch (Exception e) {
@@ -108,6 +116,8 @@ public class ViewEditInstance {
             collectorDsl.deleteFrom(INSTANCE)
                     .where(INSTANCE.ID.eq(selectedInstance.getId()))
                     .execute();
+
+            instanceHolder.getAvailableInstances(true);
         } catch (Exception e) {
             FacesContext.getCurrentInstance().addMessage("msgs", new FacesMessage(SEVERITY_WARN,
                     "Failed delete instance [" + selectedInstance.getId() + "] " + selectedInstance.getName(),
@@ -117,5 +127,12 @@ public class ViewEditInstance {
         }
 
         return "/instances?faces-redirect=true";
+    }
+
+    public void shutdownInstance() {
+        log.info("Shutdown received from frontend");
+
+        int code = SpringApplication.exit(applicationContext, () -> 1);
+        System.exit(code);
     }
 }

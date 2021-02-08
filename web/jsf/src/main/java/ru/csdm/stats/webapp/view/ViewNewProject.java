@@ -14,6 +14,7 @@ import ru.csdm.stats.common.Constants;
 import ru.csdm.stats.common.model.collector.enums.ProjectDatabaseServerTimezone;
 import ru.csdm.stats.common.model.collector.tables.pojos.DriverProperty;
 import ru.csdm.stats.common.model.collector.tables.pojos.Project;
+import ru.csdm.stats.common.utils.SomeUtils;
 import ru.csdm.stats.webapp.DependentUtil;
 import ru.csdm.stats.webapp.PojoStatus;
 import ru.csdm.stats.webapp.Row;
@@ -28,7 +29,6 @@ import java.util.*;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static javax.faces.application.FacesMessage.SEVERITY_WARN;
-import static ru.csdm.stats.common.Constants.PROJECT_DATABASE_SERVER_TIMEZONES;
 import static ru.csdm.stats.common.model.collector.tables.DriverProperty.DRIVER_PROPERTY;
 import static ru.csdm.stats.common.model.collector.tables.Project.PROJECT;
 import static ru.csdm.stats.common.model.csstats.Tables.HISTORY;
@@ -67,9 +67,8 @@ public class ViewNewProject {
         selectedProject.setRegDatetime(LocalDateTime.now());
 
         String defaultTimeZoneStr = TimeZone.getDefault().getID();
-        ProjectDatabaseServerTimezone detectedTimeZone = Arrays.stream(PROJECT_DATABASE_SERVER_TIMEZONES)
-                .filter(e -> e.getLiteral().equalsIgnoreCase(defaultTimeZoneStr))
-                .findFirst().orElse(null);
+        ProjectDatabaseServerTimezone detectedTimeZone = SomeUtils.timezoneEnumByLiteral
+                .getOrDefault(defaultTimeZoneStr, null);
         selectedProject.setDatabaseServerTimezone(detectedTimeZone);
 
         driverPropertyRows = new ArrayList<>();

@@ -31,7 +31,6 @@ import static org.springframework.boot.autoconfigure.task.TaskExecutionAutoConfi
 
 @SpringBootApplication(exclude = {JooqAutoConfiguration.class, TaskExecutionAutoConfiguration.class})
 @EnableAsync(proxyTargetClass = true)
-@EnableCaching
 @EnableScheduling
 public class Application {
     static {

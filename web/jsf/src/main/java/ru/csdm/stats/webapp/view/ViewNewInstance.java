@@ -8,9 +8,13 @@ import org.jooq.impl.DSL;
 import org.jooq.types.UInteger;
 import org.springframework.beans.factory.annotation.Autowired;
 import ru.csdm.stats.common.model.collector.tables.pojos.Instance;
+import ru.csdm.stats.common.model.collector.tables.records.InstanceRecord;
+import ru.csdm.stats.service.InstanceHolder;
 
 import javax.faces.application.FacesMessage;
+import javax.faces.component.UIComponent;
 import javax.faces.context.FacesContext;
+import javax.faces.validator.ValidatorException;
 import javax.faces.view.ViewScoped;
 import javax.inject.Named;
 import java.time.LocalDateTime;
@@ -24,6 +28,8 @@ import static ru.csdm.stats.common.model.collector.tables.Instance.INSTANCE;
 public class ViewNewInstance {
     @Autowired
     private DSLContext collectorDsl;
+    @Autowired
+    private InstanceHolder instanceHolder;
 
     @Getter
     private Instance selectedInstance;
@@ -43,14 +49,16 @@ public class ViewNewInstance {
             collectorDsl.transaction(config -> {
                 DSLContext transactionalDsl = DSL.using(config);
 
-                UInteger instanceId = transactionalDsl.insertInto(INSTANCE)
+                InstanceRecord instanceRecord = transactionalDsl.insertInto(INSTANCE)
                         .set(INSTANCE.NAME, selectedInstance.getName())
                         .set(INSTANCE.DESCRIPTION, StringUtils.isBlank(selectedInstance.getDescription()) ? null : selectedInstance.getDescription())
-                        .returning(INSTANCE.ID)
-                        .fetchOne().getId();
+                        .returning(INSTANCE.asterisk())
+                        .fetchOne();
 
-                selectedInstance.setId(instanceId);
+                selectedInstance = instanceRecord.into(Instance.class);
             });
+
+            instanceHolder.getAvailableInstances(true);
 
             return "/editInstance?faces-redirect=true&instanceId=" + selectedInstance.getId();
         } catch (Exception e) {
@@ -60,5 +68,14 @@ public class ViewNewInstance {
 
             return null;
         }
+    }
+
+    public void validate(FacesContext context, UIComponent component, String value) throws ValidatorException {
+        if(instanceHolder.getAvailableInstances()
+                .values()
+                .stream()
+                .anyMatch(instance -> value.equalsIgnoreCase(instance.getName())))
+            throw new ValidatorException(new FacesMessage(FacesMessage.SEVERITY_WARN,
+                    "Instance name '" + value + "' already existed", ""));
     }
 }

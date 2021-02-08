@@ -38,27 +38,43 @@
 
         <p:separator />
 
-        <p:commandButton id="saveBtn" value="Save"
+        <p:commandButton id="saveBtn" value="Save" actionListener="#{viewEditInstance.save}"
                          process="@form" update="edInstPanel"
-                         actionListener="#{viewEditInstance.save}"
                          icon="ui-icon-check"/>
 
-        <p:commandButton type="button" value="Delete" onclick="PF('confDialDelete').show()"
-                         icon="ui-icon-closethick" style="float:right;" styleClass="ui-button-danger"/>
-        <p:confirmDialog widgetVar="confDialDelete" header="Confirm"
-            message="Are you sure you want to delete instance [#{viewEditInstance.selectedInstance.id}] #{viewEditInstance.selectedInstance.name} ?">
+        <ui:fragment rendered="#{viewEditInstance.selectedInstance.id != instanceHolder.currentInstanceId}">
+            <p:commandButton type="button" value="Delete" onclick="PF('confDialDelete').show()"
+                             icon="ui-icon-closethick" style="float:right;" styleClass="ui-button-danger"/>
+            <p:confirmDialog widgetVar="confDialDelete" header="Confirm"
+                message="Are you sure you want to delete instance [#{viewEditInstance.selectedInstance.id}] #{viewEditInstance.selectedInstance.name} ?">
 
-            <p:commandButton id="deleteBtn" value="Delete"
-                         process="@this" update="msgs" oncomplete="PF('confDialDelete').hide()" style="margin-left:10px;"
-                         action="#{viewEditInstance.delete}" icon="ui-icon-closethick"/>
-            <p:commandButton type="button" value="Cancel" onclick="PF('confDialDelete').hide()" style="float:right;"
-                         icon="ui-icon-cancel"/>
-        </p:confirmDialog>
+                <p:commandButton value="Delete" action="#{viewEditInstance.delete}"
+                             process="@this" update="msgs"
+                             onstart="PF('confDialDelete').hide();PF('buiInstects').show()" oncomplete="PF('buiInstects').hide()"
+                             style="margin-left:10px;" icon="ui-icon-closethick"/>
+                <p:commandButton type="button" value="Cancel" onclick="PF('confDialDelete').hide()" style="float:right;"
+                             icon="ui-icon-cancel"/>
+            </p:confirmDialog>
+        </ui:fragment>
+        <ui:fragment rendered="#{viewEditInstance.selectedInstance.id == instanceHolder.currentInstanceId}">
+            <p:commandButton type="button" value="Shutdown instance" onclick="PF('confDialDelete').show()"
+                             icon="ui-icon-power" style="float:right;" styleClass="ui-button-danger"/>
+            <p:confirmDialog widgetVar="confDialDelete" header="Confirm"
+                             message="Are you sure you want to shutdown instance [#{viewEditInstance.selectedInstance.id}] #{viewEditInstance.selectedInstance.name} ?">
+
+                <p:commandButton value="Shutdown instance" actionListener="#{viewEditInstance.shutdownInstance()}"
+                                 process="@this" update="@none"
+                                 onstart="PF('confDialDelete').hide();PF('buiInstects').show()" oncomplete="PF('buiInstects').hide()"
+                                 style="margin-left:10px;" icon="ui-icon-power"/>
+                <p:commandButton type="button" value="Cancel" onclick="PF('confDialDelete').hide()"
+                                 style="float:right;" icon="ui-icon-cancel"/>
+            </p:confirmDialog>
+        </ui:fragment>
     </h:form>
 <p:messages id="msgs" showSummary="true" showDetail="true"/>
 </p:panel>
 </p:outputPanel>
-<p:blockUI widgetVar="buiInstects" block="edInstOutPanel" trigger="edInstForm:saveBtn edInstForm:deleteBtn" >
+<p:blockUI widgetVar="buiInstects" block="edInstOutPanel" trigger="edInstForm:saveBtn" >
     <p:graphicImage library="images" name="ajaxloadingbar.gif"/>
 </p:blockUI>
 </ui:fragment>

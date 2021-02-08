@@ -10,9 +10,9 @@ import org.primefaces.event.RowEditEvent;
 import org.springframework.beans.factory.annotation.Autowired;
 import ru.csdm.stats.common.model.collector.tables.pojos.KnownServer;
 import ru.csdm.stats.common.model.collector.tables.pojos.Project;
+import ru.csdm.stats.service.InstanceHolder;
 import ru.csdm.stats.webapp.PojoStatus;
 import ru.csdm.stats.webapp.Row;
-import ru.csdm.stats.webapp.session.SessionInstanceHolder;
 
 import javax.faces.application.FacesMessage;
 import javax.faces.context.FacesContext;
@@ -20,7 +20,6 @@ import javax.faces.view.ViewScoped;
 import javax.inject.Named;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import javax.validation.Validation;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -36,7 +35,7 @@ public class ViewKnownServersByProjectId {
     @Autowired
     private DSLContext collectorDsl;
     @Autowired
-    private SessionInstanceHolder sessionInstanceHolder;
+    private InstanceHolder instanceHolder;
 
     @Getter
     private Project selectedProject;
@@ -93,7 +92,7 @@ public class ViewKnownServersByProjectId {
 
         for (Row<KnownServer> knownServerRow : knownServerRows) {
             KnownServer knownServer = knownServerRow.getPojo();
-            if(knownServer.getInstanceId().equals(sessionInstanceHolder.getCurrentInstanceId())) {
+            if(knownServer.getInstanceId().equals(instanceHolder.getCurrentInstanceId())) {
                 currentInstanceRows.add(knownServerRow);
             } else {
                 List<Row<KnownServer>> rows = otherInstanceRows.get(knownServer.getInstanceId());
@@ -200,7 +199,7 @@ public class ViewKnownServersByProjectId {
             log.debug("\nonAddKnownServer");
 
         KnownServer knownServer = new KnownServer();
-        knownServer.setInstanceId(sessionInstanceHolder.getCurrentInstanceId());
+        knownServer.setInstanceId(instanceHolder.getCurrentInstanceId());
         knownServer.setProjectId(selectedProject.getId());
         currentInstanceRows.add(new Row<>(knownServer, NEW));
         addServerBtnDisabled = true;

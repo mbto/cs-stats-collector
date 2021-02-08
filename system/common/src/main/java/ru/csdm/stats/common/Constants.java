@@ -19,5 +19,5 @@ public interface Constants {
     Pattern STEAMID_PATTERN = Pattern.compile("STEAM_[0-1]:[0-1]:[0-9]+");
 
     /* to prevent dublicate array creating at .values() */
-    ProjectDatabaseServerTimezone[] PROJECT_DATABASE_SERVER_TIMEZONES = ProjectDatabaseServerTimezone.values();
+//    ProjectDatabaseServerTimezone[] PROJECT_DATABASE_SERVER_TIMEZONES = ProjectDatabaseServerTimezone.values();
 }

@@ -12,10 +12,10 @@ import org.primefaces.event.RowEditEvent;
 import org.springframework.beans.factory.annotation.Autowired;
 import ru.csdm.stats.common.model.collector.tables.pojos.DriverProperty;
 import ru.csdm.stats.common.model.collector.tables.pojos.Project;
+import ru.csdm.stats.service.InstanceHolder;
 import ru.csdm.stats.webapp.DependentUtil;
 import ru.csdm.stats.webapp.PojoStatus;
 import ru.csdm.stats.webapp.Row;
-import ru.csdm.stats.webapp.session.SessionInstanceHolder;
 
 import javax.faces.application.FacesMessage;
 import javax.faces.context.FacesContext;
@@ -52,7 +52,7 @@ public class ViewEditProject {
     @Autowired
     private DSLContext collectorDsl;
     @Autowired
-    private SessionInstanceHolder sessionInstanceHolder;
+    private InstanceHolder instanceHolder;
 
     @Getter
     private Project selectedProject;
@@ -118,7 +118,7 @@ public class ViewEditProject {
                         .from(KNOWN_SERVER)
                         .join(INSTANCE).on(KNOWN_SERVER.INSTANCE_ID.eq(INSTANCE.ID))
                         .where(KNOWN_SERVER.PROJECT_ID.eq(selectedProject.getId()),
-                                INSTANCE.ID.eq(sessionInstanceHolder.getCurrentInstanceId()))
+                                INSTANCE.ID.eq(instanceHolder.getCurrentInstanceId()))
                         .<Integer>asField("at_instance"),
                 DSL.selectCount()
                         .from(KNOWN_SERVER)

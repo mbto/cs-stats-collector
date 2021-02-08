@@ -80,7 +80,7 @@ public class RequestKnownServersByInstanceId {
             return;
         }
 
-        currentKnownServers = collectorDsl.select(KNOWN_SERVER.fields())
+        currentKnownServers = collectorDsl.select(KNOWN_SERVER.asterisk())
                 .from(KNOWN_SERVER)
                 .join(INSTANCE).on(KNOWN_SERVER.INSTANCE_ID.eq(INSTANCE.ID))
                 .where(INSTANCE.ID.eq(selectedInstance.getId()))

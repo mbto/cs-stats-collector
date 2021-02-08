@@ -38,7 +38,7 @@
                  styleClass="ui-fluid">
         <f:facet name="header">
             Known servers: #{viewKnownServersByProjectId.currentInstanceRows.size()} |
-            Current instance: [#{sessionInstanceHolder.currentInstanceId}] #{sessionInstanceHolder.availableInstances.get(sessionInstanceHolder.currentInstanceId).name}
+            Current instance: [#{instanceHolder.currentInstanceId}] #{instanceHolder.availableInstances.get(instanceHolder.currentInstanceId).name}
         </f:facet>
         <p:ajax event="rowEdit" partialSubmit="true" listener="#{viewKnownServersByProjectId.onRowEdit}" update="edKnServsForm:addKnownServerBtn msgs" />
         <p:ajax event="rowEditCancel" partialSubmit="true"/>
@@ -84,7 +84,7 @@
         </p:column>
 
         <p:column headerText="Start session on action" width="120">
-            <p:cellEditor rendered="#{row.pojo.instanceId == sessionInstanceHolder.currentInstanceId}">
+            <p:cellEditor rendered="#{row.pojo.instanceId == instanceHolder.currentInstanceId}">
                 <f:facet name="output"><h:outputText value="#{row.pojo.startSessionOnAction ? 'Yes' : 'No'}" rendered="#{not empty row.pojo.startSessionOnAction}"/></f:facet>
                 <f:facet name="input"><p:selectBooleanButton value="#{row.pojo.startSessionOnAction}" onLabel="Yes" offLabel="No" required="true"/></f:facet>
             </p:cellEditor>
@@ -127,7 +127,7 @@
     <p:dataTable value="#{entry.value}" var="row" style="margin-top:10px;" styleClass="ui-fluid">
         <f:facet name="header">
             Known servers: #{entry.value.size()} |
-            Other instance: [#{entry.key}] #{sessionInstanceHolder.availableInstances.get(entry.key).name}
+            Other instance: [#{entry.key}] #{instanceHolder.availableInstances.get(entry.key).name}
         </f:facet>
 
         <p:column headerText="ip:port" width="200">

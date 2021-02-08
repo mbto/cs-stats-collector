@@ -22,7 +22,8 @@
             </h:outputText>
 
             <p:outputLabel value="Name" for="iName" />
-            <p:inputText id="iName" value="#{viewNewInstance.selectedInstance.name}" required="true" placeholder="instance_N"/>
+            <p:inputText id="iName" value="#{viewNewInstance.selectedInstance.name}" required="true" placeholder="instance_N"
+                         validator="#{viewNewInstance.validate}"/>
 
             <p:outputLabel value="Description" for="iDesc" />
             <p:inputTextarea id="iDesc" value="#{viewNewInstance.selectedInstance.description}" />

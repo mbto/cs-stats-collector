@@ -3,6 +3,7 @@ package ru.csdm.stats.webapp;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import ru.csdm.stats.common.model.collector.enums.ProjectDatabaseServerTimezone;
 
 import javax.enterprise.context.Dependent;
 import javax.faces.application.FacesMessage;
@@ -16,8 +17,6 @@ import java.io.Serializable;
 import java.util.Arrays;
 import java.util.Objects;
 
-import static ru.csdm.stats.common.Constants.PROJECT_DATABASE_SERVER_TIMEZONES;
-
 @Dependent
 @Named
 @Slf4j
@@ -25,7 +24,7 @@ public class DependentUtil implements Serializable {
     private static final long serialVersionUID = 1L;
 
     @Getter
-    private static final SelectItem[] AVAILABLE_TIME_ZONES = Arrays.stream(PROJECT_DATABASE_SERVER_TIMEZONES)
+    private static final SelectItem[] AVAILABLE_TIME_ZONES = Arrays.stream(ProjectDatabaseServerTimezone.values())
             .map(timezone -> new SelectItem(timezone, timezone.getLiteral()))
             .toArray(SelectItem[]::new);
 

@@ -12,10 +12,7 @@
 
     <link rel="shortcut icon" type="image/x-icon" href="#{resource['images/favicon.png']}"/>
     <title><ui:insert name="title">
-        <h:outputText value="[#{sessionInstanceHolder.currentInstanceId}] #{sessionInstanceHolder.availableInstances.get(sessionInstanceHolder.currentInstanceId).name}"
-                      rendered="#{not empty sessionInstanceHolder.currentInstanceId}" />
-        <h:outputText value="Unknown instance"
-                      rendered="#{empty sessionInstanceHolder.currentInstanceId}" />
+        <h:outputText value="[#{instanceHolder.currentInstanceId}] #{instanceHolder.availableInstances.get(instanceHolder.currentInstanceId).name}"/>
     </ui:insert></title>
 
     <h:outputStylesheet name="css/default.css" />
@@ -40,21 +37,22 @@
                 </div>
             </div>
         </div>
+        <ui:fragment rendered="#{instanceHolder.devEnvironment}">
         <div class="ui-g-12">
             <p:outputPanel style="text-align:center;display:block;margin: 0 auto;">
                 <h:form>
-                    <p:selectOneMenu value="#{sessionInstanceHolder.currentInstanceId}" style="width: 200px;">
+                    <p:selectOneMenu value="#{instanceHolder.currentInstanceId}" style="width: 200px;">
                         <f:selectItem itemLabel="Select instance" noSelectionOption="true" itemDisabled="true"/>
-                        <f:selectItems value="#{sessionInstanceHolder.availableInstances.entrySet()}" var="entry"
+                        <f:selectItems value="#{instanceHolder.availableInstances.entrySet()}" var="entry"
                                        itemLabel="[#{entry.key}] #{entry.value.name}#{empty entry.value.description ? '' : (' (' += entry.value.description += ')')}"
                                        itemValue="#{entry.value.id}"/>
 
-                        <p:ajax event="change" process="@this" update="@none" immediate="true"
-                                onsuccess="document.location.href = document.location.href;" />
+                        <p:ajax event="change" process="@this" update="@none" immediate="true" onsuccess="document.location.href = document.location.href;" />
                     </p:selectOneMenu>
                 </h:form>
             </p:outputPanel>
         </div>
+        </ui:fragment>
     </div>
 
     <ui:insert name="excepts">
@@ -70,6 +68,5 @@
         </p:dialog>
     </ui:insert>
 </h:body>
-
 <!--<ui:debug hotkey="x"/>-->
 </html>
