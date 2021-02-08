@@ -224,7 +224,7 @@ public class ViewEditProject {
         connectionValidated = true;
     }
 
-    public void save() {
+    public void saveNameDesc() {
         FacesContext fc = FacesContext.getCurrentInstance();
         changesCount = 0;
 
@@ -235,6 +235,28 @@ public class ViewEditProject {
                 changesCount += transactionalDsl.update(PROJECT)
                         .set(PROJECT.NAME, selectedProject.getName())
                         .set(PROJECT.DESCRIPTION, StringUtils.isBlank(selectedProject.getDescription()) ? null : selectedProject.getDescription())
+                        .where(PROJECT.ID.eq(selectedProject.getId()))
+                        .execute();
+            });
+
+            fc.addMessage("msgs", new FacesMessage("Project [" + selectedProject.getId() + "] " +
+                    selectedProject.getName() + " name/desc saved", changesCount + " changes"));
+        } catch (Exception e) {
+            fc.addMessage("msgs", new FacesMessage(SEVERITY_WARN,
+                    "Failed save name/desc of project [" + selectedProject.getId() + "] " + selectedProject.getName(),
+                    e.toString()));
+        }
+    }
+    
+    public void save() {
+        FacesContext fc = FacesContext.getCurrentInstance();
+        changesCount = 0;
+
+        try {
+            collectorDsl.transaction(config -> {
+                DSLContext transactionalDsl = DSL.using(config);
+
+                changesCount += transactionalDsl.update(PROJECT)
                         .set(PROJECT.DATABASE_HOSTPORT, selectedProject.getDatabaseHostport())
                         .set(PROJECT.DATABASE_SCHEMA, selectedProject.getDatabaseSchema())
                         .set(PROJECT.DATABASE_USERNAME, selectedProject.getDatabaseUsername())

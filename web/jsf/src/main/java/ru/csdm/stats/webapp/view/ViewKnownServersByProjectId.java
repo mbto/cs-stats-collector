@@ -15,7 +15,9 @@ import ru.csdm.stats.webapp.PojoStatus;
 import ru.csdm.stats.webapp.Row;
 
 import javax.faces.application.FacesMessage;
+import javax.faces.component.UIComponent;
 import javax.faces.context.FacesContext;
+import javax.faces.validator.ValidatorException;
 import javax.faces.view.ViewScoped;
 import javax.inject.Named;
 import javax.servlet.http.HttpServletRequest;
@@ -24,6 +26,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 import static javax.faces.application.FacesMessage.SEVERITY_WARN;
+import static ru.csdm.stats.common.Constants.IPADDRESS_PORT_PATTERN;
 import static ru.csdm.stats.common.model.collector.tables.KnownServer.KNOWN_SERVER;
 import static ru.csdm.stats.common.model.collector.tables.Project.PROJECT;
 import static ru.csdm.stats.webapp.PojoStatus.*;
@@ -104,6 +107,50 @@ public class ViewKnownServersByProjectId {
                 rows.add(knownServerRow);
             }
         }
+    }
+
+    public void validate(FacesContext context, UIComponent component, String value) throws ValidatorException {
+        if(!IPADDRESS_PORT_PATTERN.matcher(value).matches())
+            throw makeValidatorException(value, "");
+
+        int rowIndexVar = (int) component.getAttributes().get("rowIndexVar");
+
+        if(log.isDebugEnabled())
+            log.debug("\nrowIndexVar=" + rowIndexVar + ", currentInstanceRows.size=" + currentInstanceRows.size());
+
+        for (int i = 0; i < currentInstanceRows.size(); i++) {
+            if(i == rowIndexVar)
+                continue;
+
+            Row<KnownServer> currentInstanceRow = currentInstanceRows.get(i);
+            KnownServer knownServer = currentInstanceRow.getPojo();
+
+            if(!value.equals(knownServer.getIpport()))
+                continue;
+
+            throw makeValidatorException(value, "Already exists at known server "
+                    + knownServer.getIpport()
+                    + " (" + knownServer.getName() + ")");
+        }
+
+        Project projectWithSameIpport = collectorDsl.selectDistinct(PROJECT.ID, PROJECT.NAME)
+                .from(PROJECT)
+                .join(KNOWN_SERVER).on(PROJECT.ID.eq(KNOWN_SERVER.PROJECT_ID))
+                .where(KNOWN_SERVER.IPPORT.eq(value),
+                       KNOWN_SERVER.PROJECT_ID.notEqual(selectedProject.getId()),
+                       KNOWN_SERVER.INSTANCE_ID.eq(instanceHolder.getCurrentInstanceId())
+                ).fetchOneInto(Project.class);
+
+        if(Objects.nonNull(projectWithSameIpport)) {
+            throw makeValidatorException(value, "This ip:port belongs to another project [" + projectWithSameIpport.getId() + "] "
+                    + projectWithSameIpport.getName());
+        }
+    }
+
+    private ValidatorException makeValidatorException(String ipport, String details) {
+        return new ValidatorException(new FacesMessage(FacesMessage.SEVERITY_WARN,
+                "Failed validation ip:port '" + ipport + "'",
+                details));
     }
 
     public void save() {

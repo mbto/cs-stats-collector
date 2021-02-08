@@ -42,7 +42,7 @@
     </p:button>
 
     <p:separator/>
-    <h:form id="edProjForm">
+    <h:form id="edProjNameForm">
         <p:panelGrid columns="2" style="width:100%;" styleClass="ui-panelgrid-blank ui-fluid">
             <h:outputText value="Reg date" />
             <h:outputText value="#{viewEditProject.selectedProject.regDatetime}">
@@ -54,7 +54,17 @@
 
             <p:outputLabel value="Description" for="iDesc" />
             <p:inputTextarea id="iDesc" value="#{viewEditProject.selectedProject.description}" />
+        </p:panelGrid>
 
+        <p:commandButton id="saveNameBtn" value="Save name/desc"
+                         process="@form" update="edProjPanel"
+                         actionListener="#{viewEditProject.saveNameDesc}"
+                         icon="ui-icon-check"/>
+    </h:form>
+
+    <p:separator/>
+    <h:form id="edProjForm">
+        <p:panelGrid columns="2" style="width:100%;" styleClass="ui-panelgrid-blank ui-fluid">
             <p:outputLabel value="DB host:port" for="iHP" />
             <p:inputText id="iHP" value="#{viewEditProject.selectedProject.databaseHostport}" required="true" placeholder="example:com:3306" />
 
@@ -150,7 +160,7 @@
 <p:messages id="msgs" showSummary="true" showDetail="true"/>
 </p:panel>
 </p:outputPanel>
-<p:blockUI widgetVar="buiProjects" block="edProjOutPanel" trigger="edProjForm:validateBtn edProjForm:saveBtn edProjForm:deleteBtn edProjForm:drProps edProjForm:addDrPropBtn" >
+<p:blockUI widgetVar="buiProjects" block="edProjOutPanel" trigger="edProjNameForm:saveNameBtn edProjForm:validateBtn edProjForm:saveBtn edProjForm:deleteBtn edProjForm:drProps edProjForm:addDrPropBtn" >
     <p:graphicImage library="images" name="ajaxloadingbar.gif"/>
 </p:blockUI>
 </ui:fragment>
