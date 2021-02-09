@@ -18,6 +18,7 @@ import ru.csdm.stats.common.utils.SomeUtils;
 import ru.csdm.stats.webapp.DependentUtil;
 import ru.csdm.stats.webapp.PojoStatus;
 import ru.csdm.stats.webapp.Row;
+import ru.csdm.stats.webapp.application.ChangesCounter;
 
 import javax.enterprise.context.RequestScoped;
 import javax.faces.application.FacesMessage;
@@ -46,6 +47,8 @@ import static ru.csdm.stats.webapp.PojoStatus.*;
 public class ViewNewProject {
     @Autowired
     private DSLContext collectorDsl;
+    @Autowired
+    private ChangesCounter changesCounter;
 
     @Getter
     private Project selectedProject;
@@ -58,6 +61,7 @@ public class ViewNewProject {
     private boolean addDriverPropertyBtnDisabled;
 
     private Integer tablesCount;
+    private int localChangesCounter;
 
     public void fetch() {
         if(log.isDebugEnabled())
@@ -160,6 +164,7 @@ public class ViewNewProject {
 
     public String save() {
         FacesContext fc = FacesContext.getCurrentInstance();
+        localChangesCounter = 0;
 
         try {
             collectorDsl.transaction(config -> {
@@ -176,18 +181,22 @@ public class ViewNewProject {
                         .returning(PROJECT.ID)
                         .fetchOne().getId();
 
+                ++localChangesCounter;
+
                 selectedProject.setId(projectId);
 
                 for (Row<DriverProperty> row : driverPropertyRows) {
                     DriverProperty driverProperty = row.getPojo();
 
-                    transactionalDsl.insertInto(DRIVER_PROPERTY)
+                    localChangesCounter += transactionalDsl.insertInto(DRIVER_PROPERTY)
                             .set(DRIVER_PROPERTY.KEY, driverProperty.getKey())
                             .set(DRIVER_PROPERTY.VALUE, driverProperty.getValue())
                             .set(DRIVER_PROPERTY.PROJECT_ID, selectedProject.getId())
                             .execute();
                 }
             });
+
+            changesCounter.increment(localChangesCounter);
 
             return "/editProject?faces-redirect=true&projectId=" + selectedProject.getId();
         } catch (Exception e) {

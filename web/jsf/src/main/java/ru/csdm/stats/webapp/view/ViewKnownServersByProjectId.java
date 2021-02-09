@@ -3,6 +3,7 @@ package ru.csdm.stats.webapp.view;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.tuple.Pair;
 import org.jooq.DSLContext;
 import org.jooq.impl.DSL;
 import org.jooq.types.UInteger;
@@ -10,9 +11,11 @@ import org.primefaces.event.RowEditEvent;
 import org.springframework.beans.factory.annotation.Autowired;
 import ru.csdm.stats.common.model.collector.tables.pojos.KnownServer;
 import ru.csdm.stats.common.model.collector.tables.pojos.Project;
+import ru.csdm.stats.common.utils.SomeUtils;
 import ru.csdm.stats.service.InstanceHolder;
 import ru.csdm.stats.webapp.PojoStatus;
 import ru.csdm.stats.webapp.Row;
+import ru.csdm.stats.webapp.application.ChangesCounter;
 
 import javax.faces.application.FacesMessage;
 import javax.faces.component.UIComponent;
@@ -39,6 +42,8 @@ public class ViewKnownServersByProjectId {
     private DSLContext collectorDsl;
     @Autowired
     private InstanceHolder instanceHolder;
+    @Autowired
+    private ChangesCounter changesCounter;
 
     @Getter
     private Project selectedProject;
@@ -47,11 +52,13 @@ public class ViewKnownServersByProjectId {
     private final List<Row<KnownServer>> currentInstanceRows = new ArrayList<>();
     @Getter
     private final Map<UInteger, List<Row<KnownServer>>> otherInstanceRows = new LinkedHashMap<>();
+    @Getter
+    private String existedIpports;
 
     @Getter
     private boolean addServerBtnDisabled;
 
-    private int changesCount;
+    private int localChangesCounter;
 
     public void fetch() {
         if(log.isDebugEnabled())
@@ -107,6 +114,12 @@ public class ViewKnownServersByProjectId {
                 rows.add(knownServerRow);
             }
         }
+
+        existedIpports = String.join("<br/>", collectorDsl.select(KNOWN_SERVER.IPPORT)
+                .from(KNOWN_SERVER)
+                .where(KNOWN_SERVER.PROJECT_ID.notEqual(selectedProject.getId()),
+                       KNOWN_SERVER.INSTANCE_ID.eq(instanceHolder.getCurrentInstanceId())
+                ).fetchInto(String.class));
     }
 
     public void validate(FacesContext context, UIComponent component, String value) throws ValidatorException {
@@ -143,7 +156,7 @@ public class ViewKnownServersByProjectId {
 
         if(Objects.nonNull(projectWithSameIpport)) {
             throw makeValidatorException(value, "This ip:port belongs to another project [" + projectWithSameIpport.getId() + "] "
-                    + projectWithSameIpport.getName());
+                    + projectWithSameIpport.getName() + " at same instance");
         }
     }
 
@@ -155,7 +168,7 @@ public class ViewKnownServersByProjectId {
 
     public void save() {
         FacesContext fc = FacesContext.getCurrentInstance();
-        changesCount = 0;
+        localChangesCounter = 0;
 
         try {
             collectorDsl.transaction(config -> {
@@ -180,7 +193,7 @@ public class ViewKnownServersByProjectId {
                 }
 
                 if(!toRemoveKnownServerIds.isEmpty()) {
-                    changesCount += transactionalDsl.deleteFrom(KNOWN_SERVER)
+                    localChangesCounter += transactionalDsl.deleteFrom(KNOWN_SERVER)
                             .where(KNOWN_SERVER.ID.in(toRemoveKnownServerIds))
                             .execute();
                 }
@@ -190,17 +203,18 @@ public class ViewKnownServersByProjectId {
                     PojoStatus pojoStatus = row.getStatus();
 
                     if(pojoStatus == CHANGED) {
-                        changesCount += transactionalDsl.update(KNOWN_SERVER)
-                                .set(KNOWN_SERVER.IPPORT, knownServer.getIpport())
-                                .set(KNOWN_SERVER.NAME, knownServer.getName())
-                                .set(KNOWN_SERVER.ACTIVE, knownServer.getActive())
-                                .set(KNOWN_SERVER.FFA, knownServer.getFfa())
-                                .set(KNOWN_SERVER.IGNORE_BOTS, knownServer.getIgnoreBots())
-                                .set(KNOWN_SERVER.START_SESSION_ON_ACTION, knownServer.getStartSessionOnAction())
-                                .where(KNOWN_SERVER.ID.eq(knownServer.getId()))
-                                .execute();
+                        localChangesCounter += SomeUtils.pointwiseUpdateQuery(KNOWN_SERVER.ID,
+                                Arrays.asList(
+                                    Pair.of(KNOWN_SERVER.IPPORT, knownServer.getIpport()),
+                                    Pair.of(KNOWN_SERVER.NAME, knownServer.getName()),
+                                    Pair.of(KNOWN_SERVER.ACTIVE, knownServer.getActive()),
+                                    Pair.of(KNOWN_SERVER.FFA, knownServer.getFfa()),
+                                    Pair.of(KNOWN_SERVER.IGNORE_BOTS, knownServer.getIgnoreBots()),
+                                    Pair.of(KNOWN_SERVER.START_SESSION_ON_ACTION, knownServer.getStartSessionOnAction())),
+                                knownServer.getId(),
+                                transactionalDsl);
                     } else if(pojoStatus == NEW) {
-                        changesCount += transactionalDsl.insertInto(KNOWN_SERVER)
+                        localChangesCounter += transactionalDsl.insertInto(KNOWN_SERVER)
                                 .set(KNOWN_SERVER.INSTANCE_ID, knownServer.getInstanceId())
                                 .set(KNOWN_SERVER.PROJECT_ID, knownServer.getProjectId())
                                 .set(KNOWN_SERVER.IPPORT, knownServer.getIpport())
@@ -214,10 +228,12 @@ public class ViewKnownServersByProjectId {
                 }
             });
 
+            changesCounter.increment(localChangesCounter);
+
             fetchKnownServers();
 
             fc.addMessage("msgs", new FacesMessage("Project [" + selectedProject.getId() + "] "
-                    + selectedProject.getName() + " saved", changesCount + " changes"));
+                    + selectedProject.getName() + " saved", localChangesCounter + " changes"));
         } catch (Exception e) {
             fc.addMessage("msgs", new FacesMessage(SEVERITY_WARN,
                     "Failed save project [" + selectedProject.getId() + "] " + selectedProject.getName(),

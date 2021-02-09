@@ -37,9 +37,7 @@
 <p:outputPanel id="edProjOutPanel" style="width:600px;">
 <p:panel id="edProjPanel" header="[#{viewEditProject.selectedProject.id}] #{viewEditProject.selectedProject.name}">
     <p:button id="edBtnKnServers" value="Edit known servers [#{viewEditProject.knownServersAtInstance} of #{viewEditProject.knownServersAtAllInstances}]"
-              outcome="/knownServersByProject" icon="ui-icon-arrowthick-1-e">
-        <f:param name="projectId" value="#{viewEditProject.selectedProject.id}"/>
-    </p:button>
+              href="/knownServersByProject?projectId=#{viewEditProject.selectedProject.id}" icon="ui-icon-arrowthick-1-e"/>
 
     <p:separator/>
     <h:form id="edProjNameForm">

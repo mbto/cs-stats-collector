@@ -4,18 +4,19 @@ import com.zaxxer.hikari.HikariDataSource;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.tuple.Pair;
 import org.jooq.*;
 import org.jooq.impl.DSL;
 import org.jooq.types.UInteger;
-import org.primefaces.context.RequestContext;
 import org.primefaces.event.RowEditEvent;
 import org.springframework.beans.factory.annotation.Autowired;
 import ru.csdm.stats.common.model.collector.tables.pojos.DriverProperty;
 import ru.csdm.stats.common.model.collector.tables.pojos.Project;
+import ru.csdm.stats.common.utils.SomeUtils;
 import ru.csdm.stats.service.InstanceHolder;
-import ru.csdm.stats.webapp.DependentUtil;
 import ru.csdm.stats.webapp.PojoStatus;
 import ru.csdm.stats.webapp.Row;
+import ru.csdm.stats.webapp.application.ChangesCounter;
 
 import javax.faces.application.FacesMessage;
 import javax.faces.context.FacesContext;
@@ -23,14 +24,10 @@ import javax.faces.view.ViewScoped;
 import javax.inject.Named;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
-import static javax.faces.application.FacesMessage.SEVERITY_INFO;
 import static javax.faces.application.FacesMessage.SEVERITY_WARN;
 import static ru.csdm.stats.common.model.collector.tables.DriverProperty.DRIVER_PROPERTY;
 import static ru.csdm.stats.common.model.collector.tables.KnownServer.KNOWN_SERVER;
@@ -53,6 +50,8 @@ public class ViewEditProject {
     private DSLContext collectorDsl;
     @Autowired
     private InstanceHolder instanceHolder;
+    @Autowired
+    private ChangesCounter changesCounter;
 
     @Getter
     private Project selectedProject;
@@ -70,7 +69,7 @@ public class ViewEditProject {
     private boolean addDriverPropertyBtnDisabled;
 
     private Integer tablesCount;
-    private int changesCount;
+    private int localChangesCounter;
 
     public void fetch() {
         if(log.isDebugEnabled())
@@ -220,27 +219,31 @@ public class ViewEditProject {
         }
 
         fc.addMessage("msgs", new FacesMessage("Project [" + selectedProject.getId() + "] "
-                + selectedProject.getName() + " settings validated", ""));
+                + selectedProject.getName(), "settings validated"));
         connectionValidated = true;
     }
 
     public void saveNameDesc() {
         FacesContext fc = FacesContext.getCurrentInstance();
-        changesCount = 0;
+        localChangesCounter = 0;
 
         try {
+            final String newDescription = StringUtils.isBlank(selectedProject.getDescription()) ? null : selectedProject.getDescription();
+
             collectorDsl.transaction(config -> {
                 DSLContext transactionalDsl = DSL.using(config);
 
-                changesCount += transactionalDsl.update(PROJECT)
-                        .set(PROJECT.NAME, selectedProject.getName())
-                        .set(PROJECT.DESCRIPTION, StringUtils.isBlank(selectedProject.getDescription()) ? null : selectedProject.getDescription())
-                        .where(PROJECT.ID.eq(selectedProject.getId()))
-                        .execute();
+                localChangesCounter += SomeUtils.pointwiseUpdateQuery(PROJECT.ID,
+                        Arrays.asList(Pair.of(PROJECT.NAME, selectedProject.getName()),
+                                      Pair.of(PROJECT.DESCRIPTION, newDescription)),
+                        selectedProject.getId(),
+                        transactionalDsl);
             });
 
+            changesCounter.increment(localChangesCounter);
+
             fc.addMessage("msgs", new FacesMessage("Project [" + selectedProject.getId() + "] " +
-                    selectedProject.getName() + " name/desc saved", changesCount + " changes"));
+                    selectedProject.getName() + " name/desc saved", localChangesCounter + " changes"));
         } catch (Exception e) {
             fc.addMessage("msgs", new FacesMessage(SEVERITY_WARN,
                     "Failed save name/desc of project [" + selectedProject.getId() + "] " + selectedProject.getName(),
@@ -250,20 +253,21 @@ public class ViewEditProject {
     
     public void save() {
         FacesContext fc = FacesContext.getCurrentInstance();
-        changesCount = 0;
+        localChangesCounter = 0;
 
         try {
             collectorDsl.transaction(config -> {
                 DSLContext transactionalDsl = DSL.using(config);
 
-                changesCount += transactionalDsl.update(PROJECT)
-                        .set(PROJECT.DATABASE_HOSTPORT, selectedProject.getDatabaseHostport())
-                        .set(PROJECT.DATABASE_SCHEMA, selectedProject.getDatabaseSchema())
-                        .set(PROJECT.DATABASE_USERNAME, selectedProject.getDatabaseUsername())
-                        .set(PROJECT.DATABASE_PASSWORD, selectedProject.getDatabasePassword())
-                        .set(PROJECT.DATABASE_SERVER_TIMEZONE, selectedProject.getDatabaseServerTimezone())
-                        .where(PROJECT.ID.eq(selectedProject.getId()))
-                        .execute();
+                localChangesCounter += SomeUtils.pointwiseUpdateQuery(PROJECT.ID,
+                        Arrays.asList(
+                                Pair.of(PROJECT.DATABASE_HOSTPORT, selectedProject.getDatabaseHostport()),
+                                Pair.of(PROJECT.DATABASE_SCHEMA, selectedProject.getDatabaseSchema()),
+                                Pair.of(PROJECT.DATABASE_USERNAME, selectedProject.getDatabaseUsername()),
+                                Pair.of(PROJECT.DATABASE_PASSWORD, selectedProject.getDatabasePassword()),
+                                Pair.of(PROJECT.DATABASE_SERVER_TIMEZONE, selectedProject.getDatabaseServerTimezone())),
+                        selectedProject.getId(),
+                        transactionalDsl);
 
                 List<UInteger> toRemoveDriverPropertyIds = new ArrayList<>(currentProjectDriverPropertyRows.size());
                 for (Iterator<Row<DriverProperty>> iterator = currentProjectDriverPropertyRows.iterator(); iterator.hasNext(); ) {
@@ -276,7 +280,7 @@ public class ViewEditProject {
                 }
 
                 if(!toRemoveDriverPropertyIds.isEmpty()) {
-                    changesCount += transactionalDsl.deleteFrom(DRIVER_PROPERTY)
+                    localChangesCounter += transactionalDsl.deleteFrom(DRIVER_PROPERTY)
                             .where(DRIVER_PROPERTY.ID.in(toRemoveDriverPropertyIds))
                             .execute();
                 }
@@ -286,13 +290,14 @@ public class ViewEditProject {
                     PojoStatus pojoStatus = row.getStatus();
 
                     if(pojoStatus == CHANGED) {
-                        changesCount += transactionalDsl.update(DRIVER_PROPERTY)
-                                .set(DRIVER_PROPERTY.KEY, driverProperty.getKey())
-                                .set(DRIVER_PROPERTY.VALUE, driverProperty.getValue())
-                                .where(DRIVER_PROPERTY.ID.eq(driverProperty.getId()))
-                                .execute();
+                        localChangesCounter += SomeUtils.pointwiseUpdateQuery(DRIVER_PROPERTY.ID,
+                                Arrays.asList(
+                                        Pair.of(DRIVER_PROPERTY.KEY, driverProperty.getKey()),
+                                        Pair.of(DRIVER_PROPERTY.VALUE, driverProperty.getValue())),
+                                driverProperty.getId(),
+                                transactionalDsl);
                     } else if(pojoStatus == NEW) {
-                        changesCount += transactionalDsl.insertInto(DRIVER_PROPERTY)
+                        localChangesCounter += transactionalDsl.insertInto(DRIVER_PROPERTY)
                                 .set(DRIVER_PROPERTY.KEY, driverProperty.getKey())
                                 .set(DRIVER_PROPERTY.VALUE, driverProperty.getValue())
                                 .set(DRIVER_PROPERTY.PROJECT_ID, driverProperty.getProjectId())
@@ -301,10 +306,12 @@ public class ViewEditProject {
                 }
             });
 
+            changesCounter.increment(localChangesCounter);
+
             fetchDriverProperties();
 
             fc.addMessage("msgs", new FacesMessage("Project [" + selectedProject.getId() + "] " +
-                    selectedProject.getName() + " saved", changesCount + " changes"));
+                    selectedProject.getName() + " saved", localChangesCounter + " changes"));
         } catch (Exception e) {
             fc.addMessage("msgs", new FacesMessage(SEVERITY_WARN,
                     "Failed save project [" + selectedProject.getId() + "] " + selectedProject.getName(),
@@ -316,6 +323,8 @@ public class ViewEditProject {
     }
 
     public String delete() {
+        localChangesCounter = 0;
+
         try {
             fetchKnownServersCounts();
 
@@ -325,9 +334,11 @@ public class ViewEditProject {
                         + " [" + selectedProject.getId() + "] " + selectedProject.getName());
             }
 
-            collectorDsl.deleteFrom(PROJECT)
+            localChangesCounter += collectorDsl.deleteFrom(PROJECT)
                     .where(PROJECT.ID.eq(selectedProject.getId()))
                     .execute();
+
+            changesCounter.increment(localChangesCounter);
         } catch (Exception e) {
             FacesContext.getCurrentInstance().addMessage("msgs", new FacesMessage(SEVERITY_WARN,
                     "Failed delete project [" + selectedProject.getId() + "] " + selectedProject.getName(),

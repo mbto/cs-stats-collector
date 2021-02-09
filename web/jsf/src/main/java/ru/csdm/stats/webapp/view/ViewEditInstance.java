@@ -3,6 +3,7 @@ package ru.csdm.stats.webapp.view;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.tuple.Pair;
 import org.jooq.DSLContext;
 import org.jooq.impl.DSL;
 import org.jooq.types.UInteger;
@@ -10,7 +11,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
 import org.springframework.context.ApplicationContext;
 import ru.csdm.stats.common.model.collector.tables.pojos.Instance;
+import ru.csdm.stats.common.utils.SomeUtils;
 import ru.csdm.stats.service.InstanceHolder;
+import ru.csdm.stats.webapp.application.ChangesCounter;
 
 import javax.faces.application.FacesMessage;
 import javax.faces.context.FacesContext;
@@ -18,6 +21,7 @@ import javax.faces.view.ViewScoped;
 import javax.inject.Named;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import java.util.Arrays;
 import java.util.Objects;
 
 import static javax.faces.application.FacesMessage.SEVERITY_WARN;
@@ -34,6 +38,8 @@ public class ViewEditInstance {
     private DSLContext collectorDsl;
     @Autowired
     private InstanceHolder instanceHolder;
+    @Autowired
+    private ChangesCounter changesCounter;
 
     @Getter
     private Instance selectedInstance;
@@ -41,7 +47,7 @@ public class ViewEditInstance {
     @Getter
     private int knownServersAtAllInstances;
 
-    private int changesCount;
+    private int localChangesCounter;
 
     public void fetch() {
         if(log.isDebugEnabled())
@@ -80,22 +86,26 @@ public class ViewEditInstance {
 
     public void save() {
         FacesContext fc = FacesContext.getCurrentInstance();
-        changesCount = 0;
+        localChangesCounter = 0;
 
         try {
+            final String newDescription = StringUtils.isBlank(selectedInstance.getDescription()) ? null : selectedInstance.getDescription();
+
             collectorDsl.transaction(config -> {
                 DSLContext transactionalDsl = DSL.using(config);
 
-                changesCount += transactionalDsl.update(INSTANCE)
-                        .set(INSTANCE.DESCRIPTION, StringUtils.isBlank(selectedInstance.getDescription()) ? null : selectedInstance.getDescription())
-                        .where(INSTANCE.ID.eq(selectedInstance.getId()))
-                        .execute();
+                localChangesCounter += SomeUtils.pointwiseUpdateQuery(INSTANCE.ID,
+                        Arrays.asList(Pair.of(INSTANCE.DESCRIPTION, newDescription)),
+                        selectedInstance.getId(),
+                        transactionalDsl);
             });
+
+            changesCounter.increment(localChangesCounter);
 
             instanceHolder.getAvailableInstances(true);
 
             fc.addMessage("msgs", new FacesMessage("Instance [" + selectedInstance.getId() + "] "
-                    + selectedInstance.getName() + " saved", changesCount + " changes"));
+                    + selectedInstance.getName() + " saved", localChangesCounter + " changes"));
         } catch (Exception e) {
             fc.addMessage("msgs", new FacesMessage(SEVERITY_WARN,
                     "Failed save instance [" + selectedInstance.getId() + "] " + selectedInstance.getName(),
@@ -104,6 +114,8 @@ public class ViewEditInstance {
     }
 
     public String delete() {
+        localChangesCounter = 0;
+
         try {
             fetchKnownServersCounts();
 
@@ -113,9 +125,11 @@ public class ViewEditInstance {
                         + " [" + selectedInstance.getId() + "] " + selectedInstance.getName());
             }
 
-            collectorDsl.deleteFrom(INSTANCE)
+            localChangesCounter += collectorDsl.deleteFrom(INSTANCE)
                     .where(INSTANCE.ID.eq(selectedInstance.getId()))
                     .execute();
+
+            changesCounter.increment(localChangesCounter);
 
             instanceHolder.getAvailableInstances(true);
         } catch (Exception e) {

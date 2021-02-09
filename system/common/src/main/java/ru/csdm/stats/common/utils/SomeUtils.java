@@ -2,13 +2,12 @@ package ru.csdm.stats.common.utils;
 
 import com.zaxxer.hikari.HikariDataSource;
 import org.apache.commons.lang3.StringUtils;
-import org.jooq.SQLDialect;
+import org.apache.commons.lang3.tuple.Pair;
+import org.jooq.*;
 import org.jooq.conf.MappedSchema;
 import org.jooq.conf.RenderMapping;
-import org.jooq.impl.DataSourceConnectionProvider;
-import org.jooq.impl.DefaultConfiguration;
-import org.jooq.impl.DefaultDSLContext;
-import org.jooq.impl.DefaultExecuteListenerProvider;
+import org.jooq.impl.*;
+import org.jooq.types.UInteger;
 import org.springframework.boot.autoconfigure.jooq.JooqExceptionTranslator;
 import org.springframework.boot.autoconfigure.jooq.SpringTransactionProvider;
 import org.springframework.boot.jdbc.DataSourceBuilder;
@@ -100,6 +99,70 @@ public class SomeUtils {
 
         ds.setPoolName(poolName);
         return ds;
+    }
+
+    public static int pointwiseUpdateQuery(TableField<?, UInteger> updatableTableUniqueId,
+                                    List<Pair<TableField<?, ?>, ?>> updatableFields,
+                                    UInteger pojoId,
+                                    DSLContext dslContext) {
+        List<TableField<?, ?>> selectFields = new ArrayList<>();
+        selectFields.add(updatableTableUniqueId);
+        for (Pair<TableField<?, ?>, ?> updatableField : updatableFields) {
+            selectFields.add(updatableField.getLeft());
+        }
+
+        Table<?> updatableTable = updatableTableUniqueId.getTable();
+        CommonTableExpression<Record> cte = DSL.name("cte")
+                .as(DSL.select(selectFields)
+                        .from(updatableTable)
+                        .where(updatableTableUniqueId.eq(pojoId)));
+
+        Collation collation = DSL.collation("utf8mb4_bin");
+
+        Condition condition = null;
+        for (Pair<TableField<?, ?>, ?> updatableField : updatableFields) {
+            TableField targetField = updatableField.getLeft();
+            Object newValue = updatableField.getRight();
+
+            Condition newCondition;
+            if(Objects.isNull(newValue)) {
+                newCondition = targetField.isNotNull();
+
+                if(Objects.isNull(condition)) {
+                    condition = newCondition;
+                } else
+                    condition = DSL.or(condition, newCondition);
+            } else {
+                Condition qualifiedCondition;
+                if(newValue instanceof String) { // 'ddd': `cte`.`description` collate utf8mb4_bin <> 'DDD')
+                    qualifiedCondition = cte.field(targetField).collate(collation).notEqual(newValue);
+                } else
+                    qualifiedCondition = cte.field(targetField).notEqual(newValue);
+
+                newCondition = DSL.or(cte.field(targetField).isNull(), qualifiedCondition);
+
+                if(Objects.isNull(condition))
+                    condition = newCondition;
+                else
+                    condition = DSL.or(condition, newCondition);
+            }
+        }
+
+        UpdateSetFirstStep updateStep = dslContext.with(cte)
+                .update(updatableTable
+                        .join(cte).on(updatableTableUniqueId.eq(cte.field(updatableTableUniqueId)))
+                );
+
+        for (Pair<TableField<?, ?>, ?> updatableField : updatableFields) {
+            TableField<?, ?> targetField = updatableField.getLeft();
+            Object newValue = updatableField.getRight();
+
+            updateStep.set(targetField, newValue);
+        }
+
+        return ((UpdateSetMoreStep<?>) updateStep)
+                .where(updatableTableUniqueId.eq(pojoId), condition)
+                .execute();
     }
 
     public static String playerToString(Player player) {

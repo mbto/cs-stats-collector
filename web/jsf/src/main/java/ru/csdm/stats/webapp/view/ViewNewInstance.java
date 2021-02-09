@@ -10,6 +10,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import ru.csdm.stats.common.model.collector.tables.pojos.Instance;
 import ru.csdm.stats.common.model.collector.tables.records.InstanceRecord;
 import ru.csdm.stats.service.InstanceHolder;
+import ru.csdm.stats.webapp.application.ChangesCounter;
 
 import javax.faces.application.FacesMessage;
 import javax.faces.component.UIComponent;
@@ -30,9 +31,13 @@ public class ViewNewInstance {
     private DSLContext collectorDsl;
     @Autowired
     private InstanceHolder instanceHolder;
+    @Autowired
+    private ChangesCounter changesCounter;
 
     @Getter
     private Instance selectedInstance;
+
+    private int localChangesCounter;
 
     public void fetch() {
         if(log.isDebugEnabled())
@@ -44,6 +49,7 @@ public class ViewNewInstance {
 
     public String save() {
         FacesContext fc = FacesContext.getCurrentInstance();
+        localChangesCounter = 0;
 
         try {
             collectorDsl.transaction(config -> {
@@ -55,8 +61,12 @@ public class ViewNewInstance {
                         .returning(INSTANCE.asterisk())
                         .fetchOne();
 
+                ++localChangesCounter;
+
                 selectedInstance = instanceRecord.into(Instance.class);
             });
+
+            changesCounter.increment(localChangesCounter);
 
             instanceHolder.getAvailableInstances(true);
 

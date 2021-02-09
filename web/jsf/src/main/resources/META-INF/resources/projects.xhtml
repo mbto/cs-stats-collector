@@ -13,7 +13,7 @@
 <ui:composition template="../template/layout.xhtml">
 <ui:define name="center">
 <h:form id="showProjForm">
-<p:button value="New project" outcome="/newProject" style="margin-bottom:10px;" icon="ui-icon-arrowthick-1-e"/>
+<p:button value="New project" href="/newProject" style="margin-bottom:10px;" icon="ui-icon-arrowthick-1-e"/>
 
 <p:dataTable id="projTblId" value="#{requestProjects.projects}" var="project" emptyMessage="No projects found"
              selectionMode="single" rowKey="#{project.id}" reflow="true">

@@ -27,9 +27,10 @@
                 <div class="ui-g-12 ui-xl-12 ui-lg-12 ui-md-12 ui-sm-12 ui-g-nopad">
                     <p:outputPanel style="margin-bottom:10px;">
                         <p:button href="/" value="Dashboard"/>
-                        <p:button outcome="/projects" value="Projects"/>
-                        <p:button outcome="/instances" value="Instances"/>
-                        <p:button outcome="/managers" value="Managers"/>
+                        <p:button href="/projects" value="Projects"/>
+                        <p:button href="/instances" value="Instances"/>
+                        <p:button href="/managers" value="Managers"/>
+                        <p:link href="/" value="#{changesCounter.counter.get()} instance changes" style="float:right;"/>
                     </p:outputPanel>
                 </div>
                 <div class="ui-g-12 ui-xl-12 ui-lg-12 ui-md-12 ui-sm-12 ui-g-nopad">

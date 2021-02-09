@@ -22,7 +22,7 @@
 </ui:define>
 <ui:define name="center">
 <h:form id="showInstForm">
-    <p:button value="New instance" outcome="/newInstance" style="margin-bottom:10px;" icon="ui-icon-arrowthick-1-e"/>
+    <p:button value="New instance" href="/newInstance" style="margin-bottom:10px;" icon="ui-icon-arrowthick-1-e"/>
 
     <p:dataTable id="instTblId" value="#{requestInstances.instances}" var="instance"
                  selectionMode="single" rowKey="#{instance.id}" reflow="true"
