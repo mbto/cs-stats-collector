@@ -19,8 +19,8 @@ import ru.csdm.stats.common.model.collector.tables.records.KnownServerRecord;
 import ru.csdm.stats.common.model.csstats.tables.pojos.Player;
 import ru.csdm.stats.common.model.csstats.tables.pojos.PlayerIp;
 import ru.csdm.stats.common.model.csstats.tables.pojos.PlayerSteamid;
-import ru.csdm.stats.modules.collector.endpoints.CollectorEndpoint;
-import ru.csdm.stats.modules.collector.service.SettingsService;
+import ru.csdm.stats.service.CollectorService;
+import ru.csdm.stats.service.SettingsService;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -33,6 +33,7 @@ import java.util.stream.Stream;
 import static org.junit.Assert.assertEquals;
 import static org.springframework.boot.autoconfigure.task.TaskExecutionAutoConfiguration.APPLICATION_TASK_EXECUTOR_BEAN_NAME;
 import static ru.csdm.stats.common.Constants.YYYYMMDD_HHMMSS_PATTERN;
+import static ru.csdm.stats.common.SystemEvent.FLUSH_FROM_ENDPOINT;
 import static ru.csdm.stats.common.model.collector.tables.DriverProperty.DRIVER_PROPERTY;
 import static ru.csdm.stats.common.model.collector.tables.Instance.INSTANCE;
 import static ru.csdm.stats.common.model.collector.tables.KnownServer.KNOWN_SERVER;
@@ -49,7 +50,7 @@ public class LogsTests {
     @Autowired
     private SettingsService settingsService;
     @Autowired
-    private CollectorEndpoint collectorEndpoint;
+    private CollectorService collectorService;
     @Autowired
     private DSLContext collectorAdminDsl;
     @Autowired
@@ -884,7 +885,7 @@ public class LogsTests {
         projectMaker.process(project, () -> {
             logsSender.sendLogs("server4_only_load.log", 27014, 27018);
 
-            Map<String, String> results = collectorEndpoint.flush(new UserPrincipal("tester"));
+            Map<String, String> results = collectorService.flush(FLUSH_FROM_ENDPOINT, false);
 
             log.info("statsEndpoint results: " + results.toString());
 

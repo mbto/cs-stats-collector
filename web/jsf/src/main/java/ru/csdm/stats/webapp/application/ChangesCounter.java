@@ -1,7 +1,7 @@
 package ru.csdm.stats.webapp.application;
 
 import lombok.Getter;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.extern.slf4j.Slf4j;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Named;
@@ -9,10 +9,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 @ApplicationScoped
 @Named
+@Slf4j
 public class ChangesCounter {
-//    @Autowired
-//    private SettingsService settingsService;
-
     @Getter
     private final AtomicInteger counter = new AtomicInteger(0);
 

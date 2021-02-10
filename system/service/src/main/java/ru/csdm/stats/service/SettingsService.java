@@ -1,10 +1,9 @@
-package ru.csdm.stats.modules.collector.service;
+package ru.csdm.stats.service;
 
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.jooq.types.UInteger;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.stereotype.Service;
@@ -15,7 +14,6 @@ import ru.csdm.stats.common.model.collector.tables.pojos.Instance;
 import ru.csdm.stats.common.model.collector.tables.pojos.KnownServer;
 import ru.csdm.stats.common.model.collector.tables.pojos.Project;
 import ru.csdm.stats.dao.CollectorDao;
-import ru.csdm.stats.service.InstanceHolder;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -47,7 +45,8 @@ public class SettingsService {
 
         CollectorData collectorData = null;
         try {
-            collectorData = collectorDao.fetchCollectorData();
+            // Slice of "now data"
+            collectorData = collectorDao.fetchCollectorData(instanceHolder.getCurrentInstanceId());
         } catch (Throwable e) {
             log.warn("Unable to fetch collector data from database", e);
         }
@@ -75,6 +74,10 @@ public class SettingsService {
             if(!firstLoading) { // deactivate existed serverDataByIpport on 2-nd and further loading
                 for (Map.Entry<String, ServerData> serverDataEntry : availableAddresses.entrySet()) {
                     ServerData serverData = serverDataEntry.getValue();
+
+                    //TODO: remove after check change mechanism
+//                    serverData.setProject();
+//                    serverData.setDriverProperties();
 
                     if(!serverData.isListening())
                         continue;

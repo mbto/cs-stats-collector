@@ -27,6 +27,7 @@ import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
+import java.util.stream.Stream;
 
 import static ru.csdm.stats.common.Constants.IPADDRESS_PATTERN;
 import static ru.csdm.stats.common.Constants.STEAMID_PATTERN;
@@ -105,7 +106,7 @@ public class SomeUtils {
                                     List<Pair<TableField<?, ?>, ?>> updatableFields,
                                     UInteger pojoId,
                                     DSLContext dslContext) {
-        List<TableField<?, ?>> selectFields = new ArrayList<>();
+        List<TableField<?, ?>> selectFields = new ArrayList<>(updatableFields.size() + 2);
         selectFields.add(updatableTableUniqueId);
         for (Pair<TableField<?, ?>, ?> updatableField : updatableFields) {
             selectFields.add(updatableField.getLeft());
@@ -179,6 +180,11 @@ public class SomeUtils {
     public static String addressToString(SocketAddress sa) {
         InetSocketAddress isa = (InetSocketAddress) sa;
         return isa.getAddress().getHostAddress() + ":" + isa.getPort();
+    }
+
+    //TODO:maybe use in facelets in static method for tables ?
+    public static String humanBoolean(Boolean value) {
+        return Objects.nonNull(value) && value ? "Yes" : "No";
     }
 
     public static String humanFileSize(long size) {

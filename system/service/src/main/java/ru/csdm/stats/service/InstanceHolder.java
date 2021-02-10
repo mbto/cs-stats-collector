@@ -101,7 +101,7 @@ public class InstanceHolder {
             availableInstances = collectorDsl.selectFrom(INSTANCE)
                     .fetchMap(INSTANCE.ID, Instance.class);
 
-            nextRefreshAvailableInstances = now.plusMinutes(1);
+            nextRefreshAvailableInstances = now.plusMinutes(10);
         }
 
         return availableInstances;

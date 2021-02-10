@@ -1,14 +1,11 @@
-package ru.csdm.stats.modules.collector.service;
+package ru.csdm.stats.modules.collector;
 
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.SpringApplication;
-import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import ru.csdm.stats.modules.collector.handlers.Listener;
+import ru.csdm.stats.service.SettingsService;
 
 import javax.annotation.PostConstruct;
 

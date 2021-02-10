@@ -1,4 +1,4 @@
-package ru.csdm.stats.modules.collector.service;
+package ru.csdm.stats.service;
 
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.exception.ExceptionUtils;
@@ -29,8 +29,8 @@ public class CollectorService {
     private Map<String, Integer> registeredAddresses;
     @Autowired
     private Map<Integer, DatagramsQueue> datagramsInQueuesById;
-
-    @Scheduled(fixedDelay = 1 * 60 * 60 * 1000 /* 1h */, initialDelay = 1 * 60 * 60 * 1000 /* 1h */)
+//TODO:
+//    @Scheduled(fixedDelay = 1 * 60 * 60 * 1000 /* 1h */, initialDelay = 1 * 60 * 60 * 1000 /* 1h */)
     public void flushOneMapServers() {
         Map<String, String> results = flush(FLUSH_FROM_SCHEDULER, true);
 

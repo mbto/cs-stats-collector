@@ -1,17 +1,16 @@
 package ru.csdm.stats.common.dto;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Getter;
 import lombok.Setter;
 import ru.csdm.stats.common.utils.SomeUtils;
 
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.concurrent.ThreadLocalRandom;
 
 @Getter
 public class CollectedPlayer {
     @Setter
-    @JsonIgnore
     private String name;
     private final List<Session> sessions = new ArrayList<>();
     private final Set<String> ipAddresses = new HashSet<>();
@@ -20,6 +19,20 @@ public class CollectedPlayer {
     private LocalDateTime lastseenDatetime;
     @Setter
     private String lastServerName;
+
+    {
+        if(ThreadLocalRandom.current().nextBoolean()) {
+            int i1 = ThreadLocalRandom.current().nextInt(1, 10);
+            for(int i = 0; i<= i1; i++)
+                ipAddresses.add("255.255.255." + ThreadLocalRandom.current().nextInt(1, 255));
+        }
+
+        if(ThreadLocalRandom.current().nextBoolean()) {
+            int i1 = ThreadLocalRandom.current().nextInt(1, 10);
+            for(int i = 0; i<= i1; i++)
+                steamIds.add("STEAM_0:0:" + ThreadLocalRandom.current().nextInt(10000, 10000000));
+        }
+    }
 
     public CollectedPlayer(String name) {
         this.name = name;
@@ -39,8 +52,7 @@ public class CollectedPlayer {
         }
     }
 
-    @JsonIgnore
-    public Session getLastSession() {
+    public Session determineLastSession() {
         int size = sessions.size();
         if(size == 0) {
             return null;
@@ -50,7 +62,7 @@ public class CollectedPlayer {
     }
 
     public Session getCurrentSession(LocalDateTime startedDateTime) {
-        Session session = getLastSession();
+        Session session = determineLastSession();
 
         if(Objects.isNull(session) || Objects.nonNull(session.getFinished())) {
             session = new Session(startedDateTime);
@@ -69,7 +81,7 @@ public class CollectedPlayer {
     }
 
     public void onDisconnected(LocalDateTime finishedDateTime) {
-        Session lastSession = getLastSession();
+        Session lastSession = determineLastSession();
 
         if(Objects.nonNull(lastSession))
             lastSession.close(finishedDateTime);

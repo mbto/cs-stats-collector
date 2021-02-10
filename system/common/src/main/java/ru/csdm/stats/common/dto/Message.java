@@ -15,7 +15,7 @@ public class Message {
 
     @Override
     public String toString() {
-        return payload
-                + (Objects.nonNull(systemEvent) ? " (" + systemEvent + ")": "");
+        return "Payload(" + payload + ")"
+                + (Objects.nonNull(systemEvent) ? " SystemEvent(" + systemEvent + ")" : "");
     }
 }

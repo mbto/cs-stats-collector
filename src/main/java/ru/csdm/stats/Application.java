@@ -1,16 +1,11 @@
 package ru.csdm.stats;
 
-import com.fasterxml.jackson.datatype.jsr310.ser.LocalDateSerializer;
-import com.fasterxml.jackson.datatype.jsr310.ser.LocalDateTimeSerializer;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.boot.autoconfigure.jackson.Jackson2ObjectMapperBuilderCustomizer;
 import org.springframework.boot.autoconfigure.jooq.JooqAutoConfiguration;
 import org.springframework.boot.autoconfigure.task.TaskExecutionAutoConfiguration;
 import org.springframework.boot.web.servlet.ServletContextInitializer;
-import org.springframework.boot.web.servlet.ServletRegistrationBean;
-import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.DependsOn;
 import org.springframework.scheduling.annotation.EnableAsync;
@@ -20,8 +15,6 @@ import ru.csdm.stats.common.dto.CollectedPlayer;
 import ru.csdm.stats.common.dto.DatagramsQueue;
 import ru.csdm.stats.common.dto.ServerData;
 
-import javax.faces.webapp.FacesServlet;
-import java.time.format.DateTimeFormatter;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentSkipListMap;
@@ -145,14 +138,14 @@ public class Application {
         return executor;
     }
 
-    @Bean
-    public Jackson2ObjectMapperBuilderCustomizer jsonCustomizer() {
-        return builder -> {
-            builder.simpleDateFormat("yyyy-MM-dd HH:mm:ss");
-            builder.serializers(new LocalDateSerializer(DateTimeFormatter.ofPattern("yyyy-MM-dd")));
-            builder.serializers(new LocalDateTimeSerializer(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
-        };
-    }
+//    @Bean
+//    public Jackson2ObjectMapperBuilderCustomizer jsonCustomizer() {
+//        return builder -> {
+//            builder.simpleDateFormat("yyyy-MM-dd HH:mm:ss");
+//            builder.serializers(new LocalDateSerializer(DateTimeFormatter.ofPattern("yyyy-MM-dd")));
+//            builder.serializers(new LocalDateTimeSerializer(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
+//        };
+//    }
 
     @Bean
     public ServletContextInitializer withParamsContextInitializer() {

@@ -10,6 +10,9 @@ import ru.csdm.stats.common.model.collector.tables.pojos.Project;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Using in ru.csdm.stats.dao.CollectorDao to bypass the lambda in the transaction
+ */
 @Getter
 @Setter
 public class CollectorData {

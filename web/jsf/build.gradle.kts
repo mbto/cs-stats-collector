@@ -13,5 +13,5 @@ dependencies {
 
     implementation("org.joinfaces:joinfaces-dependencies:$joinFacesVersion")
 
-    compile(project(":dao"))
+    compile(project(":service"))
 }
