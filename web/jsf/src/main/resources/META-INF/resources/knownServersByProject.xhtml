@@ -31,7 +31,8 @@
 <p:separator/>
 <h:form id="edKnServsForm">
     <p:dataTable id="knServs" widgetVar="knServsW" value="#{viewKnownServersByProjectId.currentInstanceRows}" var="row"
-                 editable="true" emptyMessage="No known servers found" rowIndexVar="rowIndexVar" reflow="true"
+                 editable="true" emptyMessage="No known servers found" rowIndexVar="rowIndexVar"
+                 reflow="true" resizableColumns="true" liveResize="true"
                  rowStyleClass="#{row.status == PojoStatus.TO_REMOVE ? 'propToRemove' : null}"
                  styleClass="ui-fluid">
         <f:facet name="header">
@@ -55,7 +56,7 @@
             </p:cellEditor>
         </p:column>
 
-        <p:column headerText="Name" width="100%">
+        <p:column headerText="Name" width="200">
             <p:cellEditor>
                 <f:facet name="output"><h:outputText value="#{row.pojo.name}"/></f:facet>
                 <f:facet name="input"><p:inputText value="#{row.pojo.name}" required="true" label="Name" maxlength="31" onkeypress="if(event.keyCode == 13) { return false; }"/></f:facet>
@@ -83,17 +84,17 @@
             </p:cellEditor>
         </p:column>
 
-        <p:column headerText="Start session on action" width="120">
+        <p:column headerText="Start session on action" width="180">
             <p:cellEditor rendered="#{row.pojo.instanceId == instanceHolder.currentInstanceId}">
                 <f:facet name="output"><h:outputText value="#{row.pojo.startSessionOnAction ? 'Yes' : 'No'}" rendered="#{not empty row.pojo.startSessionOnAction}"/></f:facet>
                 <f:facet name="input"><p:selectBooleanButton value="#{row.pojo.startSessionOnAction}" onLabel="Yes" offLabel="No" required="true"/></f:facet>
             </p:cellEditor>
         </p:column>
 
-        <p:column style="width:32px">
+        <p:column width="32">
             <p:rowEditor />
         </p:column>
-        <p:column style="width:8px">
+        <p:column width="10">
             <ui:fragment rendered="#{row.status == PojoStatus.TO_REMOVE}">
                 <p:commandLink value="+" immediate="true" partialSubmit="true" title="Restore"
                                process="@this" update="knServs" style="text-decoration: none;"
@@ -124,7 +125,8 @@
 
 <ui:repeat value="#{viewKnownServersByProjectId.otherInstanceRows.entrySet()}" var="entry"
            rendered="#{not empty viewKnownServersByProjectId.selectedProject and not empty viewKnownServersByProjectId.otherInstanceRows}">
-    <p:dataTable value="#{entry.value}" var="row" reflow="true" style="margin-top:10px;" styleClass="ui-fluid">
+    <p:dataTable value="#{entry.value}" var="row" style="margin-top:10px;"
+                 reflow="true" resizableColumns="true" liveResize="true">
         <f:facet name="header">
             Known servers: #{entry.value.size()} |
             Other instance: [#{entry.key}] #{instanceHolder.availableInstances.get(entry.key).name}
@@ -134,7 +136,7 @@
             <h:outputText value="#{row.pojo.ipport}"/>
         </p:column>
 
-        <p:column headerText="Name" width="100%">
+        <p:column headerText="Name" width="200">
             <h:outputText value="#{row.pojo.name}"/>
         </p:column>
 
@@ -150,7 +152,7 @@
             <h:outputText value="#{row.pojo.ignoreBots ? 'Yes' : 'No'}" rendered="#{not empty row.pojo.ignoreBots}"/>
         </p:column>
 
-        <p:column headerText="Start session on action" width="120">
+        <p:column headerText="Start session on action" width="180">
             <h:outputText value="#{row.pojo.startSessionOnAction ? 'Yes' : 'No'}" rendered="#{not empty row.pojo.startSessionOnAction}"/>
         </p:column>
     </p:dataTable>

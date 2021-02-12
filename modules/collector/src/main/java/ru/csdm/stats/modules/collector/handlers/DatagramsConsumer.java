@@ -290,6 +290,11 @@ public class DatagramsConsumer {
                         if(sourceName.toLowerCase().equals(sourceNewName.toLowerCase())) {
                             // changing name from Source to source, nothing changes
                             collectedPlayer.setName(sourceNewName);
+                            // TODO: test
+//                            Map<String, CollectedPlayer> gameSessions = gameSessionByAddress.get(address);
+//                            if(Objects.nonNull(gameSessions) && !gameSessions.containsKey(sourceName)) {
+//                                gameSessions.put(sourceNewName, gameSessions.remove(sourceName));
+//                            }
                         } else {
                             collectedPlayer.onDisconnected(dateTime);
 

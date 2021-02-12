@@ -13,7 +13,8 @@
 <ui:composition template="../template/layout.xhtml">
 <ui:define name="center">
 <h:form id="mngrsForm">
-    <p:dataTable value="#{requestManagers.managers}" var="manager" reflow="true">
+    <p:dataTable value="#{requestManagers.managers}" var="manager"
+                 reflow="true" resizableColumns="true" liveResize="true">
         <f:facet name="header">Managers</f:facet>
 
         <p:column headerText="Reg date" width="180">

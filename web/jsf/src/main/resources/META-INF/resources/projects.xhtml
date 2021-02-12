@@ -16,7 +16,8 @@
 <p:button value="New project" href="/newProject" style="margin-bottom:10px;" icon="ui-icon-arrowthick-1-e"/>
 
 <p:dataTable id="projTblId" value="#{requestProjects.projects}" var="project" emptyMessage="No projects found"
-             selectionMode="single" rowKey="#{project.id}" reflow="true">
+             selectionMode="single" rowKey="#{project.id}"
+             reflow="true" resizableColumns="true" liveResize="true">
     <f:facet name="header">Projects</f:facet>
 
     <p:ajax event="rowSelect" immediate="true" process="@this" update="@none"/>
@@ -27,15 +28,15 @@
         </h:outputText>
     </p:column>
 
-    <p:column headerText="Name">
+    <p:column headerText="Name" width="200">
         <h:outputText value="[#{project.id}] #{project.name}" />
     </p:column>
 
-    <p:column headerText="Description">
+    <p:column headerText="Description" width="200">
         <h:outputText value="#{project.description}" />
     </p:column>
 
-    <p:column headerText="DB host:port/schema">
+    <p:column headerText="DB host:port/schema" width="200">
         <h:outputText value="#{project.databaseHostport}/#{project.databaseSchema}" />
     </p:column>
 

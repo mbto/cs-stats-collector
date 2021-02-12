@@ -20,16 +20,16 @@ public class CollectedPlayer {
     @Setter
     private String lastServerName;
 
-    {
+    {//TODO:remove
         if(ThreadLocalRandom.current().nextBoolean()) {
             int i1 = ThreadLocalRandom.current().nextInt(1, 10);
-            for(int i = 0; i<= i1; i++)
+            for(int i = 0; i<= 0; i++)
                 ipAddresses.add("255.255.255." + ThreadLocalRandom.current().nextInt(1, 255));
         }
 
         if(ThreadLocalRandom.current().nextBoolean()) {
             int i1 = ThreadLocalRandom.current().nextInt(1, 10);
-            for(int i = 0; i<= i1; i++)
+            for(int i = 0; i<= 0; i++)
                 steamIds.add("STEAM_0:0:" + ThreadLocalRandom.current().nextInt(10000, 10000000));
         }
     }

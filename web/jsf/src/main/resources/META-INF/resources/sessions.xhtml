@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html
+        PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+        "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:f="http://xmlns.jcp.org/jsf/core"
+      xmlns:h="http://xmlns.jcp.org/jsf/html"
+      xmlns:p="http://primefaces.org/ui"
+      xmlns:ui="http://xmlns.jcp.org/jsf/facelets">
+<f:metadata>
+    <f:viewAction action="#{requestAddressDetails.fetch()}" onPostback="false" immediate="true"/>
+</f:metadata>
+
+<ui:composition template="../template/layout.xhtml">
+<ui:define name="center">
+<p:messages id="fetchMsgs" showSummary="true" showDetail="true" rendered="#{empty requestAddressDetails.selectedAddress}"/>
+<ui:fragment rendered="#{not empty requestAddressDetails.selectedAddress}">
+<p:panel header="Address #{requestAddressDetails.selectedAddress} details">
+<h:form id="showSessionsForm">
+<p:dataTable id="sessionsTblId" value="#{requestAddressDetails.aggregatedPlayers}"
+             reflow="true" resizableColumns="true" liveResize="true"
+             var="aggPlayer" emptyMessage="No sessions found">
+    <f:facet name="header">#{requestAddressDetails.aggregatedPlayers.size()} sessions</f:facet>
+
+    <p:column headerText="Name" width="200">
+        <h:outputText value="#{aggPlayer.name}"/>
+    </p:column>
+    <p:column headerText="Lifetime" width="130">
+        <h:outputText value="#{aggPlayer.lifetime}"/>
+    </p:column>
+    <p:column headerText="Dates" width="380">
+        <h:outputText value="#{aggPlayer.dates}"/>
+    </p:column>
+    <p:column headerText="Kills" width="40">
+        <h:outputText value="#{aggPlayer.kills}"/>
+    </p:column>
+    <p:column headerText="Deaths" width="40">
+        <h:outputText value="#{aggPlayer.deaths}"/>
+    </p:column>
+    <p:column headerText="IP adresses" width="200">
+        <h:outputText value="#{aggPlayer.ipAddresses}" escape="false" rendered="#{not empty aggPlayer.ipAddresses}"/>
+    </p:column>
+    <p:column headerText="Steam IDs" width="200">
+        <h:outputText value="#{aggPlayer.steamIds}" escape="false" rendered="#{not empty aggPlayer.steamIds}"/>
+    </p:column>
+</p:dataTable>
+</h:form>
+</p:panel>
+</ui:fragment>
+</ui:define>
+</ui:composition>
+
+</html>

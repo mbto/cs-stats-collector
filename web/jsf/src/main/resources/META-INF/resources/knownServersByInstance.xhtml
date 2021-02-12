@@ -16,7 +16,8 @@
 <ui:fragment rendered="#{not empty requestKnownServersByInstanceId.selectedInstance}">
 <h:form id="showKnServsForm">
 <p:dataTable id="knServsTblId" value="#{requestKnownServersByInstanceId.currentKnownServers}" var="knownServer" emptyMessage="No known servers found"
-             selectionMode="single" rowKey="#{knownServer.projectId}" reflow="true">
+             selectionMode="single" rowKey="#{knownServer.projectId}"
+             reflow="true" resizableColumns="true" liveResize="true">
     <f:facet name="header">
         Known servers: #{requestKnownServersByInstanceId.currentKnownServers.size()} |
         instance: [#{requestKnownServersByInstanceId.selectedInstance.id}] #{requestKnownServersByInstanceId.selectedInstance.name}
@@ -24,7 +25,7 @@
 
     <p:ajax event="rowSelect" immediate="true" process="@this" update="@none"/>
 
-    <p:column headerText="Project" width="400">
+    <p:column headerText="Project" width="200">
         <h:outputText value="[#{knownServer.projectId}] #{requestKnownServersByInstanceId.projectNameByProjectId.get(knownServer.projectId)}"/>
     </p:column>
 
@@ -32,7 +33,7 @@
         <h:outputText value="#{knownServer.ipport}"/>
     </p:column>
 
-    <p:column headerText="Name" width="100%">
+    <p:column headerText="Name" width="200">
         <h:outputText value="#{knownServer.name}"/>
     </p:column>
 

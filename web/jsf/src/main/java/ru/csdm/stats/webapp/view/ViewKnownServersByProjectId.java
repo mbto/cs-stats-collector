@@ -119,11 +119,12 @@ public class ViewKnownServersByProjectId {
                 .from(KNOWN_SERVER)
                 .where(KNOWN_SERVER.PROJECT_ID.notEqual(selectedProject.getId()),
                        KNOWN_SERVER.INSTANCE_ID.eq(instanceHolder.getCurrentInstanceId())
-                ).fetchInto(String.class));
+                ).orderBy(KNOWN_SERVER.IPPORT.asc())
+                .fetchInto(String.class));
     }
 
     public void validate(FacesContext context, UIComponent component, String value) throws ValidatorException {
-        if(!IPADDRESS_PORT_PATTERN.matcher(value).matches())
+        if(Objects.isNull(value) || !IPADDRESS_PORT_PATTERN.matcher(value).matches())
             throw makeValidatorException(value, "");
 
         int rowIndexVar = (int) component.getAttributes().get("rowIndexVar");

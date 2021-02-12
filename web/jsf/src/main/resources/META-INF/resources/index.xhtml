@@ -6,9 +6,9 @@
       xmlns:h="http://xmlns.jcp.org/jsf/html"
       xmlns:p="http://primefaces.org/ui"
       xmlns:ui="http://xmlns.jcp.org/jsf/facelets">
-<f:metadata>
-    <f:viewAction action="#{viewDashboard.fetch()}" onPostback="false" immediate="true"/>
-</f:metadata>
+<!--<f:metadata>-->
+<!--    <f:viewAction action="#{viewDashboard.fetch()}" onPostback="false" immediate="true"/>-->
+<!--</f:metadata>-->
 
 <ui:composition template="../template/layout.xhtml">
 <ui:define name="head">
@@ -27,156 +27,137 @@
 </ui:define>
 <ui:define name="center">
 <div class="ui-g">
-    <div class="ui-g-12 ui-xl-3 ui-lg-4 ui-md-12 ui-sm-12 ui-g-nopad">
-        <p:panel header="Memory info" >
-        <h:form id="dbrForm"><!--TODO: enable-->
+<div class="ui-g-12 ui-xl-3 ui-lg-4 ui-md-12 ui-sm-12 ui-g-nopad">
+    <p:panel header="Memory" >
+    <h:form id="dbrForm"><!--TODO: enable-->
 <!--                <p:poll process="@this" update="oP oF oM oA oTF" async="true"-->
 <!--                        interval="1" listener="#{statusShower.calculate}"/>-->
-            <p:panelGrid id="statusPanelId" columns="2" styleClass="ui-panelgrid-blank">
-                <h:outputText value="Processors"/>
-                <h:outputText id="oP" value="#{statusShower.processors}"/>
-                <h:outputText value="Free"/>
-                <h:outputText id="oF" value="#{statusShower.freeMemory} mb"/>
-                <h:outputText value="Max"/>
-                <h:outputText id="oM" value="#{statusShower.maxMemory} mb"/>
-                <h:outputText value="Allocated"/>
-                <h:outputText id="oA" value="#{statusShower.allocatedMemory} mb"/>
-                <h:outputText value="Total free"/>
-                <h:outputText id="oTF" value="#{statusShower.totalFreeMemory} mb"/>
-            </p:panelGrid>
-        </h:form>
-        </p:panel>
-    </div>
-    <div class="ui-g-12 ui-xl-5 ui-lg-7 ui-md-12 ui-sm-12 ui-g-nopad">
-        <p:panel header="Tasks executors" >
-            <div class="ui-g">
-                <div class="ui-g-12 ui-xl-4 ui-lg-4 ui-md-4 ui-sm-6 ui-g-nopad">
-                    <p:panelGrid columns="2">
-                        <f:facet name="header">
-                            <h:outputText value="Application"/>
-                        </f:facet>
-                        <h:outputText value="corePoolSize"/>
-                        <h:outputText value="#{viewDashboard.getCorePoolSize(applicationTaskExecutor)}"/>
-                        <h:outputText value="maxPoolSize"/>
-                        <h:outputText value="#{viewDashboard.getMaxPoolSize(applicationTaskExecutor)}"/>
-                        <h:outputText value="queueSize"/>
-                        <h:outputText value="#{viewDashboard.getQueueSize(applicationTaskExecutor)}"/>
-                    </p:panelGrid>
-                </div>
-                <div class="ui-g-12 ui-xl-4 ui-lg-4 ui-md-4 ui-sm-6 ui-g-nopad">
-                    <p:panelGrid columns="2">
-                        <f:facet name="header">
-                            <h:outputText value="Consumer"/>
-                        </f:facet>
-                        <h:outputText value="corePoolSize"/>
-                        <h:outputText value="#{viewDashboard.getCorePoolSize(consumerTaskExecutor)}"/>
-                        <h:outputText value="maxPoolSize"/>
-                        <h:outputText value="#{viewDashboard.getMaxPoolSize(consumerTaskExecutor)}"/>
-                        <h:outputText value="queueSize"/>
-                        <h:outputText value="#{viewDashboard.getQueueSize(consumerTaskExecutor)}"/>
-                    </p:panelGrid>
-                </div>
-                <div class="ui-g-12 ui-xl-4 ui-lg-4 ui-md-4 ui-sm-6 ui-g-nopad">
-                    <p:panelGrid columns="2">
-                        <f:facet name="header">
-                            <h:outputText value="Players sender"/>
-                        </f:facet>
-                        <h:outputText value="corePoolSize"/>
-                        <h:outputText value="#{viewDashboard.getCorePoolSize(playersSenderTaskExecutor)}"/>
-                        <h:outputText value="maxPoolSize"/>
-                        <h:outputText value="#{viewDashboard.getMaxPoolSize(playersSenderTaskExecutor)}"/>
-                        <h:outputText value="queueSize"/>
-                        <h:outputText value="#{viewDashboard.getQueueSize(playersSenderTaskExecutor)}"/>
-                    </p:panelGrid>
-                </div>
+        <p:panelGrid id="statusPanelId" columns="2" styleClass="ui-panelgrid-blank">
+            <h:outputText value="Processors"/>
+            <h:outputText id="oP" value="#{statusShower.processors}"/>
+            <h:outputText value="Free"/>
+            <h:outputText id="oF" value="#{statusShower.freeMemory} mb"/>
+            <h:outputText value="Max"/>
+            <h:outputText id="oM" value="#{statusShower.maxMemory} mb"/>
+            <h:outputText value="Allocated"/>
+            <h:outputText id="oA" value="#{statusShower.allocatedMemory} mb"/>
+            <h:outputText value="Total free"/>
+            <h:outputText id="oTF" value="#{statusShower.totalFreeMemory} mb"/>
+        </p:panelGrid>
+    </h:form>
+    </p:panel>
+</div>
+<div class="ui-g-12 ui-xl-4 ui-lg-5 ui-md-8 ui-sm-12 ui-g-nopad">
+    <p:panel header="Thread pools sizes" >
+        <div class="ui-g">
+            <div class="ui-g-12 ui-xl-4 ui-lg-4 ui-md-4 ui-sm-4 ui-g-nopad">
+                <p:panelGrid columns="2" layout="grid">
+                    <f:facet name="header">
+                        <h:outputText value="Application"/>
+                    </f:facet>
+                    <h:outputText value="core"/>
+                    <h:outputText value="#{applicationTaskExecutor.getCorePoolSize()}"/>
+                    <h:outputText value="max"/>
+                    <h:outputText value="#{applicationTaskExecutor.getMaxPoolSize()}"/>
+                    <h:outputText value="queue"/>
+                    <h:outputText value="#{applicationTaskExecutor.getThreadPoolExecutor().getQueue().size()}"/>
+                </p:panelGrid>
             </div>
-        </p:panel>
-    </div>
-    <div class="ui-g-12 ui-xl-4 ui-lg-4 ui-md-12 ui-sm-12 ui-g-nopad">
-        <p:panel header="sdsdsds" >
-            <h:outputText value="sdsdsds"/>
-        </p:panel>
-    </div>
+            <div class="ui-g-12 ui-xl-4 ui-lg-4 ui-md-4 ui-sm-4 ui-g-nopad">
+                <p:panelGrid columns="2" layout="grid">
+                    <f:facet name="header">
+                        <h:outputText value="Consumer"/>
+                    </f:facet>
+                    <h:outputText value="core"/>
+                    <h:outputText value="#{consumerTaskExecutor.getCorePoolSize()}"/>
+                    <h:outputText value="max"/>
+                    <h:outputText value="#{consumerTaskExecutor.getMaxPoolSize()}"/>
+                    <h:outputText value="queue"/>
+                    <h:outputText value="#{consumerTaskExecutor.getThreadPoolExecutor().getQueue().size()}"/>
+                </p:panelGrid>
+            </div>
+            <div class="ui-g-12 ui-xl-4 ui-lg-4 ui-md-4 ui-sm-4 ui-g-nopad">
+                <p:panelGrid columns="2" layout="grid">
+                    <f:facet name="header">
+                        <h:outputText value="Sender"/>
+                    </f:facet>
+                    <h:outputText value="core"/>
+                    <h:outputText value="#{playersSenderTaskExecutor.getCorePoolSize()}"/>
+                    <h:outputText value="max"/>
+                    <h:outputText value="#{playersSenderTaskExecutor.getMaxPoolSize()}"/>
+                    <h:outputText value="queue"/>
+                    <h:outputText value="#{playersSenderTaskExecutor.getThreadPoolExecutor().getQueue().size()}"/>
+                </p:panelGrid>
+            </div>
+        </div>
+    </p:panel>
+</div>
+<div class="ui-g-12 ui-xl-1 ui-lg-2 ui-md-2 ui-sm-12 ui-g-nopad">
+<p:dataTable value="#{datagramsInQueuesById.entrySet()}" var="datagramsEntry" emptyMessage="No queues found">
+    <f:facet name="header">Queues</f:facet>
+    <p:column headerText="ID">
+        <h:outputText value="#{datagramsEntry.key}"/>
+    </p:column>
+    <p:column headerText="Size"
+style="background-color: #{empty datagramsEntry.value.datagramsQueue ? '#d7ffd7' : '#ffcc74'}">
+        <h:outputText value="#{datagramsEntry.value.datagramsQueue.size()}"
+                      rendered="#{not empty datagramsEntry.value}"/>
+    </p:column>
+</p:dataTable>
+</div>
 </div>
 <div class="ui-g" style="margin-top:10px;">
+<p:commandButton value="Make fakes" process="@this" update="showAvailAddressesForm"
+actionListener="#{viewDashboard.makeFakes()}" immediate="true"/>
 <div class="ui-g-12 ui-g-nopad">
-    <h:form>
-    <p:dataTable value="#{changesCounter.availableAddresses.entrySet()}" var="entry" expandedRow="true"
-                 reflow="false" resizableColumns="true" liveResize="true"
-        rowStyleClass="#{entry.value.listening ? 'stListening' : 'stNotListening'}">
-        <f:facet name="header">
-            Known servers: #{changesCounter.availableAddresses.size()} |
-            instance: [#{instanceHolder.currentInstanceId}] #{instanceHolder.availableInstances.get(instanceHolder.currentInstanceId).name}
-        </f:facet>
-        <p:column width="15" resizable="false">
-            <p:rowToggler />
-        </p:column>
-        <p:column headerText="Project" style="min-width:100px;width:200px;">
-            <h:outputText value="[#{entry.value.project.id}] #{entry.value.project.name}"/>
-        </p:column>
-        <p:column headerText="Status" width="150">
-            <h:outputText value="#{entry.value.listening ? '[LISTENING]' : '[NOT LISTENING]'}"/>
-        </p:column>
-        <p:column headerText="ip:port" width="200">
-            <h:outputText value="#{entry.key}"/>
-            <h:outputText value=" (#{entry.value.knownServer.ipport})"
-                rendered="#{entry.key != entry.value.knownServer.ipport}"/>
-        </p:column>
-        <p:column headerText="Name" style="min-width:100px;width:200px;">
-            <h:outputText value="#{entry.value.knownServer.name}"/>
-        </p:column>
-        <p:column headerText="Active" width="60">
-            <h:outputText value="#{entry.value.knownServer.active ? 'Yes' : 'No'}"/>
-        </p:column>
-        <p:column headerText="FFA" width="60">
-            <h:outputText value="#{entry.value.knownServer.ffa ? 'Yes' : 'No'}"/>
-        </p:column>
-        <p:column headerText="Ignore bots" width="120">
-            <h:outputText value="#{entry.value.knownServer.ignoreBots ? 'Yes' : 'No'}"/>
-        </p:column>
-        <p:column headerText="Start session on action" width="120">
-            <h:outputText value="#{entry.value.knownServer.active ? 'Yes' : 'No'}"/>
-        </p:column>
-        <p:rowExpansion>
-            <p:dataTable value="#{viewDashboard.aggregatedByAddress.get(entry.key)}"
-                         var="aggPlayer">
-                <f:facet name="header">Sessions</f:facet>
-                <p:column headerText="Name">
-                    <h:outputText value="#{aggPlayer.name}"/>
-                </p:column>
-                <p:column headerText="Date range">
-                    <h:outputText value="#{aggPlayer.started} - #{aggPlayer.finished}"/>
-                </p:column>
-                <p:column headerText="Kills" width="40">
-                    <h:outputText value="#{aggPlayer.kills}"/>
-                </p:column>
-                <p:column headerText="Deaths" width="40">
-                    <h:outputText value="#{aggPlayer.deaths}"/>
-                </p:column>
-                <p:column headerText="IP adresses">
-                    <p:selectOneMenu value="#{aggPlayer.ipAddresses}" var="sdsd" rendered="#{not empty aggPlayer.ipAddresses}">
-<!--                        <f:selectItem itemLabel="255.255.255.255:65535"/>-->
-<!--                        <f:selectItem itemLabel="255.255.255.255:65535"/>-->
-<!--                        <f:selectItem itemLabel="255.255.255.255:65535"/>-->
-<!--                        <f:selectItem itemLabel="255.255.255.255:65535"/>-->
-<!--                        <f:selectItem itemLabel="255.255.255.255:65535"/>-->
-                        <f:selectItems value="#{aggPlayer.ipAddresses}"/>
-                    </p:selectOneMenu>
-                </p:column>
-                <p:column headerText="Steam IDs">
-                    <p:selectOneMenu value="#{aggPlayer.steamIds}" var="sdsd" rendered="#{not empty aggPlayer.steamIds}">
-<!--                        <f:selectItem itemLabel="STEAM_0:0:12345678901"/>-->
-<!--                        <f:selectItem itemLabel="STEAM_0:0:12345678901"/>-->
-<!--                        <f:selectItem itemLabel="STEAM_0:0:12345678901"/>-->
-<!--                        <f:selectItem itemLabel="STEAM_0:0:12345678901"/>-->
-<!--                        <f:selectItem itemLabel="STEAM_0:0:12345678901"/>-->
-                        <f:selectItems value="#{aggPlayer.steamIds}" var="e" itemLabel="#{e}"/>
-                    </p:selectOneMenu>
-                </p:column>
-            </p:dataTable>
-        </p:rowExpansion>
-    </p:dataTable>
-    </h:form>
+<h:form id="showAvailAddressesForm">
+<p:dataTable value="#{availableAddresses.entrySet()}" var="entry" emptyMessage="No known servers found"
+             reflow="true" resizableColumns="true" liveResize="true"
+             selectionMode="single" rowKey="#{entry.key}"
+             rowStyleClass="#{entry.value.listening ? 'stListening' : 'stNotListening'}">
+    <f:facet name="header">
+        Known servers: #{availableAddresses.size()} |
+        instance: [#{instanceHolder.currentInstanceId}] #{instanceHolder.availableInstances.get(instanceHolder.currentInstanceId).name}
+    </f:facet>
+
+    <p:ajax event="rowSelect" immediate="true" process="@this" update="@none"
+            listener="#{viewDashboard.onRowSelect}"/>
+
+    <p:column headerText="Queue ID" width="70">
+        <h:outputText value="#{registeredAddresses.get(entry.key)}"/>
+    </p:column>
+    <p:column headerText="Status" width="140">
+        <h:outputText value="#{entry.value.listening ? '[LISTENING]' : '[NOT LISTENING]'}"/>
+    </p:column>
+    <p:column headerText="ip:port" width="200">
+        <h:outputText value="#{entry.key}"/>
+        <h:outputText value=" (#{entry.value.knownServer.ipport})"
+                      rendered="#{not empty entry.value.knownServer.ipport and entry.key != entry.value.knownServer.ipport}"/>
+    </p:column>
+    <p:column headerText="Sessions" width="60">
+        <h:outputText value="#{gameSessionByAddress.get(entry.key).size()}"
+                      rendered="#{gameSessionByAddress.get(entry.key) != null}"/>
+    </p:column>
+    <p:column headerText="Project" width="200">
+        <h:outputText value="[#{entry.value.project.id}] #{entry.value.project.name}"/>
+    </p:column>
+    <p:column headerText="Name" width="200">
+        <h:outputText value="#{entry.value.knownServer.name}"/>
+    </p:column>
+    <p:column headerText="Active" width="60">
+        <h:outputText value="#{entry.value.knownServer.active ? 'Yes' : 'No'}" rendered="#{not empty entry.value.knownServer.active}"/>
+    </p:column>
+    <p:column headerText="FFA" width="60">
+        <h:outputText value="#{entry.value.knownServer.ffa ? 'Yes' : 'No'}" rendered="#{not empty entry.value.knownServer.ffa}"/>
+    </p:column>
+    <p:column headerText="Ignore bots" width="120">
+        <h:outputText value="#{entry.value.knownServer.ignoreBots ? 'Yes' : 'No'}" rendered="#{not empty entry.value.knownServer.ignoreBots}"/>
+    </p:column>
+    <p:column headerText="Start session on action" width="120">
+        <h:outputText value="#{entry.value.knownServer.startSessionOnAction ? 'Yes' : 'No'}" rendered="#{not empty entry.value.knownServer.startSessionOnAction}"/>
+    </p:column>
+</p:dataTable>
+</h:form>
 </div>
 </div>
 </ui:define>

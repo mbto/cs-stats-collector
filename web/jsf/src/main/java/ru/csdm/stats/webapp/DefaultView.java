@@ -18,5 +18,6 @@ public class DefaultView implements WebMvcConfigurer {
         registry.addViewController("/newInstance").setViewName("forward:/newInstance.xhtml");
         registry.addViewController("/newProject").setViewName("forward:/newProject.xhtml");
         registry.addViewController("/projects").setViewName("forward:/projects.xhtml");
+        registry.addViewController("/sessions").setViewName("forward:/sessions.xhtml");
     }
 }

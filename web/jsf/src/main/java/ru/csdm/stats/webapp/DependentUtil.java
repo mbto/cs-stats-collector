@@ -6,7 +6,6 @@ import org.apache.commons.lang3.StringUtils;
 import ru.csdm.stats.common.model.collector.enums.ProjectDatabaseServerTimezone;
 
 import javax.enterprise.context.Dependent;
-import javax.faces.application.FacesMessage;
 import javax.faces.context.ExternalContext;
 import javax.faces.context.FacesContext;
 import javax.faces.model.SelectItem;
