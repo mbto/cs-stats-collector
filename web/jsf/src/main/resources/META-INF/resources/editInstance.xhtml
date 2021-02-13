@@ -45,7 +45,7 @@
         <ui:fragment rendered="#{viewEditInstance.selectedInstance.id != instanceHolder.currentInstanceId}">
             <p:commandButton type="button" value="Delete" onclick="PF('confDialDelete').show()"
                              icon="ui-icon-closethick" style="float:right;" styleClass="ui-button-danger"/>
-            <p:confirmDialog widgetVar="confDialDelete" header="Confirm"
+            <p:confirmDialog widgetVar="confDialDelete" header="Confirm" closeOnEscape="true" responsive="true"
                 message="Are you sure you want to delete instance [#{viewEditInstance.selectedInstance.id}] #{viewEditInstance.selectedInstance.name} ?">
 
                 <p:commandButton value="Delete" action="#{viewEditInstance.delete}"
@@ -71,7 +71,7 @@
                                  icon="ui-icon-arrowstop-1-s"/>
             </p:panelGrid>
 
-            <p:confirmDialog widgetVar="confDialDelete" header="Confirm"
+            <p:confirmDialog widgetVar="confDialDelete" header="Confirm" closeOnEscape="true" responsive="true"
                              message="Are you sure you want to shutdown instance [#{viewEditInstance.selectedInstance.id}] #{viewEditInstance.selectedInstance.name} ?">
 
                 <p:commandButton value="Shutdown instance" actionListener="#{viewEditInstance.shutdownInstance()}"

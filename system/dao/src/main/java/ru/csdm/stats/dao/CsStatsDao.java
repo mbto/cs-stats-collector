@@ -66,6 +66,10 @@ public class CsStatsDao {
             hds.setIdleTimeout(SECONDS.toMillis(29));
             hds.setMaxLifetime(SECONDS.toMillis(30));
 
+            log.info("Using datasource settings: jdbcUrl=" + hds.getJdbcUrl()
+                    + ", schema=" + hds.getSchema()
+                    + ", dataSourceProperties=" + hds.getDataSourceProperties());
+
             DSLContext statsDsl = configJooqContext(hds, SQLDialect.MYSQL, project.getDatabaseSchema(), 15);
 
             statsDsl.transaction(config -> {

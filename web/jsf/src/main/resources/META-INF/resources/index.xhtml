@@ -109,7 +109,7 @@ style="background-color: #{empty datagramsEntry.value.datagramsQueue ? '#d7ffd7'
 <div class="ui-g-12 ui-g-nopad">
 <h:form id="showAvailAddressesForm">
 <p:dataTable value="#{availableAddresses.entrySet()}" var="entry" emptyMessage="No known servers found"
-             reflow="true" resizableColumns="true" liveResize="true"
+             reflow="true"
              selectionMode="single" rowKey="#{entry.key}"
              rowStyleClass="#{entry.value.listening ? 'stListening' : 'stNotListening'}">
     <f:facet name="header">
@@ -146,10 +146,10 @@ style="background-color: #{empty datagramsEntry.value.datagramsQueue ? '#d7ffd7'
     <p:column headerText="FFA" width="60">
         <h:outputText value="#{entry.value.knownServer.ffa ? 'Yes' : 'No'}" rendered="#{not empty entry.value.knownServer.ffa}"/>
     </p:column>
-    <p:column headerText="Ignore bots" width="120">
+    <p:column headerText="Ignore bots" width="60">
         <h:outputText value="#{entry.value.knownServer.ignoreBots ? 'Yes' : 'No'}" rendered="#{not empty entry.value.knownServer.ignoreBots}"/>
     </p:column>
-    <p:column headerText="Start session on action" width="120">
+    <p:column headerText="Start session on action" width="80">
         <h:outputText value="#{entry.value.knownServer.startSessionOnAction ? 'Yes' : 'No'}" rendered="#{not empty entry.value.knownServer.startSessionOnAction}"/>
     </p:column>
 </p:dataTable>

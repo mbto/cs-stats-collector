@@ -65,7 +65,7 @@ CREATE TABLE `player` (
   `time_secs` int unsigned NOT NULL DEFAULT '0',
   `rank_id` int unsigned DEFAULT NULL,
   `lastseen_datetime` datetime DEFAULT NULL,
-  `last_server_name` varchar(31) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `last_server_name` varchar(31) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `id_UNIQUE` (`id`),
   UNIQUE KEY `name_UNIQUE` (`name`),

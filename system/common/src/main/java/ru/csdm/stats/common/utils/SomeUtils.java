@@ -27,7 +27,6 @@ import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
-import java.util.stream.Stream;
 
 import static ru.csdm.stats.common.Constants.IPADDRESS_PATTERN;
 import static ru.csdm.stats.common.Constants.STEAMID_PATTERN;

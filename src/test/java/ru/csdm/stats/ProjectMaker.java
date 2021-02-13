@@ -2,6 +2,7 @@ package ru.csdm.stats;
 
 import com.zaxxer.hikari.HikariDataSource;
 import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
 import org.jooq.*;
 import org.jooq.impl.DSL;
 import org.springframework.context.annotation.Profile;
@@ -31,6 +32,7 @@ import static ru.csdm.stats.common.utils.SomeUtils.configJooqContext;
 
 @Component
 @Profile("test")
+@Slf4j
 public class ProjectMaker {
     @Getter
     private List<Player> players;
@@ -66,6 +68,10 @@ public class ProjectMaker {
             hds.setValidationTimeout(SECONDS.toMillis(5));
             hds.setIdleTimeout(SECONDS.toMillis(29));
             hds.setMaxLifetime(SECONDS.toMillis(30));
+
+            log.info("Using datasource settings: jdbcUrl=" + hds.getJdbcUrl()
+                    + ", schema=" + hds.getSchema()
+                    + ", dataSourceProperties=" + hds.getDataSourceProperties());
 
             DSLContext statsDsl = configJooqContext(hds, SQLDialect.MYSQL, project.getDatabaseSchema(), 10);
 

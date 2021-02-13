@@ -3,10 +3,15 @@ package ru.csdm.stats.webapp.view;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
+import org.jooq.Record2;
 import org.springframework.beans.factory.annotation.Autowired;
 import ru.csdm.stats.common.dto.CollectedPlayer;
 import ru.csdm.stats.common.dto.ServerData;
+import ru.csdm.stats.common.model.collector.tables.pojos.KnownServer;
+import ru.csdm.stats.common.model.collector.tables.pojos.Project;
+import ru.csdm.stats.dao.CollectorDao;
 import ru.csdm.stats.service.CollectorService;
+import ru.csdm.stats.service.InstanceHolder;
 import ru.csdm.stats.webapp.AggregatedPlayer;
 
 import javax.faces.application.FacesMessage;
@@ -26,12 +31,25 @@ import static ru.csdm.stats.common.SystemEvent.FLUSH_FROM_FRONTEND;
 @Slf4j
 public class ViewAddressDetails {
     @Autowired
+    private InstanceHolder instanceHolder;
+    @Autowired
+    private CollectorDao collectorDao;
+    @Autowired
     private CollectorService collectorService;
+    @Autowired
+    private Map<String, ServerData> availableAddresses;
     @Autowired
     private Map<String, Map<String, CollectedPlayer>> gameSessionByAddress;
     @Getter
     @Setter
     private String selectedAddress;
+    @Getter
+    @Setter
+    private ServerData selectedServerData;
+    @Getter
+    private int knownServersAtInstance;
+    @Getter
+    private int knownServersAtAllInstances;
     @Getter
     private List<AggregatedPlayer> aggregatedPlayers = Collections.emptyList();
     @Getter
@@ -54,7 +72,10 @@ public class ViewAddressDetails {
             return;
         }
 
+        selectedServerData = availableAddresses.get(selectedAddress);
+
         fetchAggregatedPlayers();
+        fetchKnownServersCounts();
     }
 
     public void fetchAggregatedPlayers() {
@@ -93,6 +114,19 @@ public class ViewAddressDetails {
                 .collect(Collectors.toList());
     }
 
+    private void fetchKnownServersCounts() {
+        if(Objects.isNull(selectedServerData)) {
+            return;
+        }
+
+        Record2<Integer, Integer> knownServersCounts = collectorDao
+                .fetchKnownServersCounts(selectedServerData.getProject().getId(),
+                        instanceHolder.getCurrentInstanceId());
+
+        knownServersAtInstance = knownServersCounts.getValue("at_instance", Integer.class);
+        knownServersAtAllInstances = knownServersCounts.getValue("at_all_instances", Integer.class);
+    }
+
     public void flush() {
         log.info(selectedAddress + " Flush received from frontend");
 
@@ -114,7 +148,7 @@ public class ViewAddressDetails {
                 "Flush " + selectedAddress + " registered", ""));
 
         try {
-            Thread.sleep(3 * 1000);
+            Thread.sleep(1 * 1000);
         } catch (InterruptedException ignored) {}
 
         fetchAggregatedPlayers();

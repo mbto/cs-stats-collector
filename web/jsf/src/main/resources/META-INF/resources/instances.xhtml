@@ -26,7 +26,7 @@
 
     <p:dataTable id="instTblId" value="#{requestInstances.instances}" var="instance"
                  selectionMode="single" rowKey="#{instance.id}"
-                 reflow="true" resizableColumns="true" liveResize="true"
+                 reflow="true"
                  rowStyleClass="#{instance.id == instanceHolder.currentInstanceId ? 'currentInstance' : null}">
         <f:facet name="header">Instances</f:facet>
 
@@ -38,11 +38,11 @@
             </h:outputText>
         </p:column>
 
-        <p:column headerText="Name">
+        <p:column headerText="Name" width="200">
             <h:outputText value="[#{instance.id}] #{instance.name}" />
         </p:column>
 
-        <p:column headerText="Description">
+        <p:column headerText="Description" width="200">
             <h:outputText value="#{instance.description}" />
         </p:column>
 

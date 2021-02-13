@@ -47,9 +47,13 @@ public class CollectorService {
         if(Objects.isNull(serverData))
             throw new IllegalArgumentException("No serverData found at address '" + address + "'");
 
+        String logMsg;
         Integer queueId = registeredAddresses.get(address);
         if(Objects.isNull(queueId)) {
-            throw new IllegalArgumentException("No queueId found at address '" + address + "'");
+            logMsg = "No queueId found at address '" + address + "'";
+            serverData.addMessage(logMsg);
+
+            throw new IllegalArgumentException(logMsg);
         }
 
         if(skipRecentlyFlushed) {
@@ -57,15 +61,21 @@ public class CollectorService {
             LocalDateTime now = LocalDateTime.now();
 
             if(Objects.nonNull(nextFlushDateTime) && nextFlushDateTime.isAfter(now)) {
-                throw new RuntimeException("Flush " + address + " not available, waiting "
-                        + SomeUtils.humanLifetime(nextFlushDateTime, now) + " until next flush");
+                logMsg = "Flush " + address + " not available, waiting "
+                        + SomeUtils.humanLifetime(nextFlushDateTime, now) + " until next flush";
+
+                serverData.addMessage(logMsg);
+                throw new RuntimeException(logMsg);
             }
         }
 
         DatagramsQueue datagramsQueue = datagramsInQueuesById.get(queueId);
         if(Objects.isNull(datagramsQueue)) {
-            throw new IllegalArgumentException("No DatagramsQueue found at address '"
-                    + address + "' queueId '" + queueId + "'");
+            logMsg = "No datagramsQueue found at address '"
+                    + address + "' queueId '" + queueId + "'";
+
+            serverData.addMessage(logMsg);
+            throw new IllegalArgumentException(logMsg);
         }
 
         Message message = new Message();
@@ -75,7 +85,11 @@ public class CollectorService {
         try {
             datagramsQueue.getDatagramsQueue().addLast(message);
         } catch (Exception e) {
-            throw new RuntimeException("Flush " + address + " not registered. " + ExceptionUtils.getStackTrace(e));
+            serverData.addMessage("Flush " + address + " not registered, " + e.getMessage());
+
+            throw new RuntimeException(e);
         }
+
+        serverData.addMessage("Flush " + address + " registered");
     }
 }

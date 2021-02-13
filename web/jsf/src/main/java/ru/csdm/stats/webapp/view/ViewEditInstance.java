@@ -172,15 +172,16 @@ public class ViewEditInstance {
         for (String address : gameSessionByAddress.keySet()) {
             try {
                 collectorService.flush(address, FLUSH_FROM_FRONTEND, false);
-
-                log.info(address + " Flush registered");
-
-                msgs.add("Flush " + address + " registered");
             } catch (Exception e) {
-                log.info(address + " Flush not registered, " + e.getMessage());
+                log.warn(address + " Flush not registered, " + e.getMessage());
 
                 msgs.add("Flush " + address + " not registered, " + e.getMessage());
+                continue;
             }
+
+            log.info(address + " Flush registered");
+
+            msgs.add("Flush " + address + " registered");
         }
 
         FacesContext fc = FacesContext.getCurrentInstance();

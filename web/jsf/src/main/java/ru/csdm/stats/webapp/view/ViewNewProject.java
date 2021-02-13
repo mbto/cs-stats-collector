@@ -125,6 +125,10 @@ public class ViewNewProject {
             hds.setIdleTimeout(SECONDS.toMillis(29));
             hds.setMaxLifetime(SECONDS.toMillis(30));
 
+            log.info("Using datasource settings: jdbcUrl=" + hds.getJdbcUrl()
+                    + ", schema=" + hds.getSchema()
+                    + ", dataSourceProperties=" + hds.getDataSourceProperties());
+
             DSLContext statsDsl = configJooqContext(hds, SQLDialect.MYSQL, selectedProject.getDatabaseSchema(), 10);
 
             statsDsl.transaction(config -> {

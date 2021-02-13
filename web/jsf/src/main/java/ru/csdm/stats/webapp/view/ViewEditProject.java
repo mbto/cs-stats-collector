@@ -13,6 +13,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import ru.csdm.stats.common.model.collector.tables.pojos.DriverProperty;
 import ru.csdm.stats.common.model.collector.tables.pojos.Project;
 import ru.csdm.stats.common.utils.SomeUtils;
+import ru.csdm.stats.dao.CollectorDao;
 import ru.csdm.stats.service.InstanceHolder;
 import ru.csdm.stats.webapp.PojoStatus;
 import ru.csdm.stats.webapp.Row;
@@ -52,6 +53,8 @@ public class ViewEditProject {
     private InstanceHolder instanceHolder;
     @Autowired
     private ChangesCounter changesCounter;
+    @Autowired
+    private CollectorDao collectorDao;
 
     @Getter
     private Project selectedProject;
@@ -112,18 +115,8 @@ public class ViewEditProject {
     }
 
     private void fetchKnownServersCounts() {
-        Record2<Integer, Integer> knownServersCounts = collectorDsl.select(
-                DSL.selectCount()
-                        .from(KNOWN_SERVER)
-                        .join(INSTANCE).on(KNOWN_SERVER.INSTANCE_ID.eq(INSTANCE.ID))
-                        .where(KNOWN_SERVER.PROJECT_ID.eq(selectedProject.getId()),
-                                INSTANCE.ID.eq(instanceHolder.getCurrentInstanceId()))
-                        .<Integer>asField("at_instance"),
-                DSL.selectCount()
-                        .from(KNOWN_SERVER)
-                        .where(KNOWN_SERVER.PROJECT_ID.eq(selectedProject.getId()))
-                        .<Integer>asField("at_all_instances")
-        ).fetchOne();
+        Record2<Integer, Integer> knownServersCounts = collectorDao
+                .fetchKnownServersCounts(selectedProject.getId(), instanceHolder.getCurrentInstanceId());
 
         knownServersAtInstance = knownServersCounts.getValue("at_instance", Integer.class);
         knownServersAtAllInstances = knownServersCounts.getValue("at_all_instances", Integer.class);
@@ -182,6 +175,10 @@ public class ViewEditProject {
             hds.setValidationTimeout(SECONDS.toMillis(5));
             hds.setIdleTimeout(SECONDS.toMillis(29));
             hds.setMaxLifetime(SECONDS.toMillis(30));
+
+            log.info("Using datasource settings: jdbcUrl=" + hds.getJdbcUrl()
+                    + ", schema=" + hds.getSchema()
+                    + ", dataSourceProperties=" + hds.getDataSourceProperties());
 
             DSLContext statsDsl = configJooqContext(hds, SQLDialect.MYSQL, selectedProject.getDatabaseSchema(), 10);
 

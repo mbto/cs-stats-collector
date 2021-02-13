@@ -2,6 +2,7 @@ package ru.csdm.stats.dao;
 
 import lombok.extern.slf4j.Slf4j;
 import org.jooq.DSLContext;
+import org.jooq.Record2;
 import org.jooq.impl.DSL;
 import org.jooq.types.UInteger;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,6 +16,7 @@ import java.util.List;
 import java.util.Map;
 
 import static ru.csdm.stats.common.model.collector.tables.DriverProperty.DRIVER_PROPERTY;
+import static ru.csdm.stats.common.model.collector.tables.Instance.INSTANCE;
 import static ru.csdm.stats.common.model.collector.tables.KnownServer.KNOWN_SERVER;
 import static ru.csdm.stats.common.model.collector.tables.Project.PROJECT;
 
@@ -67,5 +69,21 @@ public class CollectorDao {
         });
 
         return collectorData;
+    }
+
+    public Record2<Integer, Integer> fetchKnownServersCounts(UInteger projectId,
+                                                             UInteger currentInstanceId) {
+        return collectorDsl.select(
+                DSL.selectCount()
+                        .from(KNOWN_SERVER)
+                        .join(INSTANCE).on(KNOWN_SERVER.INSTANCE_ID.eq(INSTANCE.ID))
+                        .where(KNOWN_SERVER.PROJECT_ID.eq(projectId),
+                                INSTANCE.ID.eq(currentInstanceId))
+                        .<Integer>asField("at_instance"),
+                DSL.selectCount()
+                        .from(KNOWN_SERVER)
+                        .where(KNOWN_SERVER.PROJECT_ID.eq(projectId))
+                        .<Integer>asField("at_all_instances")
+        ).fetchOne();
     }
 }

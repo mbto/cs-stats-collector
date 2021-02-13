@@ -145,7 +145,7 @@
 
         <p:commandButton type="button" value="Delete" onclick="PF('confDialDelete').show()"
                          icon="ui-icon-closethick" style="float:right;" styleClass="ui-button-danger"/>
-        <p:confirmDialog widgetVar="confDialDelete" header="Confirm"
+        <p:confirmDialog widgetVar="confDialDelete" header="Confirm" closeOnEscape="true" responsive="true"
                          message="Are you sure you want to delete project [#{viewEditProject.selectedProject.id}] #{viewEditProject.selectedProject.name} ?">
 
             <p:commandButton id="deleteBtn" value="Delete" action="#{viewEditProject.delete}"

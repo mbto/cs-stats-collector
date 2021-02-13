@@ -17,7 +17,7 @@
 <h:form id="showKnServsForm">
 <p:dataTable id="knServsTblId" value="#{requestKnownServersByInstanceId.currentKnownServers}" var="knownServer" emptyMessage="No known servers found"
              selectionMode="single" rowKey="#{knownServer.projectId}"
-             reflow="true" resizableColumns="true" liveResize="true">
+             reflow="true">
     <f:facet name="header">
         Known servers: #{requestKnownServersByInstanceId.currentKnownServers.size()} |
         instance: [#{requestKnownServersByInstanceId.selectedInstance.id}] #{requestKnownServersByInstanceId.selectedInstance.name}
@@ -45,11 +45,11 @@
         <h:outputText value="#{knownServer.ffa ? 'Yes' : 'No'}" rendered="#{not empty knownServer.ffa}"/>
     </p:column>
 
-    <p:column headerText="Ignore bots" width="120">
+    <p:column headerText="Ignore bots" width="60">
         <h:outputText value="#{knownServer.ignoreBots ? 'Yes' : 'No'}" rendered="#{not empty knownServer.ignoreBots}"/>
     </p:column>
 
-    <p:column headerText="Start session on action" width="120">
+    <p:column headerText="Start session on action" width="80">
         <h:outputText value="#{knownServer.startSessionOnAction ? 'Yes' : 'No'}" rendered="#{not empty knownServer.startSessionOnAction}"/>
     </p:column>
 </p:dataTable>
