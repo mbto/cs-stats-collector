@@ -7,23 +7,44 @@
       xmlns:p="http://primefaces.org/ui"
       xmlns:ui="http://xmlns.jcp.org/jsf/facelets">
 <f:metadata>
-    <f:viewAction action="#{requestAddressDetails.fetch()}" onPostback="false" immediate="true"/>
+    <f:viewAction action="#{viewAddressDetails.fetch()}" onPostback="false" immediate="true"/>
 </f:metadata>
 
 <ui:composition template="../template/layout.xhtml">
 <ui:define name="center">
-<p:messages id="fetchMsgs" showSummary="true" showDetail="true" rendered="#{empty requestAddressDetails.selectedAddress}"/>
-<ui:fragment rendered="#{not empty requestAddressDetails.selectedAddress}">
-<p:panel header="Address #{requestAddressDetails.selectedAddress} details">
+<p:messages id="fetchMsgs" showSummary="true" showDetail="true" rendered="#{empty viewAddressDetails.selectedAddress}"/>
+<ui:fragment rendered="#{not empty viewAddressDetails.selectedAddress}">
+<p:panel id="showSessionsPanel">
+<f:facet name="header">
+<h:outputText value="[#{availableAddresses.get(viewAddressDetails.selectedAddress).project.id}] #{availableAddresses.get(viewAddressDetails.selectedAddress).project.name} - "
+rendered="#{not empty availableAddresses.get(viewAddressDetails.selectedAddress)}"/>
+<h:outputText value="Address #{viewAddressDetails.selectedAddress} details"/>
+</f:facet>
 <h:form id="showSessionsForm">
-<p:dataTable id="sessionsTblId" value="#{requestAddressDetails.aggregatedPlayers}"
+<p:commandButton id="flushSessionsBtn" value="#{empty viewAddressDetails.aggregatedPlayers
+                 ? 'No sessions for flush'
+                 : ('Flush ' += viewAddressDetails.aggregatedPlayers.size() += ' sessions')}"
+                 disabled="#{empty viewAddressDetails.aggregatedPlayers}"
+                 process="@this" update="@form msgs" immediate="true"
+                 actionListener="${viewAddressDetails.flush()}"
+                 icon="ui-icon-arrowstop-1-s"/>
+
+<p:button value="Edit known servers" style="margin-left:10px;" icon="ui-icon-arrowthick-1-e"
+          href="/knownServersByProject?projectId=#{availableAddresses.get(viewAddressDetails.selectedAddress).knownServer.projectId}"
+          disabled="#{empty availableAddresses.get(viewAddressDetails.selectedAddress)}"/>
+
+<p:messages id="msgs" showSummary="true" showDetail="true"/>
+
+<p:separator/>
+<p:dataTable id="sessionsTblId" value="#{viewAddressDetails.aggregatedPlayers}"
              reflow="true" resizableColumns="true" liveResize="true"
              var="aggPlayer" emptyMessage="No sessions found">
-    <f:facet name="header">#{requestAddressDetails.aggregatedPlayers.size()} sessions</f:facet>
+    <f:facet name="header">#{viewAddressDetails.aggregatedPlayers.size()} sessions</f:facet>
 
-    <p:column headerText="Name" width="200">
+    <p:column headerText="Name" width="200" groupRow="true">
         <h:outputText value="#{aggPlayer.name}"/>
     </p:column>
+
     <p:column headerText="Lifetime" width="130">
         <h:outputText value="#{aggPlayer.lifetime}"/>
     </p:column>
@@ -33,18 +54,41 @@
     <p:column headerText="Kills" width="40">
         <h:outputText value="#{aggPlayer.kills}"/>
     </p:column>
-    <p:column headerText="Deaths" width="40">
+    <p:column headerText="Deaths" width="50">
         <h:outputText value="#{aggPlayer.deaths}"/>
     </p:column>
     <p:column headerText="IP adresses" width="200">
-        <h:outputText value="#{aggPlayer.ipAddresses}" escape="false" rendered="#{not empty aggPlayer.ipAddresses}"/>
+        <h:outputText value="#{viewAddressDetails.aggregatedIps.get(aggPlayer.name)}" escape="false"
+        rendered="#{not empty viewAddressDetails.aggregatedIps.get(aggPlayer.name)}"/>
     </p:column>
     <p:column headerText="Steam IDs" width="200">
-        <h:outputText value="#{aggPlayer.steamIds}" escape="false" rendered="#{not empty aggPlayer.steamIds}"/>
+        <h:outputText value="#{viewAddressDetails.aggregatedSteamIds.get(aggPlayer.name)}" escape="false"
+                      rendered="#{not empty viewAddressDetails.aggregatedSteamIds.get(aggPlayer.name)}"/>
+    </p:column>
+</p:dataTable>
+
+<p:dataTable id="flLogsTblId" value="#{availableAddresses.get(viewAddressDetails.selectedAddress).messages}"
+             reflow="true"
+             rowIndexVar="rowId"
+             var="pair" emptyMessage="No flush logs found" style="margin-top:10px;">
+    <f:facet name="header">Last flush logs</f:facet>
+    <p:column headerText="№" width="32">
+        <h:outputText value="#{rowId + 1}"/>
+    </p:column>
+    <p:column headerText="Date" width="180" groupRow="true">
+        <h:outputText value="#{pair.left}">
+            <f:convertDateTime pattern="yyyy-MM-dd HH:mm:ss" type="localDateTime"/>
+        </h:outputText>
+    </p:column>
+    <p:column headerText="Message">
+        <h:outputText value="#{pair.right}"/>
     </p:column>
 </p:dataTable>
 </h:form>
 </p:panel>
+<p:blockUI block="showSessionsPanel" trigger="showSessionsForm:flushSessionsBtn">
+    <p:graphicImage library="images" name="ajaxloadingbar.gif"/>
+</p:blockUI>
 </ui:fragment>
 </ui:define>
 </ui:composition>

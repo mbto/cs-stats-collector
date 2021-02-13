@@ -67,7 +67,8 @@
             <p:inputText id="iHP" value="#{viewEditProject.selectedProject.databaseHostport}" required="true" placeholder="example:com:3306" />
 
             <p:outputLabel value="DB schema" for="iSchema" />
-            <p:inputText id="iSchema" value="#{viewEditProject.selectedProject.databaseSchema}" required="true" placeholder="csstats" />
+            <p:inputText id="iSchema" value="#{viewEditProject.selectedProject.databaseSchema}" required="true" placeholder="csstats"
+                         validator="mySQLNamingValidator"/>
 
             <p:outputLabel value="DB username" for="iUsername" />
             <p:inputText id="iUsername" value="#{viewEditProject.selectedProject.databaseUsername}" required="true" />

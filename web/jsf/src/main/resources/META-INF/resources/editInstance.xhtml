@@ -36,7 +36,8 @@
         </p:panelGrid>
 
         <p:separator />
-
+        <div class="ui-g">
+        <div class="ui-g-12 ui-g-nopad">
         <p:commandButton id="saveBtn" value="Save" actionListener="#{viewEditInstance.save}"
                          process="@form" update="edInstPanel"
                          icon="ui-icon-check"/>
@@ -50,27 +51,40 @@
                 <p:commandButton value="Delete" action="#{viewEditInstance.delete}"
                              process="@this" update="msgs"
                              onstart="PF('confDialDelete').hide();PF('buiInstects').show()" oncomplete="PF('buiInstects').hide()"
-                             style="margin-left:10px;" icon="ui-icon-closethick"/>
+                             icon="ui-icon-closethick" style="margin-left:10px;"/>
                 <p:commandButton type="button" value="Cancel" onclick="PF('confDialDelete').hide()" style="float:right;"
                              icon="ui-icon-cancel"/>
             </p:confirmDialog>
         </ui:fragment>
         <ui:fragment rendered="#{viewEditInstance.selectedInstance.id == instanceHolder.currentInstanceId}">
-            <p:commandButton type="button" value="Shutdown instance" onclick="PF('confDialDelete').show()"
-                             icon="ui-icon-power" style="float:right;" styleClass="ui-button-danger"/>
+            <p:panelGrid layout="grid" columns="1" style="float:right;" styleClass="ui-fluid ui-panelgrid-blank">
+                <p:commandButton type="button" value="Shutdown instance" onclick="PF('confDialDelete').show()"
+                                 icon="ui-icon-power" styleClass="ui-button-danger"/>
+
+                <p:commandButton value="#{viewEditInstance.sessionsCount == 0
+                                 ? 'No sessions for flush' :
+                                 ('Flush ' += viewEditInstance.sessionsCount += ' sessions')}"
+                                 disabled="#{viewEditInstance.sessionsCount == 0}"
+                                 process="@this" update="@this msgs"
+                                 actionListener="#{viewEditInstance.flushSessions()}"
+                                 onstart="PF('buiInstects').show()" oncomplete="PF('buiInstects').hide()"
+                                 icon="ui-icon-arrowstop-1-s"/>
+            </p:panelGrid>
+
             <p:confirmDialog widgetVar="confDialDelete" header="Confirm"
                              message="Are you sure you want to shutdown instance [#{viewEditInstance.selectedInstance.id}] #{viewEditInstance.selectedInstance.name} ?">
 
                 <p:commandButton value="Shutdown instance" actionListener="#{viewEditInstance.shutdownInstance()}"
                                  process="@this" update="@none"
                                  onstart="PF('confDialDelete').hide();PF('buiInstects').show()" oncomplete="PF('buiInstects').hide()"
-                                 style="margin-left:10px;" icon="ui-icon-power"/>
+                                 icon="ui-icon-power" style="margin-left:10px;"/>
                 <p:commandButton type="button" value="Cancel" onclick="PF('confDialDelete').hide()"
-                                 style="float:right;" icon="ui-icon-cancel"/>
+                                 icon="ui-icon-cancel" style="float:right;"/>
             </p:confirmDialog>
         </ui:fragment>
+        </div></div>
     </h:form>
-<p:messages id="msgs" showSummary="true" showDetail="true"/>
+<p:messages id="msgs" showSummary="true" showDetail="true" escape="false"/>
 </p:panel>
 </p:outputPanel>
 <p:blockUI widgetVar="buiInstects" block="edInstOutPanel" trigger="edInstForm:saveBtn" >

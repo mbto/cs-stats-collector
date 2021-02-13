@@ -51,7 +51,8 @@
             <p:inputText id="iHP" value="#{viewNewProject.selectedProject.databaseHostport}" required="true" placeholder="example.com:3306" />
 
             <p:outputLabel value="DB schema" for="iSchema" />
-            <p:inputText id="iSchema" value="#{viewNewProject.selectedProject.databaseSchema}" required="true" placeholder="csstats" />
+            <p:inputText id="iSchema" value="#{viewNewProject.selectedProject.databaseSchema}" required="true" placeholder="csstats"
+                         validator="mySQLNamingValidator"/>
 
             <p:outputLabel value="DB username" for="iUsename" />
             <p:inputText id="iUsename" value="#{viewNewProject.selectedProject.databaseUsername}" required="true" />

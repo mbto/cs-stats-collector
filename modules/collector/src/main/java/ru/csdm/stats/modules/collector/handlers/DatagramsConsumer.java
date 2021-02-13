@@ -82,7 +82,7 @@ public class DatagramsConsumer {
         } catch (InterruptedException ignored) {}
 
         for (String address : gameSessionByAddress.keySet()) {
-            flushSessions(address, null, PRE_DESTROY_LIFECYCLE);
+            flushSessions(availableAddresses.get(address), null, PRE_DESTROY_LIFECYCLE);
         }
 
         if(debugEnabled)
@@ -129,10 +129,10 @@ public class DatagramsConsumer {
                 if(debugEnabled)
                     log.debug(address + " Taked system event: " + message.getSystemEvent());
 
-                if(message.getSystemEvent() == SystemEvent.FLUSH_FROM_ENDPOINT) {
-                    flushSessions(address, null, ENDPOINT);
+                if(message.getSystemEvent() == SystemEvent.FLUSH_FROM_FRONTEND) {
+                    flushSessions(serverData, null, FRONTEND);
                 } else if(message.getSystemEvent() == SystemEvent.FLUSH_FROM_SCHEDULER) {
-                    flushSessions(address, null, SCHEDULER);
+                    flushSessions(serverData, null, SCHEDULER);
                 }
 
                 continue;
@@ -384,7 +384,7 @@ public class DatagramsConsumer {
 
 /* L 01/01/2020 - 20:50:08: Started map "de_dust2" (CRC "1159425449") */
                 if(eventName.equals("Started map")) {
-                    flushSessions(address, dateTime, NEW_GAME_MAP);
+                    flushSessions(serverData, dateTime, NEW_GAME_MAP);
                     continue;
                 }
 
@@ -395,7 +395,7 @@ public class DatagramsConsumer {
 
 /* L 01/01/2020 - 20:52:15: Server shutdown */
             if(rawMsg.equals("Server shutdown")) {
-                flushSessions(address, dateTime, SHUTDOWN_GAME_SERVER);
+                flushSessions(serverData, dateTime, SHUTDOWN_GAME_SERVER);
                 continue;
             }
         }
@@ -477,12 +477,18 @@ public class DatagramsConsumer {
         return collectedPlayer;
     }
 
-    private void flushSessions(String address, LocalDateTime dateTime, FlushEvent fromEvent) {
+    private void flushSessions(ServerData serverData, LocalDateTime dateTime, FlushEvent fromEvent) {
+        String address = serverData.getKnownServer().getIpport();
+
         Map<String, CollectedPlayer> gameSessions = allocateGameSession(address,
                 fromEvent == PRE_DESTROY_LIFECYCLE ? REMOVE : REPLACE_IF_EXISTS);
 
+        String logMsg;
         if(Objects.isNull(gameSessions)) {
-            log.info(address + " Skip flushing players, due gameSessions container not exists. " + fromEvent);
+            logMsg = "Skip flushing players, due gameSessions container not exists. " + fromEvent;
+            log.info(address + " " + logMsg);
+
+            serverData.addMessage(logMsg);
             return;
         }
 
@@ -490,14 +496,17 @@ public class DatagramsConsumer {
 
         int playersSize = collectedPlayers.size();
         if (playersSize == 0) {
-            log.info(address + " Skip flushing players, due empty collectedPlayers container. " + fromEvent);
+            logMsg = "Skip flushing players, due empty collectedPlayers container. " + fromEvent;
+            log.info(address + " " + logMsg);
+
+            serverData.addMessage(logMsg);
             return;
         }
 
-        log.info(address + " Prepared " + playersSize +
-                " player" + (playersSize > 1 ? "s" : "") + " to flush. " + fromEvent);
+        logMsg = "Prepared " + playersSize + " player" + (playersSize > 1 ? "s" : "") + " to flush. " + fromEvent;
+        log.info(address + " " + logMsg);
 
-        ServerData serverData = availableAddresses.get(address);
+        serverData.addMessage(logMsg);
 
         if(Objects.isNull(dateTime)) {
             dateTime = serverData.getLastTouchDateTime();
@@ -509,6 +518,6 @@ public class DatagramsConsumer {
             collectedPlayer.prepareToFlushSessions(dateTime);
         }
 
-        playersSender.sendAsync(address, collectedPlayers);
+        playersSender.sendAsync(serverData, collectedPlayers);
     }
 }

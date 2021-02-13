@@ -48,7 +48,8 @@ public class ProjectMaker {
     public void process(Project project, Runnable job, List<TableField<?,?>> excludeColumns) {
         this.excludeColumns = excludeColumns;
 
-        try(HikariDataSource hds = buildHikariDataSource(project.getDatabaseSchema() + "-connection-project-#" + project.getId())) {
+        try(HikariDataSource hds = buildHikariDataSource(project.getDatabaseSchema()
+                + "-connection-project-#" + project.getId() + "-" + project.getName())) {
             hds.setJdbcUrl("jdbc:mysql://" + project.getDatabaseHostport() + "/" + project.getDatabaseSchema());
             hds.setSchema(project.getDatabaseSchema());
             hds.setUsername(project.getDatabaseUsername());

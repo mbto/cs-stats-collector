@@ -98,7 +98,7 @@ public class SomeUtils {
                 .type(HikariDataSource.class)
                 .build();
 
-        ds.setPoolName(poolName);
+        ds.setPoolName(poolName.replace(':', '-'));
         return ds;
     }
 

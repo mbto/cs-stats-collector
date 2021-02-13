@@ -23,7 +23,7 @@ public class StatusShower {
     @PostConstruct
     public void init() {
         if(log.isDebugEnabled())
-            log.debug("\ninit()");
+            log.debug("\ninit");
 
         calculate();
     }

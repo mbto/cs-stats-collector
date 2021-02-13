@@ -10,8 +10,11 @@ import org.jooq.types.UInteger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
 import org.springframework.context.ApplicationContext;
+import ru.csdm.stats.common.dto.CollectedPlayer;
+import ru.csdm.stats.common.dto.ServerData;
 import ru.csdm.stats.common.model.collector.tables.pojos.Instance;
 import ru.csdm.stats.common.utils.SomeUtils;
+import ru.csdm.stats.service.CollectorService;
 import ru.csdm.stats.service.InstanceHolder;
 import ru.csdm.stats.webapp.application.ChangesCounter;
 
@@ -21,10 +24,11 @@ import javax.faces.view.ViewScoped;
 import javax.inject.Named;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import java.util.Arrays;
-import java.util.Objects;
+import java.util.*;
 
 import static javax.faces.application.FacesMessage.SEVERITY_WARN;
+import static ru.csdm.stats.common.FlushEvent.PRE_DESTROY_LIFECYCLE;
+import static ru.csdm.stats.common.SystemEvent.FLUSH_FROM_FRONTEND;
 import static ru.csdm.stats.common.model.collector.tables.Instance.INSTANCE;
 import static ru.csdm.stats.common.model.collector.tables.KnownServer.KNOWN_SERVER;
 
@@ -34,6 +38,12 @@ import static ru.csdm.stats.common.model.collector.tables.KnownServer.KNOWN_SERV
 public class ViewEditInstance {
     @Autowired
     private ApplicationContext applicationContext;
+    @Autowired
+    private CollectorService collectorService;
+
+    @Autowired
+    private Map<String, Map<String, CollectedPlayer>> gameSessionByAddress;
+
     @Autowired
     private DSLContext collectorDsl;
     @Autowired
@@ -141,6 +151,44 @@ public class ViewEditInstance {
         }
 
         return "/instances?faces-redirect=true";
+    }
+
+    public int getSessionsCount() {
+        return gameSessionByAddress.values()
+                .stream()
+                .mapToInt(gameSessions -> gameSessions
+                        .values()
+                        .stream()
+                        .mapToInt(cp -> cp.getSessions().size())
+                        .sum())
+                .sum();
+    }
+
+    public void flushSessions() {
+        log.info("Flush all sessions received from frontend");
+
+        List<String> msgs = new ArrayList<>();
+
+        for (String address : gameSessionByAddress.keySet()) {
+            try {
+                collectorService.flush(address, FLUSH_FROM_FRONTEND, false);
+
+                log.info(address + " Flush registered");
+
+                msgs.add("Flush " + address + " registered");
+            } catch (Exception e) {
+                log.info(address + " Flush not registered, " + e.getMessage());
+
+                msgs.add("Flush " + address + " not registered, " + e.getMessage());
+            }
+        }
+
+        FacesContext fc = FacesContext.getCurrentInstance();
+        fc.addMessage("msgs", new FacesMessage(String.join("<br/>", msgs), ""));
+
+        try {
+            Thread.sleep(3 * 1000);
+        } catch (InterruptedException ignored) {}
     }
 
     public void shutdownInstance() {

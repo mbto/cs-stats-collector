@@ -1,6 +1,5 @@
 package ru.csdm.stats;
 
-import com.sun.security.auth.UserPrincipal;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.jooq.DSLContext;
@@ -14,6 +13,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.DependsOn;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
+import ru.csdm.stats.common.dto.ServerData;
 import ru.csdm.stats.common.model.collector.tables.pojos.Project;
 import ru.csdm.stats.common.model.collector.tables.records.KnownServerRecord;
 import ru.csdm.stats.common.model.csstats.tables.pojos.Player;
@@ -33,7 +33,7 @@ import java.util.stream.Stream;
 import static org.junit.Assert.assertEquals;
 import static org.springframework.boot.autoconfigure.task.TaskExecutionAutoConfiguration.APPLICATION_TASK_EXECUTOR_BEAN_NAME;
 import static ru.csdm.stats.common.Constants.YYYYMMDD_HHMMSS_PATTERN;
-import static ru.csdm.stats.common.SystemEvent.FLUSH_FROM_ENDPOINT;
+import static ru.csdm.stats.common.SystemEvent.FLUSH_FROM_FRONTEND;
 import static ru.csdm.stats.common.model.collector.tables.DriverProperty.DRIVER_PROPERTY;
 import static ru.csdm.stats.common.model.collector.tables.Instance.INSTANCE;
 import static ru.csdm.stats.common.model.collector.tables.KnownServer.KNOWN_SERVER;
@@ -57,6 +57,8 @@ public class LogsTests {
     private LogsSender logsSender;
     @Autowired
     private ProjectMaker projectMaker;
+    @Autowired
+    private Map<String, ServerData> availableAddresses;
 
     @BeforeClass
     public static void beforeClass() {
@@ -885,9 +887,15 @@ public class LogsTests {
         projectMaker.process(project, () -> {
             logsSender.sendLogs("server4_only_load.log", 27014, 27018);
 
-            Map<String, String> results = collectorService.flush(FLUSH_FROM_ENDPOINT, false);
+            for (String address : availableAddresses.keySet()) {
+                try {
+                    collectorService.flush(address, FLUSH_FROM_FRONTEND, false);
 
-            log.info("statsEndpoint results: " + results.toString());
+                    log.info("Flush " + address + " registered");
+                } catch (Exception e) {
+                    log.warn(e.getMessage());
+                }
+            }
 
             try {
                 Thread.sleep(1000);

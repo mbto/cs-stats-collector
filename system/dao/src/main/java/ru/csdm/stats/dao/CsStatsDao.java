@@ -5,7 +5,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.jooq.*;
 import org.jooq.impl.DSL;
 import org.jooq.types.UInteger;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 import ru.csdm.stats.common.dto.ServerData;
 import ru.csdm.stats.common.model.collector.tables.pojos.DriverProperty;
@@ -31,19 +30,18 @@ import static ru.csdm.stats.common.utils.SomeUtils.configJooqContext;
 @Repository
 @Slf4j
 public class CsStatsDao {
-    @Autowired
-    private Map<String, ServerData> availableAddresses;
 
-    public void mergePlayersStats(String address, List<PlayerRecord> plannedPlayers,
+    public void mergePlayersStats(ServerData serverData,
+                                  List<PlayerRecord> plannedPlayers,
                                   Map<String, List<PlayerIpRecord>> plannedIpsByName,
                                   Map<String, List<PlayerSteamidRecord>> plannedSteamIdsByName) {
         if(log.isDebugEnabled())
             log.debug("mergePlayersStats() start");
 
-        ServerData serverData = availableAddresses.get(address);
         Project project = serverData.getProject();
 
-        try(HikariDataSource hds = buildHikariDataSource(project.getDatabaseSchema() + "-connection-project-#" + project.getId())) {
+        try(HikariDataSource hds = buildHikariDataSource(project.getDatabaseSchema()
+                + "-connection-project-#" + project.getId() + "-" + project.getName())) {
             hds.setJdbcUrl("jdbc:mysql://" + project.getDatabaseHostport() + "/" + project.getDatabaseSchema());
             hds.setSchema(project.getDatabaseSchema());
             hds.setUsername(project.getDatabaseUsername());

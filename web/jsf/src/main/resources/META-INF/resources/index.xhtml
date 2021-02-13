@@ -6,9 +6,6 @@
       xmlns:h="http://xmlns.jcp.org/jsf/html"
       xmlns:p="http://primefaces.org/ui"
       xmlns:ui="http://xmlns.jcp.org/jsf/facelets">
-<!--<f:metadata>-->
-<!--    <f:viewAction action="#{viewDashboard.fetch()}" onPostback="false" immediate="true"/>-->
-<!--</f:metadata>-->
 
 <ui:composition template="../template/layout.xhtml">
 <ui:define name="head">
@@ -108,7 +105,7 @@ style="background-color: #{empty datagramsEntry.value.datagramsQueue ? '#d7ffd7'
 </div>
 <div class="ui-g" style="margin-top:10px;">
 <p:commandButton value="Make fakes" process="@this" update="showAvailAddressesForm"
-actionListener="#{viewDashboard.makeFakes()}" immediate="true"/>
+                 actionListener="#{requestDashboard.makeFakes()}" immediate="true"/>
 <div class="ui-g-12 ui-g-nopad">
 <h:form id="showAvailAddressesForm">
 <p:dataTable value="#{availableAddresses.entrySet()}" var="entry" emptyMessage="No known servers found"
@@ -121,7 +118,7 @@ actionListener="#{viewDashboard.makeFakes()}" immediate="true"/>
     </f:facet>
 
     <p:ajax event="rowSelect" immediate="true" process="@this" update="@none"
-            listener="#{viewDashboard.onRowSelect}"/>
+            listener="#{requestDashboard.onRowSelect}"/>
 
     <p:column headerText="Queue ID" width="70">
         <h:outputText value="#{registeredAddresses.get(entry.key)}"/>
@@ -134,9 +131,8 @@ actionListener="#{viewDashboard.makeFakes()}" immediate="true"/>
         <h:outputText value=" (#{entry.value.knownServer.ipport})"
                       rendered="#{not empty entry.value.knownServer.ipport and entry.key != entry.value.knownServer.ipport}"/>
     </p:column>
-    <p:column headerText="Sessions" width="60">
-        <h:outputText value="#{gameSessionByAddress.get(entry.key).size()}"
-                      rendered="#{gameSessionByAddress.get(entry.key) != null}"/>
+    <p:column headerText="Sessions" width="65">
+        <h:outputText value="#{requestDashboard.getSessionCount(entry.key)}"/>
     </p:column>
     <p:column headerText="Project" width="200">
         <h:outputText value="[#{entry.value.project.id}] #{entry.value.project.name}"/>
