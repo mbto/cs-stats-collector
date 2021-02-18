@@ -6,7 +6,6 @@ import org.jooq.SQLDialect;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.*;
 
-import static org.springframework.boot.autoconfigure.task.TaskExecutionAutoConfiguration.APPLICATION_TASK_EXECUTOR_BEAN_NAME;
 import static ru.csdm.stats.common.utils.SomeUtils.buildHikariDataSource;
 import static ru.csdm.stats.common.utils.SomeUtils.configJooqContext;
 
@@ -22,7 +21,7 @@ public class JooqConfigTest {
 
     @Bean
     @ConfigurationProperties("collector.admin.datasource")
-    @DependsOn(APPLICATION_TASK_EXECUTOR_BEAN_NAME)
+    @DependsOn("coreExecutor")
     public HikariDataSource collectorAdminDataSource() {
         return buildHikariDataSource("collector-admin-pool");
     }

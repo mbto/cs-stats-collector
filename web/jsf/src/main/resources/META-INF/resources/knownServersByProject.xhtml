@@ -42,10 +42,10 @@
         <p:ajax event="rowEdit" partialSubmit="true" listener="#{viewKnownServersByProjectId.onRowEdit}" update="edKnServsForm:addKnownServerBtn msgs" />
         <p:ajax event="rowEditCancel" partialSubmit="true"/>
 
-        <p:column headerText="ip:port" width="200">
+        <p:column headerText="Address" width="200">
             <p:cellEditor>
                 <f:facet name="output"><h:outputText value="#{row.pojo.ipport}"/></f:facet>
-                <f:facet name="input"><p:inputText id="iIpPort" value="#{row.pojo.ipport}" required="true" label="ip:port" placeholder="127.0.0.1:27015"
+                <f:facet name="input"><p:inputText id="iIpPort" value="#{row.pojo.ipport}" required="true" label="Address" placeholder="127.0.0.1:27015"
                                                    validator="#{viewKnownServersByProjectId.validate}" maxlength="21" onkeypress="if(event.keyCode == 13) { return false; }">
                     <f:attribute name="rowIndexVar" value="#{rowIndexVar}"/>
                 </p:inputText>
@@ -132,7 +132,7 @@
             Other instance: [#{entry.key}] #{instanceHolder.availableInstances.get(entry.key).name}
         </f:facet>
 
-        <p:column headerText="ip:port" width="200">
+        <p:column headerText="Address" width="200">
             <h:outputText value="#{row.pojo.ipport}"/>
         </p:column>
 

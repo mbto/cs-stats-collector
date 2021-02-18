@@ -25,12 +25,12 @@
 
     <p:ajax event="rowSelect" immediate="true" process="@this" update="@none"/>
 
-    <p:column headerText="Project" width="200">
-        <h:outputText value="[#{knownServer.projectId}] #{requestKnownServersByInstanceId.projectNameByProjectId.get(knownServer.projectId)}"/>
+    <p:column headerText="Address" width="200">
+        <h:outputText value="#{knownServer.ipport}"/>
     </p:column>
 
-    <p:column headerText="ip:port" width="200">
-        <h:outputText value="#{knownServer.ipport}"/>
+    <p:column headerText="Project" width="200">
+        <h:outputText value="[#{knownServer.projectId}] #{requestKnownServersByInstanceId.projectNameByProjectId.get(knownServer.projectId)}"/>
     </p:column>
 
     <p:column headerText="Name" width="200">

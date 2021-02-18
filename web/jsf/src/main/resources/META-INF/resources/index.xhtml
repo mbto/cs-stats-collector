@@ -50,14 +50,14 @@
             <div class="ui-g-12 ui-xl-4 ui-lg-4 ui-md-4 ui-sm-4 ui-g-nopad">
                 <p:panelGrid columns="2" layout="grid">
                     <f:facet name="header">
-                        <h:outputText value="Application"/>
+                        <h:outputText value="Core"/>
                     </f:facet>
                     <h:outputText value="core"/>
-                    <h:outputText value="#{applicationTaskExecutor.getCorePoolSize()}"/>
+                    <h:outputText value="#{coreExecutor.getCorePoolSize()}"/>
                     <h:outputText value="max"/>
-                    <h:outputText value="#{applicationTaskExecutor.getMaxPoolSize()}"/>
+                    <h:outputText value="#{coreExecutor.getMaxPoolSize()}"/>
                     <h:outputText value="queue"/>
-                    <h:outputText value="#{applicationTaskExecutor.getThreadPoolExecutor().getQueue().size()}"/>
+                    <h:outputText value="#{coreExecutor.getThreadPoolExecutor().getQueue().size()}"/>
                 </p:panelGrid>
             </div>
             <div class="ui-g-12 ui-xl-4 ui-lg-4 ui-md-4 ui-sm-4 ui-g-nopad">
@@ -90,14 +90,14 @@
     </p:panel>
 </div>
 <div class="ui-g-12 ui-xl-1 ui-lg-2 ui-md-2 ui-sm-12 ui-g-nopad">
-<p:dataTable value="#{datagramsInQueuesById.entrySet()}" var="datagramsEntry" emptyMessage="No queues found">
+<p:dataTable value="#{messageQueueByQueueId.entrySet()}" var="datagramsEntry" emptyMessage="No queues found">
     <f:facet name="header">Queues</f:facet>
     <p:column headerText="ID">
         <h:outputText value="#{datagramsEntry.key}"/>
     </p:column>
     <p:column headerText="Size"
-style="background-color: #{empty datagramsEntry.value.datagramsQueue ? '#d7ffd7' : '#ffcc74'}">
-        <h:outputText value="#{datagramsEntry.value.datagramsQueue.size()}"
+style="background-color: #{empty datagramsEntry.value.messageQueue ? '#d7ffd7' : '#ffcc74'}">
+        <h:outputText value="#{datagramsEntry.value.messageQueue.size()}"
                       rendered="#{not empty datagramsEntry.value}"/>
     </p:column>
 </p:dataTable>
@@ -108,12 +108,12 @@ style="background-color: #{empty datagramsEntry.value.datagramsQueue ? '#d7ffd7'
                  actionListener="#{requestDashboard.makeFakes()}" immediate="true"/>
 <div class="ui-g-12 ui-g-nopad">
 <h:form id="showAvailAddressesForm">
-<p:dataTable value="#{availableAddresses.entrySet()}" var="entry" emptyMessage="No known servers found"
+<p:dataTable value="#{requestDashboard.sortedServerData}" var="serverData" emptyMessage="No known servers found"
              reflow="true"
-             selectionMode="single" rowKey="#{entry.key}"
-             rowStyleClass="#{entry.value.listening ? 'stListening' : 'stNotListening'}">
+             selectionMode="single" rowKey="#{serverData.knownServer.ipport}"
+             rowStyleClass="#{serverData.listening ? 'stListening' : 'stNotListening'}">
     <f:facet name="header">
-        Known servers: #{availableAddresses.size()} |
+        Known servers: #{serverDataByAddress.size()} |
         instance: [#{instanceHolder.currentInstanceId}] #{instanceHolder.availableInstances.get(instanceHolder.currentInstanceId).name}
     </f:facet>
 
@@ -121,36 +121,34 @@ style="background-color: #{empty datagramsEntry.value.datagramsQueue ? '#d7ffd7'
             listener="#{requestDashboard.onRowSelect}"/>
 
     <p:column headerText="Queue ID" width="70">
-        <h:outputText value="#{registeredAddresses.get(entry.key)}"/>
+        <h:outputText value="#{serverData.queueId}"/>
     </p:column>
-    <p:column headerText="Status" width="140">
-        <h:outputText value="#{entry.value.listening ? '[LISTENING]' : '[NOT LISTENING]'}"/>
+    <p:column headerText="Status" width="145">
+        <h:outputText value="#{serverData.listening ? '[LISTENING]' : '[NOT LISTENING]'}"/>
     </p:column>
-    <p:column headerText="ip:port" width="200">
-        <h:outputText value="#{entry.key}"/>
-        <h:outputText value=" (#{entry.value.knownServer.ipport})"
-                      rendered="#{not empty entry.value.knownServer.ipport and entry.key != entry.value.knownServer.ipport}"/>
+    <p:column headerText="Address" width="200">
+        <h:outputText value="#{serverData.knownServer.ipport}"/>
     </p:column>
     <p:column headerText="Sessions" width="65">
-        <h:outputText value="#{requestDashboard.getSessionCount(entry.key)}"/>
+        <h:outputText value="#{requestDashboard.getSessionCount(serverData.knownServer.ipport)}"/>
     </p:column>
     <p:column headerText="Project" width="200">
-        <h:outputText value="[#{entry.value.project.id}] #{entry.value.project.name}"/>
+        <h:outputText value="[#{serverData.project.id}] #{serverData.project.name}"/>
     </p:column>
     <p:column headerText="Name" width="200">
-        <h:outputText value="#{entry.value.knownServer.name}"/>
+        <h:outputText value="#{serverData.knownServer.name}"/>
     </p:column>
     <p:column headerText="Active" width="60">
-        <h:outputText value="#{entry.value.knownServer.active ? 'Yes' : 'No'}" rendered="#{not empty entry.value.knownServer.active}"/>
+        <h:outputText value="#{serverData.knownServer.active ? 'Yes' : 'No'}" rendered="#{not empty serverData.knownServer.active}"/>
     </p:column>
     <p:column headerText="FFA" width="60">
-        <h:outputText value="#{entry.value.knownServer.ffa ? 'Yes' : 'No'}" rendered="#{not empty entry.value.knownServer.ffa}"/>
+        <h:outputText value="#{serverData.knownServer.ffa ? 'Yes' : 'No'}" rendered="#{not empty serverData.knownServer.ffa}"/>
     </p:column>
     <p:column headerText="Ignore bots" width="60">
-        <h:outputText value="#{entry.value.knownServer.ignoreBots ? 'Yes' : 'No'}" rendered="#{not empty entry.value.knownServer.ignoreBots}"/>
+        <h:outputText value="#{serverData.knownServer.ignoreBots ? 'Yes' : 'No'}" rendered="#{not empty serverData.knownServer.ignoreBots}"/>
     </p:column>
     <p:column headerText="Start session on action" width="80">
-        <h:outputText value="#{entry.value.knownServer.startSessionOnAction ? 'Yes' : 'No'}" rendered="#{not empty entry.value.knownServer.startSessionOnAction}"/>
+        <h:outputText value="#{serverData.knownServer.startSessionOnAction ? 'Yes' : 'No'}" rendered="#{not empty serverData.knownServer.startSessionOnAction}"/>
     </p:column>
 </p:dataTable>
 </h:form>

@@ -115,12 +115,13 @@ public class ViewKnownServersByProjectId {
             }
         }
 
-        existedIpports = String.join("<br/>", collectorDsl.select(KNOWN_SERVER.IPPORT)
-                .from(KNOWN_SERVER)
+        existedIpports = collectorDsl.select(
+                DSL.groupConcat(KNOWN_SERVER.IPPORT)
+                        .orderBy(KNOWN_SERVER.IPPORT.asc()).separator("<br/>")
+        ).from(KNOWN_SERVER)
                 .where(KNOWN_SERVER.PROJECT_ID.notEqual(selectedProject.getId()),
                        KNOWN_SERVER.INSTANCE_ID.eq(instanceHolder.getCurrentInstanceId())
-                ).orderBy(KNOWN_SERVER.IPPORT.asc())
-                .fetchInto(String.class));
+                ).fetchOneInto(String.class);
     }
 
     public void validate(FacesContext context, UIComponent component, String value) throws ValidatorException {
@@ -147,13 +148,14 @@ public class ViewKnownServersByProjectId {
                     + " (" + knownServer.getName() + ")");
         }
 
-        Project projectWithSameIpport = collectorDsl.selectDistinct(PROJECT.ID, PROJECT.NAME)
+        Project projectWithSameIpport = collectorDsl.select(PROJECT.ID, PROJECT.NAME)
                 .from(PROJECT)
                 .join(KNOWN_SERVER).on(PROJECT.ID.eq(KNOWN_SERVER.PROJECT_ID))
                 .where(KNOWN_SERVER.IPPORT.eq(value),
                        KNOWN_SERVER.PROJECT_ID.notEqual(selectedProject.getId()),
                        KNOWN_SERVER.INSTANCE_ID.eq(instanceHolder.getCurrentInstanceId())
-                ).fetchOneInto(Project.class);
+                ).groupBy(PROJECT.ID)
+                .fetchOneInto(Project.class);
 
         if(Objects.nonNull(projectWithSameIpport)) {
             throw makeValidatorException(value, "This ip:port belongs to another project [" + projectWithSameIpport.getId() + "] "

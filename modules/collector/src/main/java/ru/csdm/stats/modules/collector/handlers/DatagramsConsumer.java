@@ -4,6 +4,7 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.jooq.types.UInteger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.scheduling.annotation.Async;
@@ -13,16 +14,16 @@ import org.springframework.util.LinkedCaseInsensitiveMap;
 import ru.csdm.stats.common.FlushEvent;
 import ru.csdm.stats.common.GameSessionFetchMode;
 import ru.csdm.stats.common.SystemEvent;
-import ru.csdm.stats.common.dto.CollectedPlayer;
-import ru.csdm.stats.common.dto.DatagramsQueue;
-import ru.csdm.stats.common.dto.Message;
-import ru.csdm.stats.common.dto.ServerData;
+import ru.csdm.stats.common.dto.*;
 import ru.csdm.stats.common.model.collector.tables.pojos.KnownServer;
+import ru.csdm.stats.dao.CollectorDao;
 
 import javax.annotation.PreDestroy;
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.concurrent.BrokenBarrierException;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 
@@ -36,10 +37,12 @@ import static ru.csdm.stats.modules.collector.settings.Patterns.*;
 @Slf4j
 public class DatagramsConsumer {
     @Autowired
+    private CollectorDao collectorDao;
+    @Autowired
     private ThreadPoolTaskExecutor consumerTaskExecutor;
 
     @Autowired
-    private Map<String, ServerData> availableAddresses;
+    private Map<String, ServerData> serverDataByAddress;
     @Autowired
     private Map<String, Map<String, CollectedPlayer>> gameSessionByAddress;
 
@@ -82,7 +85,7 @@ public class DatagramsConsumer {
         } catch (InterruptedException ignored) {}
 
         for (String address : gameSessionByAddress.keySet()) {
-            flushSessions(availableAddresses.get(address), null, PRE_DESTROY_LIFECYCLE);
+            flushSessions(address, null, null, PRE_DESTROY_LIFECYCLE);
         }
 
         if(debugEnabled)
@@ -90,14 +93,13 @@ public class DatagramsConsumer {
     }
 
     @Async("consumerTaskExecutor")
-    public void startConsumeAsync(DatagramsQueue datagramsQueue) {
-        log.info("Activating DatagramsConsumer");
+    public void startConsumeAsync(MessageQueue<Message<?>> messageQueue) {
+        log.info("Activating DatagramsConsumer for MessageQueue #" + messageQueue.getQueueId());
 
         while (true) {
             boolean debugEnabled = log.isDebugEnabled();
 
-            Message message;
-
+            Message<?> message;
             try {
                 if (isDeactivated()) {
                     log.info("Deactivation detected");
@@ -105,12 +107,13 @@ public class DatagramsConsumer {
                 }
 
                 if(debugEnabled)
-                    log.debug("Waiting message from datagramsQueue...");
+                    log.debug("Waiting message from messageQueue...");
 
-                message = datagramsQueue.getDatagramsQueue().takeFirst();
+                message = messageQueue.getMessageQueue().takeFirst();
 
-                if(debugEnabled)
-                    log.debug(message.getServerData().getKnownServer().getIpport() + " Taked message: " + message);
+                if(debugEnabled) {
+                    log.debug("Taked message: " + message);
+                }
             } catch (Throwable e) {
                 if (isDeactivated()) {
                     log.info("Deactivation detected");
@@ -121,27 +124,57 @@ public class DatagramsConsumer {
                 continue;
             }
 
-            ServerData serverData = message.getServerData();
-            KnownServer knownServer = serverData.getKnownServer();
-            String address = knownServer.getIpport();
 
             if(Objects.nonNull(message.getSystemEvent())) {
-                if(debugEnabled)
-                    log.debug(address + " Taked system event: " + message.getSystemEvent());
+                if(log.isDebugEnabled()) {
+                    log.debug("Taked system event: " + message.getSystemEvent());
+                }
 
-                if(message.getSystemEvent() == SystemEvent.FLUSH_FROM_FRONTEND) {
-                    flushSessions(serverData, null, FRONTEND);
+                if(message.getSystemEvent() == SystemEvent.REFRESH) {
+                    log.info("Started synchronization by system event " + message.getSystemEvent());
+
+                    CyclicBarrier cb = (CyclicBarrier) message.getPojo();
+                    if(cb.isBroken()) {
+                        log.info("Cancel synchronization");
+                        continue;
+                    }
+
+                    log.info("Waiting synchronization");
+
+                    try {
+                        cb.await();
+                    } catch (Throwable e) {
+                        if (isDeactivated()) {
+                            log.info("Deactivation detected after await synchronization");
+                            break;
+                        }
+
+                        log.warn("Exception after await synchronization", e);
+                        continue;
+                    }
+
+                    log.info("Finished synchronization");
+                } else if(message.getSystemEvent() == SystemEvent.FLUSH_FROM_FRONTEND) {
+                    flushSessions(message.getPayload(), (ServerData) message.getPojo(), null, FRONTEND);
                 } else if(message.getSystemEvent() == SystemEvent.FLUSH_FROM_SCHEDULER) {
-                    flushSessions(serverData, null, SCHEDULER);
+                    flushSessions(message.getPayload(), (ServerData) message.getPojo(), null, SCHEDULER);
                 }
 
                 continue;
             }
 
+            ServerData serverData = (ServerData) message.getPojo();
+
+            if(!serverData.isListening())
+                continue;
+
             Matcher msgMatcher = LOG.pattern.matcher(message.getPayload());
 
-            if (!msgMatcher.find())
+            if(!msgMatcher.find())
                 continue;
+
+            KnownServer knownServer = serverData.getKnownServer();
+            String address = knownServer.getIpport();
 
             LocalDateTime dateTime = LocalDateTime.parse(msgMatcher.group("date"), MMDDYYYY_HHMMSS_PATTERN);
             serverData.setLastTouchDateTime(dateTime);
@@ -384,7 +417,7 @@ public class DatagramsConsumer {
 
 /* L 01/01/2020 - 20:50:08: Started map "de_dust2" (CRC "1159425449") */
                 if(eventName.equals("Started map")) {
-                    flushSessions(serverData, dateTime, NEW_GAME_MAP);
+                    flushSessions(address, null, dateTime, NEW_GAME_MAP);
                     continue;
                 }
 
@@ -395,7 +428,7 @@ public class DatagramsConsumer {
 
 /* L 01/01/2020 - 20:52:15: Server shutdown */
             if(rawMsg.equals("Server shutdown")) {
-                flushSessions(serverData, dateTime, SHUTDOWN_GAME_SERVER);
+                flushSessions(address, null, dateTime, SHUTDOWN_GAME_SERVER);
                 continue;
             }
         }
@@ -468,26 +501,41 @@ public class DatagramsConsumer {
         // unknown, but at least steamId will remain.
         collectedPlayer.addSteamId(steamId);
 
-        // Set on every call, if the known server name suddenly changes (for example, when
-        // changing the known server name in `collector`.`known_server` and calling POST /updateSettings )
-        collectedPlayer.setLastServerName(knownServer.getName());
-
         collectedPlayer.setLastseenDatetime(dateTime);
 
         return collectedPlayer;
     }
 
-    private void flushSessions(ServerData serverData, LocalDateTime dateTime, FlushEvent fromEvent) {
-        String address = serverData.getKnownServer().getIpport();
+    private void flushSessions(String address,
+                               ServerData expectedServerData,
+                               LocalDateTime dateTime,
+                               FlushEvent fromEvent) {
+        ServerData serverData = serverDataByAddress.get(address);
+        if(Objects.isNull(serverData)) {
+            log.info(address + " Skip flush sessions, due serverData not exists. Event: " + fromEvent);
+            return;//todo: remove sessions?
+        }
+
+        String logMsg = "Started flush sessions by event " + fromEvent;
+        log.info(address + " " + logMsg);
+        serverData.addMessage(logMsg);
+
+        // if flush from frontend or scheduler - registry might already be modified
+        if(Objects.nonNull(expectedServerData) &&
+                !serverData.getProject().getId().equals(expectedServerData.getProject().getId())) {
+            logMsg = "Skip flushing players, due different project ids after refresh registry";
+            log.info(address + " " + logMsg);//todo:review? remove sessions?
+            serverData.addMessage(logMsg);
+            return;
+        }
 
         Map<String, CollectedPlayer> gameSessions = allocateGameSession(address,
-                fromEvent == PRE_DESTROY_LIFECYCLE ? REMOVE : REPLACE_IF_EXISTS);
+                (fromEvent == PRE_DESTROY_LIFECYCLE /*|| */)
+                        ? REMOVE : REPLACE_IF_EXISTS);
 
-        String logMsg;
         if(Objects.isNull(gameSessions)) {
-            logMsg = "Skip flushing players, due gameSessions container not exists. " + fromEvent;
+            logMsg = "Skip flush sessions, due gameSessions container not exists or empty";
             log.info(address + " " + logMsg);
-
             serverData.addMessage(logMsg);
             return;
         }
@@ -496,16 +544,14 @@ public class DatagramsConsumer {
 
         int playersSize = collectedPlayers.size();
         if (playersSize == 0) {
-            logMsg = "Skip flushing players, due empty collectedPlayers container. " + fromEvent;
+            logMsg = "Skip flush sessions, due empty collectedPlayers container";
             log.info(address + " " + logMsg);
-
             serverData.addMessage(logMsg);
             return;
         }
 
-        logMsg = "Prepared " + playersSize + " player" + (playersSize > 1 ? "s" : "") + " to flush. " + fromEvent;
+        logMsg = "Prepared " + playersSize + " player" + (playersSize > 1 ? "s" : "") + " to flush";
         log.info(address + " " + logMsg);
-
         serverData.addMessage(logMsg);
 
         if(Objects.isNull(dateTime)) {
@@ -518,6 +564,7 @@ public class DatagramsConsumer {
             collectedPlayer.prepareToFlushSessions(dateTime);
         }
 
+        // after this call use of registry in sendAsync onwards may be outdated
         playersSender.sendAsync(serverData, collectedPlayers);
     }
 }

@@ -87,10 +87,11 @@ public class RequestKnownServersByInstanceId {
                 .orderBy(KNOWN_SERVER.PROJECT_ID.desc(), KNOWN_SERVER.ID.asc())
                 .fetchInto(KnownServer.class);
 
-        projectNameByProjectId = collectorDsl.selectDistinct(PROJECT.ID, PROJECT.NAME)
+        projectNameByProjectId = collectorDsl.select(PROJECT.ID, PROJECT.NAME)
                 .from(PROJECT)
                 .join(KNOWN_SERVER).on(PROJECT.ID.eq(KNOWN_SERVER.PROJECT_ID))
                 .where(KNOWN_SERVER.INSTANCE_ID.eq(selectedInstance.getId()))
+                .groupBy(PROJECT.ID)
                 .fetchMap(PROJECT.ID, PROJECT.NAME);
     }
 }

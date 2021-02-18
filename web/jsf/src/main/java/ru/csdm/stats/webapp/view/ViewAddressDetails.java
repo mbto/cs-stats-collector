@@ -37,7 +37,7 @@ public class ViewAddressDetails {
     @Autowired
     private CollectorService collectorService;
     @Autowired
-    private Map<String, ServerData> availableAddresses;
+    private Map<String, ServerData> serverDataByAddress;
     @Autowired
     private Map<String, Map<String, CollectedPlayer>> gameSessionByAddress;
     @Getter
@@ -72,7 +72,7 @@ public class ViewAddressDetails {
             return;
         }
 
-        selectedServerData = availableAddresses.get(selectedAddress);
+        selectedServerData = serverDataByAddress.get(selectedAddress);
 
         fetchAggregatedPlayers();
         fetchKnownServersCounts();
@@ -127,7 +127,7 @@ public class ViewAddressDetails {
         knownServersAtAllInstances = knownServersCounts.getValue("at_all_instances", Integer.class);
     }
 
-    public void flush() {
+    public void flushOneAddress() {
         log.info(selectedAddress + " Flush received from frontend");
 
         FacesContext fc = FacesContext.getCurrentInstance();

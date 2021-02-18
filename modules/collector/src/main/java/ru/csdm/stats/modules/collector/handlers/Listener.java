@@ -3,26 +3,38 @@ package ru.csdm.stats.modules.collector.handlers;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
+import org.jooq.types.UInteger;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.SpringApplication;
-import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.scheduling.annotation.Async;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.stereotype.Service;
-import ru.csdm.stats.common.dto.DatagramsQueue;
-import ru.csdm.stats.common.dto.Message;
-import ru.csdm.stats.common.dto.ServerData;
+import ru.csdm.stats.common.SystemEvent;
+import ru.csdm.stats.common.dto.*;
+import ru.csdm.stats.common.model.collector.tables.pojos.DriverProperty;
+import ru.csdm.stats.common.model.collector.tables.pojos.Instance;
+import ru.csdm.stats.common.model.collector.tables.pojos.KnownServer;
+import ru.csdm.stats.common.model.collector.tables.pojos.Project;
+import ru.csdm.stats.dao.CollectorDao;
+import ru.csdm.stats.modules.collector.settings.PacketUtils;
+import ru.csdm.stats.service.InstanceHolder;
 
 import javax.annotation.PreDestroy;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
-import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
-import java.util.Map;
-import java.util.Objects;
+import java.time.LocalDateTime;
+import java.util.*;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.BrokenBarrierException;
+import java.util.concurrent.CyclicBarrier;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
-import static org.springframework.boot.autoconfigure.task.TaskExecutionAutoConfiguration.APPLICATION_TASK_EXECUTOR_BEAN_NAME;
+import static ru.csdm.stats.common.SystemEvent.*;
+import static ru.csdm.stats.common.SystemEvent.CONSUME_DATAGRAM;
+import static ru.csdm.stats.common.SystemEvent.CONSUME_GAMELOG;
 import static ru.csdm.stats.common.utils.SomeUtils.addressToString;
 
 @Service
@@ -30,24 +42,27 @@ import static ru.csdm.stats.common.utils.SomeUtils.addressToString;
 @Slf4j
 public class Listener {
     @Autowired
-    private ApplicationContext applicationContext;
+    private BlockingQueue<Message<?>> listenerQueue;
+    @Autowired
+    private Map<String, ServerData> serverDataByAddress;
+    @Autowired
+    private Map<String, MessageQueue<Message<?>>> messageQueueByAddress;
+    @Autowired
+    private Map<Integer, MessageQueue<Message<?>>> messageQueueByQueueId;
+    @Autowired
+    private Map<String, Map<String, CollectedPlayer>> gameSessionByAddress;
 
     @Autowired
-    private Map<String, ServerData> availableAddresses;
-    @Autowired
-    private Map<String, Integer> registeredAddresses;
-    @Autowired
-    private Map<Integer, DatagramsQueue> datagramsInQueuesById;
+    private ThreadPoolTaskExecutor consumerTaskExecutor;
 
     @Autowired
     private DatagramsConsumer datagramsConsumer;
-
-    @Value("${collector.listener.port:8888}")
-    private int listenerPort;
-
+    @Autowired
+    private CollectorDao collectorDao;
+    @Autowired
+    private InstanceHolder instanceHolder;
+    @Setter
     private DatagramSocket datagramSocket;
-    private static final int availableProcessors = Runtime.getRuntime().availableProcessors();
-    private int nextQueueIdCounter;
 
     @Getter
     @Setter /* Setter - allowing calling from another class/thread, with spring proxy, without volatile */
@@ -70,21 +85,32 @@ public class Listener {
             log.debug("destroy() end");
     }
 
-    @Async(APPLICATION_TASK_EXECUTOR_BEAN_NAME)
-    public void launchAsync() {
-        log.info("Activating listener at port " + listenerPort);
+    public void setupConsumers() {
+        int availableProcessors = Runtime.getRuntime().availableProcessors();
+        log.info("Setup consumer" + (availableProcessors > 1 ? "s" : "")
+                + ": available " + availableProcessors + " processor"
+                + (availableProcessors > 1 ? "s" : ""));
 
-        try {
-            datagramSocket = new DatagramSocket(listenerPort);
-        } catch (Throwable e) {
-            log.warn("Failed initialize listener at port " + listenerPort, e);
+        int[] queueIds = IntStream.range(0, availableProcessors)
+                .map(num -> num + 1)
+                .toArray();
 
-            int code = SpringApplication.exit(applicationContext, () -> 1);
-            System.exit(code);
-            return;
+        log.info("Creating " + queueIds.length
+                + " MessageQueue" + (queueIds.length > 1 ? "s" : "")
+                + " with id" + (queueIds.length > 1 ? "s" : "")
+                + " # " + Arrays.toString(queueIds));
+
+        for (int queueId : queueIds) {
+            MessageQueue<Message<?>> messageQueue = new MessageQueue<>(queueId);
+            messageQueueByQueueId.put(queueId, messageQueue);
+
+            datagramsConsumer.startConsumeAsync(messageQueue);
         }
+    }
 
-        log.info("Listener started at " + addressToString(datagramSocket.getLocalSocketAddress()));
+    @Async("coreExecutor")
+    public void launchReceiverAsync() {
+        log.info("Receiver started at " + addressToString(datagramSocket.getLocalSocketAddress()));
 
         byte[] buffer = new byte[1024];
         DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
@@ -97,87 +123,349 @@ public class Listener {
 
             try {
                 datagramSocket.receive(packet);
+                //todo: debug for search another concat method
+                String address = addressToString(packet.getSocketAddress());
 
-                onMessage(packet);
+                Message<DatagramPacket> message = new Message<>(address, packet, CONSUME_DATAGRAM);
+
+                listenerQueue.put(message); // todo:review? move to another catch block? or remove comment
             } catch (Throwable e) {
                 if (isDeactivated()) {
                     log.info("Deactivation detected");
                     break;
                 }
 
-                log.warn("Exception while receiving datagram packet", e);
+                log.warn("Exception while receiving/sending datagram packet", e);
                 continue;
             }
         }
 
-        log.info("Deactivated");
+        log.info("Receiver deactivated");
     }
 
-    public void onMessage(DatagramPacket packet) {
-        String address = addressToString(packet.getSocketAddress());
-        ServerData serverData = availableAddresses.get(address);
+    @Async("coreExecutor")
+    public void launchDistributorAsync() {
+        log.info("Distributor started");
 
-        if(Objects.isNull(serverData) || !serverData.isListening())
-            return;
+        Message<?> originalMessage;
 
-        byte[] data = packet.getData(); // [-1, -1, -1, -1, 108, 111, 103, 32, 76, ...]
-        if(!(data.length >= 9 && (data[4] == 'l' && data[5] == 'o' && data[6] == 'g' && data[7] == ' ' && data[8] == 'L'))) {
-            if(log.isDebugEnabled()) {
-                log.debug(address + " Invalid data: '"
-                        + new String(data, 0, packet.getLength(), StandardCharsets.UTF_8) + "'"
-                        + ", raw: " + Arrays.toString(Arrays.copyOf(data, packet.getLength())));
+        while (true) {
+            if (isDeactivated()) {
+                log.info("Deactivation detected");
+                break;
             }
 
-            return;
-        }
-
-        Integer queueId = registeredAddresses.get(address);
-        if(Objects.isNull(queueId)) {
-            queueId = nextQueueIdCounter;
-            registeredAddresses.put(address, queueId);
-
-            log.info(address + " registered with queue id: " + queueId);
-
-            if(availableProcessors > 1) {
-                if(++nextQueueIdCounter >= availableProcessors) {
-                    nextQueueIdCounter = 0;
+            try {
+                originalMessage = listenerQueue.take();
+            } catch (Throwable e) {
+                if (isDeactivated()) {
+                    log.info("Deactivation detected");
+                    break;
                 }
+
+                log.warn("Exception while taking datagram packet", e);
+                continue;
+            }
+
+            SystemEvent systemEvent = originalMessage.getSystemEvent();
+            if(systemEvent == CONSUME_DATAGRAM) {
+                consumeDatagram(originalMessage);
+            } else if(systemEvent == REFRESH) {
+                consumeRefreshEvent(originalMessage);
+            } else {
+                log.warn("Unknown system event '" + systemEvent + "'");
             }
         }
 
-        DatagramsQueue datagramsQueue = datagramsInQueuesById.get(queueId);
-        if(Objects.isNull(datagramsQueue)) {
-            datagramsQueue = new DatagramsQueue();
-            datagramsInQueuesById.put(queueId, datagramsQueue);
+        log.info("Distributor deactivated");
+    }
 
-            log.info("Created DatagramsQueue #" + datagramsInQueuesById.size());
-            datagramsConsumer.startConsumeAsync(datagramsQueue);
-        }
+    private void consumeDatagram(Message<?> originalMessage) {
+        String address = originalMessage.getPayload();
+        ServerData serverData = serverDataByAddress.get(address);
 
-        Message message = new Message();
-        message.setServerData(serverData);
-        message.setPayload(new String(data, 8, packet.getLength() -8, StandardCharsets.UTF_8).trim());
+        if(serverData == null || !serverData.isListening())
+            return;
+
+        DatagramPacket packet = (DatagramPacket) originalMessage.getPojo();
+
+        if(!PacketUtils.validate("CS16", address, packet))
+            return;
+
+        Message<ServerData> message = new Message<>();
+        message.setPojo(serverData);
+        message.setPayload(PacketUtils.convert("CS16", address, packet));
+        message.setSystemEvent(CONSUME_GAMELOG);
+
+        MessageQueue<Message<?>> messageQueue = messageQueueByAddress.get(address);
 
         if(log.isDebugEnabled())
-            log.debug(address + " Sending message: " + message);
+            log.debug(address + " Sending to " + messageQueue + " message: " + message);
 
+        putLastWithTryes(messageQueue, message);
+    }
+
+    private void consumeRefreshEvent(Message<?> originalMessage) {
+        log.info("Started synchronization by system event " + originalMessage.getSystemEvent());
+
+        Collection<MessageQueue<Message<?>>> messageQueues = messageQueueByQueueId.values();
+        CyclicBarrier cb = new CyclicBarrier(messageQueues.size() + 1,
+                () -> refresh((UInteger) originalMessage.getPojo()));
+
+        Message<CyclicBarrier> message = new Message<>(null, cb, originalMessage.getSystemEvent());
+
+        for (MessageQueue<Message<?>> messageQueue : messageQueues) {
+            if (!putLastWithTryes(messageQueue, message)) {
+                break;
+            }
+        }
+
+        if(cb.isBroken()) {
+            log.warn("Failed synchronization");
+            return;
+        }
+
+        log.info("Waiting synchronization");
+
+        try {
+            cb.await(5, TimeUnit.SECONDS);
+        } catch (Throwable e) {
+            if (isDeactivated()) {
+                log.info("Deactivation detected after await synchronization");
+                return;
+            }
+
+            log.warn("Exception after await synchronization", e);
+            return;
+        }
+
+        log.info("Finished synchronization");
+    }
+
+    private boolean putLastWithTryes(MessageQueue<Message<?>> messageQueue, Message<?> message) {
         int tryes = 0;
         while (true) {
             try {
                 ++tryes;
-                datagramsQueue.getDatagramsQueue().putLast(message);
-                break;
-            } catch (InterruptedException e) {
+                messageQueue.getMessageQueue().putLast(message);
+                return true;
+            } catch (Throwable e) {
                 if(isDeactivated())
-                    break;
+                    return false;
 
-                log.info(address + " InterruptedException catched, due put message " + message + " in datagramsQueue, " + tryes + "/3");
+                log.warn("Exception, while putting message " + message + " in " + messageQueue + ", " + tryes + "/3");
 
                 if (tryes == 3) {
-                    log.warn(address + " Failed put message " + message + " in datagramsQueue");
-                    break;
+                    log.warn("Failed put message " + message + " in " + messageQueue);
+                    return false;
                 }
             }
         }
+    }
+
+    public void refresh(UInteger projectId) {
+        Instance instance = instanceHolder.getAvailableInstances()
+                .get(instanceHolder.getCurrentInstanceId());
+
+        log.info("Updating servers settings from database, instance: "
+                + "[" + instance.getId() + "] "
+                + instance.getName()
+                + (StringUtils.isNotBlank(instance.getDescription()) ? " (" + instance.getDescription() + ")" : ""));
+
+        CollectorData collectorDataSlice;
+        try {
+            // Slice of "now data"
+            collectorDataSlice = collectorDao.fetchCollectorData(instanceHolder.getCurrentInstanceId(), projectId);
+        } catch (Throwable e) {
+            throw new RuntimeException("Unable to fetch collector data from database", e);
+        }
+
+        List<KnownServer> knownServersSlice = collectorDataSlice.getKnownServers();
+        Map<UInteger, Project> projectByProjectId = collectorDataSlice.getProjectByProjectId();
+        Map<UInteger, List<DriverProperty>> driverPropertiesByProjectId = collectorDataSlice.getDriverPropertiesByProjectId();
+
+        LocalDateTime now = LocalDateTime.now();
+/*  registry:
+    127.0.0.1:27015 - ServerData proj1
+    127.0.0.1:27016 - ServerData proj1
+    127.0.0.1:27017 - ServerData proj2
+    127.0.0.1:27018 - ServerData proj2
+    127.0.0.1:27019 - ServerData proj2
+
+    knownServersSlice: instance + projectId
+    127.0.0.1:27015 proj1
+    127.0.0.1:27016 proj1
+    127.0.0.1:27017 proj1
+
+    knownServersSlice: instance
+    127.0.0.1:27015 proj1
+    127.0.0.1:27016 proj1
+    127.0.0.1:27017 proj1
+    127.0.0.1:27018 proj2
+*/
+        // search noneMatches (removed) -> remove
+        Iterator<Map.Entry<String, ServerData>> iterator = serverDataByAddress.entrySet().iterator();
+        while (iterator.hasNext()) {
+            Map.Entry<String, ServerData> entry = iterator.next();
+            String address = entry.getKey();
+            ServerData serverData = entry.getValue();
+
+            //ignoring other projects if projectId exists
+            if(Objects.nonNull(projectId) && !serverData.getProject().getId().equals(projectId))
+                continue;
+
+            boolean noneMatches = knownServersSlice
+                    .stream()
+                    .noneMatch(knownServer -> knownServer.getIpport().equals(address));
+
+            if(noneMatches) {
+                iterator.remove();
+
+                MessageQueue<Message<?>> messageQueue = messageQueueByAddress.remove(address);
+                if(Objects.nonNull(messageQueue) && serverData.isListening()) {
+                    messageQueue.decListening();
+                }
+
+                String logMsg = "removed from listener";
+
+                Map<String, CollectedPlayer> gameSessions = gameSessionByAddress.get(address);
+                if(Objects.nonNull(gameSessions)) {
+                    logMsg += ", " + gameSessions.size() + " gameSessions removed";
+
+                    /* clear & remove gameSessions container, without flush */
+                    gameSessions.clear();
+                    gameSessionByAddress.remove(address);
+                }
+
+                log.info(address + " " + logMsg);
+            }
+        }
+
+        Map<Boolean, List<KnownServer>> partitioned = knownServersSlice
+                .stream()
+                .collect(Collectors.partitioningBy(
+                        knownServer -> serverDataByAddress.containsKey(knownServer.getIpport())));
+
+        for (Map.Entry<Boolean, List<KnownServer>> entry : partitioned.entrySet()) {
+            if(entry.getKey()) { // exists -> update & replace
+                for (KnownServer newKnownServer : entry.getValue()) {
+                    String address = newKnownServer.getIpport();
+                    ServerData currentServerData = serverDataByAddress.get(address);
+
+                    ServerData newServerData = new ServerData();
+                    newServerData.setKnownServer(newKnownServer);
+                    newServerData.setProject(projectByProjectId.get(newKnownServer.getProjectId()));
+                    newServerData.setNextFlushDateTime(now.plusHours(1));
+                    newServerData.setDriverProperties(driverPropertiesByProjectId.get(newKnownServer.getProjectId()));
+
+                    newServerData.setLastTouchDateTime(currentServerData.getLastTouchDateTime());
+                    newServerData.setMessages(currentServerData.getMessages());
+
+                    MessageQueue<Message<?>> currentMessageQueue = messageQueueByAddress.get(address);
+                    boolean currentIsListening = Objects.nonNull(currentMessageQueue) && currentServerData.isListening();
+                    if(currentIsListening)
+                        currentMessageQueue.decListening();
+
+                    MessageQueue<Message<?>> newMessageQueue = findOptimalMessageQueue();
+
+                    messageQueueByAddress.replace(address, newMessageQueue);
+                    serverDataByAddress.replace(address, newServerData);
+
+                    String logMsg = "listening ";
+                    if(newServerData.isListening()) {
+                        newMessageQueue.incListening();
+
+                        if(currentIsListening) {
+                            logMsg += "refreshed";
+                        } else {
+                            logMsg += "started";
+                        }
+                    } else {
+                        if(currentIsListening) {
+                            logMsg += "stopped";
+                        } else {
+                            logMsg += "stopped again";
+                        }
+                    }
+
+                    log.info(address + " " + logMsg);
+                    newServerData.addMessage(logMsg);
+                }
+            } else { // not exists -> insert
+                for (KnownServer knownServer : entry.getValue()) {
+                    String address = knownServer.getIpport();
+
+                    ServerData serverData = new ServerData();
+                    serverData.setKnownServer(knownServer);
+                    serverData.setProject(projectByProjectId.get(knownServer.getProjectId()));
+                    serverData.setNextFlushDateTime(now.plusHours(1));
+                    serverData.setDriverProperties(driverPropertiesByProjectId.get(knownServer.getProjectId()));
+
+                    serverData.setLastTouchDateTime(now);
+
+                    MessageQueue<Message<?>> messageQueue = findOptimalMessageQueue();;
+
+                    messageQueueByAddress.put(address, messageQueue);
+                    serverDataByAddress.put(address, serverData);
+
+                    String logMsg;
+                    if(serverData.isListening()) {
+                        messageQueue.incListening();
+
+                        logMsg = "listening started";
+                    } else {
+                        logMsg = "added to listener";
+                    }
+
+                    log.info(address + " " + logMsg);
+                    serverData.addMessage(logMsg);
+                }
+            }
+        }
+
+        //todo: найти динамически незадействованные MessageQueue
+        // (если 64 процессора - нам не нужно создавать все 64 MessageQueue на старте приложения)
+
+        int countListening = (int) serverDataByAddress.values()
+                .stream()
+                .filter(ServerData::isListening)
+                .count();
+
+        int newPoolSize = Math.max(1,
+                Math.min(countListening, messageQueueByAddress.size())
+        );
+
+        int oldPoolSize = consumerTaskExecutor.getCorePoolSize();
+        if(newPoolSize > oldPoolSize) {
+            consumerTaskExecutor.setMaxPoolSize(newPoolSize);
+            consumerTaskExecutor.setCorePoolSize(newPoolSize);
+        } else if(newPoolSize < oldPoolSize) {
+            consumerTaskExecutor.setCorePoolSize(newPoolSize);
+            consumerTaskExecutor.setMaxPoolSize(newPoolSize);
+        }
+
+        if(newPoolSize != oldPoolSize)
+            log.info("Changing consumer pool size from " + oldPoolSize + " to " + newPoolSize + "");
+
+        if(serverDataByAddress.isEmpty()) {
+            log.info("No available servers with settings");
+        } else {
+            int knownServersCount = serverDataByAddress.size();
+
+            log.info("Refreshed " + knownServersCount + " known server"
+                    + (knownServersCount > 1 ? "s" : "") +" with settings:");
+
+            for (ServerData serverData : serverDataByAddress.values()) {
+                log.info(serverData.toString());
+            }
+        }
+    }
+
+    private MessageQueue<Message<?>> findOptimalMessageQueue() {
+        return messageQueueByQueueId
+                .values()
+                .stream()
+                .min(Comparator.comparingInt(MessageQueue::getCountListening))
+                .orElseThrow(IllegalStateException::new);
     }
 }

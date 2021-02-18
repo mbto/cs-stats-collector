@@ -7,7 +7,7 @@ import org.primefaces.event.SelectEvent;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.util.LinkedCaseInsensitiveMap;
 import ru.csdm.stats.common.dto.CollectedPlayer;
-import ru.csdm.stats.service.SettingsService;
+import ru.csdm.stats.common.dto.ServerData;
 import ru.csdm.stats.webapp.DependentUtil;
 import ru.csdm.stats.webapp.application.ChangesCounter;
 
@@ -16,16 +16,19 @@ import javax.enterprise.context.RequestScoped;
 import javax.inject.Named;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.Comparator;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.stream.Collectors;
 
 @RequestScoped
 @Named
 @Slf4j
 public class RequestDashboard {
     @Autowired
-    private SettingsService settingsService;
+    private Map<String, ServerData> serverDataByAddress;
     @Autowired
     private ChangesCounter changesCounter;
     @Autowired
@@ -35,13 +38,6 @@ public class RequestDashboard {
     public void init() {
         if(log.isDebugEnabled())
             log.debug("\ninit");
-    }
-
-    public void updateSettings(String selectedAddress) {
-        log.info(selectedAddress + " Update settings received from frontend");
-
-        settingsService.updateSettings(false);
-        changesCounter.getCounter().set(0);
     }
 
     public void onRowSelect(SelectEvent event) {
@@ -64,6 +60,20 @@ public class RequestDashboard {
                 .stream()
                 .mapToInt(cp -> cp.getSessions().size())
                 .sum();
+    }
+
+    private final Comparator<ServerData> cmpByProjectIdDesc = Comparator.comparing(o -> o.getKnownServer().getProjectId());
+    private final Comparator<ServerData> cmpByKnownServerId = Comparator.comparing(o -> o.getKnownServer().getId());
+
+    public List<ServerData> getSortedServerData() {
+        if(log.isDebugEnabled())
+            log.debug("\ngetSortedServerData");
+
+        return serverDataByAddress
+                .values()
+                .stream()
+                .sorted(cmpByProjectIdDesc.reversed().thenComparing(cmpByKnownServerId))
+                .collect(Collectors.toList());
     }
 
     @Autowired
@@ -152,7 +162,7 @@ public class RequestDashboard {
                 }
 
                 gameSessions.put(randName, collectedPlayer);
-            };
+            }
 
             gameSessionByAddress.put("127.0.0.1:" + port, gameSessions);
         }

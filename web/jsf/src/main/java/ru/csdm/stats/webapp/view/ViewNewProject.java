@@ -83,8 +83,7 @@ public class ViewNewProject {
 
         FacesContext fc = FacesContext.getCurrentInstance();
 
-        try(HikariDataSource hds = buildHikariDataSource(selectedProject.getDatabaseSchema()
-                + "-connection-project-new")) {
+        try(HikariDataSource hds = buildHikariDataSource("pool-" + selectedProject.getDatabaseSchema() + " " + selectedProject.getName())) {
             hds.setJdbcUrl("jdbc:mysql://" + selectedProject.getDatabaseHostport() + "/" + selectedProject.getDatabaseSchema());
             hds.setSchema(selectedProject.getDatabaseSchema());
             hds.setUsername(selectedProject.getDatabaseUsername());

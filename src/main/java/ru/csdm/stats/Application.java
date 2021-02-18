@@ -5,6 +5,7 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.jooq.JooqAutoConfiguration;
 import org.springframework.boot.autoconfigure.task.TaskExecutionAutoConfiguration;
+import org.springframework.boot.autoconfigure.task.TaskSchedulingAutoConfiguration;
 import org.springframework.boot.web.servlet.ServletContextInitializer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.DependsOn;
@@ -12,19 +13,20 @@ import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import ru.csdm.stats.common.dto.CollectedPlayer;
-import ru.csdm.stats.common.dto.DatagramsQueue;
+import ru.csdm.stats.common.dto.MessageQueue;
+import ru.csdm.stats.common.dto.Message;
 import ru.csdm.stats.common.dto.ServerData;
 
+import java.net.DatagramPacket;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.concurrent.ConcurrentSkipListMap;
-import java.util.concurrent.ThreadPoolExecutor;
+import java.util.Queue;
+import java.util.concurrent.*;
 
-import static org.springframework.boot.autoconfigure.task.TaskExecutionAutoConfiguration.APPLICATION_TASK_EXECUTOR_BEAN_NAME;
-
-@SpringBootApplication(exclude = {JooqAutoConfiguration.class, TaskExecutionAutoConfiguration.class})
+@SpringBootApplication(exclude = {JooqAutoConfiguration.class,
+        TaskExecutionAutoConfiguration.class, TaskSchedulingAutoConfiguration.class})
 @EnableAsync(proxyTargetClass = true)
-@EnableScheduling
+//@EnableScheduling
 public class Application {
     static {
         System.getProperties().setProperty("org.jooq.no-logo", "true");
@@ -34,42 +36,47 @@ public class Application {
         SpringApplication.run(Application.class, args);
     }
 
+    @Bean
+    public BlockingQueue<Message<?>> listenerQueue() {
+        return new LinkedBlockingQueue<>(Integer.MAX_VALUE);
+    }
     /**
      * Key: Server address (ip:port)
      * Value: ServerData
      */
     @Bean
-    public Map<String, ServerData> availableAddresses() {
+    public Map<String, ServerData> serverDataByAddress() {
         return new ConcurrentSkipListMap<>();
     }
     /**
-     * Key: Server address (ip:port)
-     * Value: Queue ID
+     * Key: Server address (ip:port)<br/>
+     * Value: MessageQueue&lt;Message&lt;?&gt;&gt;
      */
     @Bean
-    public Map<String, Integer> registeredAddresses() {
+    public Map<String, MessageQueue<Message<?>>> messageQueueByAddress() {
+        return new ConcurrentSkipListMap<>(); // TODO: check for LinkedHashMap
+    }
+    /**
+     * Key: Queue ID<br/>
+     * Value: MessageQueue&lt;Message&lt;?&gt;&gt;
+     */
+    @Bean
+    public Map<Integer, MessageQueue<Message<?>>> messageQueueByQueueId() {
         return new LinkedHashMap<>();
     }
     /**
-     * Key: Queue ID
-     * Value: DatagramsQueue
-     */
-    @Bean
-    public Map<Integer, DatagramsQueue> datagramsInQueuesById() {
-        return new LinkedHashMap<>();
-    }
-
-    /**
      * Key: Server address (ip:port)
-     * Value: Map<Player nick, Player>
+     * Value: Map&lt;Player nick, Player&gt;
      */
     @Bean
     public Map<String, Map<String, CollectedPlayer>> gameSessionByAddress() {
         return new ConcurrentSkipListMap<>();
     }
-
     /**
-     * Pool used, when HLDS servers sends logs by UDP to cs-stats-collector listener.
+     * Pool used in Listener and DatagramsConsumer classes
+     * 1 - consume from messageQueues
+     *     -> accumulate players statistics and sessions
+     *     -> sending to playersSenderTaskExecutor pool;
      */
     @Bean
     @DependsOn("playersSenderTaskExecutor")
@@ -90,9 +97,10 @@ public class Application {
         executor.initialize();
         return executor;
     }
-
     /**
-     * Pool used, when merging players into the csstats.* tables.
+     * Pool used in PlayersSender class
+     * 1 - consume players sessions from DatagramsConsumer
+     *     -> merging players sessions into the csstats.* tables.
      */
     @Bean
     @DependsOn("collectorDataSource")
@@ -116,20 +124,21 @@ public class Application {
         executor.initialize();
         return executor;
     }
-
-    @Bean(APPLICATION_TASK_EXECUTOR_BEAN_NAME)
-    public ThreadPoolTaskExecutor applicationTaskExecutor() {
+    /**
+     * Pool used in 2 cases:
+     * 1 - consume from UDP port -> send to listenerQueue;
+     * 2 - consume from listenerQueue -> distribute to messageQueues;
+     * TODO: 3 - scheduler
+     */
+    @Bean("coreExecutor")
+    public ThreadPoolTaskExecutor coreExecutor() {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
 
-        /* Reducing the number of threads in the standard spring-boot applicationTaskExecutor pool
-           from auto-configuration org.springframework.boot.autoconfigure.task.TaskExecutionAutoConfiguration
-           org.springframework.boot.autoconfigure.task.TaskExecutionProperties.Pool#maxSize = Integer.MAX_VALUE */
-        int poolSize = 2; /* 1-spring-boot framework; 2-for main listener; */
-        // todo: +1 scheduler
+        int poolSize = 2; // todo: +1 scheduler
         executor.setCorePoolSize(poolSize);
         executor.setMaxPoolSize(poolSize);
 
-        executor.setThreadNamePrefix("appExecutor-");
+        executor.setThreadNamePrefix("coreExecutor-");
         executor.setAllowCoreThreadTimeOut(true);
         executor.setWaitForTasksToCompleteOnShutdown(true);
         executor.setAwaitTerminationSeconds(120);

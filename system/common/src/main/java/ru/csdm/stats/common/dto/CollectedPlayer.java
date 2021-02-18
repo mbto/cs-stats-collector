@@ -17,8 +17,6 @@ public class CollectedPlayer {
     private final Set<String> steamIds = new HashSet<>();
     @Setter
     private LocalDateTime lastseenDatetime;
-    @Setter
-    private String lastServerName;
 
     {//TODO:remove
         if(ThreadLocalRandom.current().nextBoolean()) {

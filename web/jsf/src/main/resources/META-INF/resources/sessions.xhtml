@@ -26,7 +26,7 @@
                  : ('Flush ' += viewAddressDetails.aggregatedPlayers.size() += ' sessions')}"
                  disabled="#{empty viewAddressDetails.aggregatedPlayers}"
                  process="@this" update="@form msgs" immediate="true"
-                 actionListener="${viewAddressDetails.flush()}"
+                 actionListener="${viewAddressDetails.flushOneAddress()}"
                  rendered="#{viewAddressDetails.selectedServerData.knownServer.instanceId == instanceHolder.currentInstanceId}"
                  style="margin-right:10px;" icon="ui-icon-arrowstop-1-s"/>
 

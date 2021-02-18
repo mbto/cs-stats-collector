@@ -22,7 +22,7 @@ import java.util.Objects;
 import static ru.csdm.stats.common.model.collector.tables.Instance.INSTANCE;
 
 @Service
-@Lazy(value = false)
+@Lazy(false)
 @Slf4j
 public class InstanceHolder {
     @Autowired

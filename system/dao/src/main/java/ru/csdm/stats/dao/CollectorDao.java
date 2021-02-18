@@ -1,6 +1,7 @@
 package ru.csdm.stats.dao;
 
 import lombok.extern.slf4j.Slf4j;
+import org.jooq.Condition;
 import org.jooq.DSLContext;
 import org.jooq.Record2;
 import org.jooq.impl.DSL;
@@ -14,6 +15,7 @@ import ru.csdm.stats.common.model.collector.tables.pojos.Project;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 import static ru.csdm.stats.common.model.collector.tables.DriverProperty.DRIVER_PROPERTY;
 import static ru.csdm.stats.common.model.collector.tables.Instance.INSTANCE;
@@ -26,29 +28,39 @@ public class CollectorDao {
     @Autowired
     private DSLContext collectorDsl;
 
-    public CollectorData fetchCollectorData(UInteger currentInstanceId) {
+    public CollectorData fetchCollectorData(UInteger instanceId, UInteger projectId) {
+        if(Objects.isNull(instanceId) && Objects.isNull(projectId))
+            throw new IllegalArgumentException("One of instanceId or projectId required");
+
         CollectorData collectorData = new CollectorData();
 
         collectorDsl.transaction(config -> {
             DSLContext transactionalDsl = DSL.using(config);
 
+            Condition instanceIdCondition;
+            if(Objects.nonNull(instanceId))
+                instanceIdCondition = KNOWN_SERVER.INSTANCE_ID.eq(instanceId);
+            else
+                instanceIdCondition = DSL.trueCondition();
+
+            Condition projectIdCondition;
+            if(Objects.nonNull(projectId))
+                projectIdCondition = KNOWN_SERVER.PROJECT_ID.eq(projectId);
+            else
+                projectIdCondition = DSL.trueCondition();
+
             List<KnownServer> knownServers = transactionalDsl
                     .select(KNOWN_SERVER.asterisk())
                     .from(KNOWN_SERVER)
-                    .where(KNOWN_SERVER.ACTIVE.eq(true),
-                           KNOWN_SERVER.INSTANCE_ID.eq(currentInstanceId))
+                    .where(instanceIdCondition, projectIdCondition)
+                    .orderBy(KNOWN_SERVER.PROJECT_ID.desc(), KNOWN_SERVER.ID.asc())
                     .fetchInto(KnownServer.class);
 
             Map<UInteger, Project> projectByProjectId = transactionalDsl
                     .select(PROJECT.asterisk())
                     .from(PROJECT)
                     .join(KNOWN_SERVER).on(PROJECT.ID.eq(KNOWN_SERVER.PROJECT_ID))
-                    .where(KNOWN_SERVER.INSTANCE_ID.eq(currentInstanceId))
-                    //TODO: если это срез данных - то там это используется только для среза,
-                    // не обновляя предыдущие отключенные, поэтому наверное надо фильтровать по active
-                    // without KNOWN_SERVER.ACTIVE.eq(true) filtration,
-                    // because SettingService use a slice of information at the moment
-                    // and modifying worked data online, without removing
+                    .where(instanceIdCondition, projectIdCondition)
                     .groupBy(PROJECT.ID)
                     .fetchMap(PROJECT.ID, Project.class);
 
@@ -56,10 +68,7 @@ public class CollectorDao {
                     .select(DRIVER_PROPERTY.asterisk())
                     .from(DRIVER_PROPERTY)
                     .join(KNOWN_SERVER).on(DRIVER_PROPERTY.PROJECT_ID.eq(KNOWN_SERVER.PROJECT_ID))
-                    .where(KNOWN_SERVER.INSTANCE_ID.eq(currentInstanceId))
-                    // without KNOWN_SERVER.ACTIVE.eq(true) filtration,
-                    // because SettingService use a slice of information at the moment
-                    // and modifying worked data online, without removing
+                    .where(instanceIdCondition, projectIdCondition)
                     .groupBy(DRIVER_PROPERTY.ID)
                     .fetchGroups(DRIVER_PROPERTY.PROJECT_ID, DriverProperty.class);
 
@@ -85,5 +94,12 @@ public class CollectorDao {
                         .where(KNOWN_SERVER.PROJECT_ID.eq(projectId))
                         .<Integer>asField("at_all_instances")
         ).fetchOne();
+    }
+
+    public Map<UInteger, String> fetchKnownServersNames(UInteger instanceId) {
+        return collectorDsl.select(KNOWN_SERVER.ID, KNOWN_SERVER.NAME)
+                .from(KNOWN_SERVER)
+                .where(KNOWN_SERVER.INSTANCE_ID.eq(instanceId))
+                .fetchMap(KNOWN_SERVER.ID, KNOWN_SERVER.NAME);
     }
 }

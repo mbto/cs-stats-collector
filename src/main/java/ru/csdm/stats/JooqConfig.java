@@ -9,7 +9,6 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.DependsOn;
 import org.springframework.context.annotation.Lazy;
 
-import static org.springframework.boot.autoconfigure.task.TaskExecutionAutoConfiguration.APPLICATION_TASK_EXECUTOR_BEAN_NAME;
 import static ru.csdm.stats.common.utils.SomeUtils.buildHikariDataSource;
 import static ru.csdm.stats.common.utils.SomeUtils.configJooqContext;
 
@@ -25,7 +24,7 @@ public class JooqConfig {
 
     @Bean
     @ConfigurationProperties("collector.datasource")
-    @DependsOn(APPLICATION_TASK_EXECUTOR_BEAN_NAME)
+    @DependsOn("coreExecutor")
     public HikariDataSource collectorDataSource() {
         return buildHikariDataSource("collector-pool");
     }

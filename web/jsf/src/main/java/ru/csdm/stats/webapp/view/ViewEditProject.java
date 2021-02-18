@@ -127,8 +127,7 @@ public class ViewEditProject {
 
         FacesContext fc = FacesContext.getCurrentInstance();
 
-        try(HikariDataSource hds = buildHikariDataSource(selectedProject.getDatabaseSchema()
-                + "-connection-project-#" + selectedProject.getId() + "-" + selectedProject.getName())) {
+        try(HikariDataSource hds = buildHikariDataSource("pool-" + selectedProject.getDatabaseSchema() + " [" + selectedProject.getId() + "] " + selectedProject.getName())) {
             hds.setJdbcUrl("jdbc:mysql://" + selectedProject.getDatabaseHostport() + "/" + selectedProject.getDatabaseSchema());
             hds.setSchema(selectedProject.getDatabaseSchema());
             hds.setUsername(selectedProject.getDatabaseUsername());

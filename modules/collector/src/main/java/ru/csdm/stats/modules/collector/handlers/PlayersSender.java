@@ -9,9 +9,11 @@ import org.springframework.stereotype.Service;
 import ru.csdm.stats.common.dto.CollectedPlayer;
 import ru.csdm.stats.common.dto.ServerData;
 import ru.csdm.stats.common.dto.Session;
+import ru.csdm.stats.common.model.collector.tables.pojos.KnownServer;
 import ru.csdm.stats.common.model.csstats.tables.records.PlayerIpRecord;
 import ru.csdm.stats.common.model.csstats.tables.records.PlayerRecord;
 import ru.csdm.stats.common.model.csstats.tables.records.PlayerSteamidRecord;
+import ru.csdm.stats.dao.CollectorDao;
 import ru.csdm.stats.dao.CsStatsDao;
 
 import java.time.Duration;
@@ -26,15 +28,19 @@ import static ru.csdm.stats.common.utils.SomeUtils.playerRecordToString;
 public class PlayersSender {
     @Autowired
     private CsStatsDao csStatsDao;
+    @Autowired
+    private CollectorDao collectorDao;
 
     @Async("playersSenderTaskExecutor")
     public void sendAsync(ServerData serverData, List<CollectedPlayer> collectedPlayers) {
-        String address = serverData.getKnownServer().getIpport();
+        KnownServer knownServer = serverData.getKnownServer();
+        String address = knownServer.getIpport();
 
         String logMsg = "Calculating stats from " + collectedPlayers.size() + " player" + (collectedPlayers.size() > 1 ? "s" : "");
         log.info(address + " " + logMsg);
-
         serverData.addMessage(logMsg);
+
+        Map<UInteger, String> actualServerNameByKnownServerId = collectorDao.fetchKnownServersNames(knownServer.getInstanceId());
 
         Map<String, List<PlayerIpRecord>> plannedIpsByName = new HashMap<>();
         Map<String, List<PlayerSteamidRecord>> plannedSteamIdsByName = new HashMap<>();
@@ -65,7 +71,7 @@ public class PlayersSender {
                     plannedPlayer.setDeaths(UInteger.valueOf(totalDeaths));
                     plannedPlayer.setTimeSecs(UInteger.valueOf(totalTimeInSecs));
                     plannedPlayer.setLastseenDatetime(collectedPlayer.getLastseenDatetime());
-                    plannedPlayer.setLastServerName(collectedPlayer.getLastServerName());
+                    plannedPlayer.setLastServerName(actualServerNameByKnownServerId.get(knownServer.getId()));
 
                     plannedIpsByName.put(collectedPlayer.getName(), collectedPlayer.getIpAddresses().stream()
                             .map(ip -> {
@@ -91,14 +97,13 @@ public class PlayersSender {
         if(plannedPlayers.isEmpty()) {
             logMsg = "Skip flushing players stats, due empty plannedPlayers";
             log.info(address + " " + logMsg);
-
             serverData.addMessage(logMsg);
+
             return;
         }
 
         logMsg = "Flushing " + plannedPlayers.size() + " player" + (plannedPlayers.size() > 1 ? "s" : "") + " stats";
         log.info(address + " " + logMsg);
-
         serverData.addMessage(logMsg);
 
         List<String> logMsgs = new ArrayList<>(plannedPlayers.size() + 1);
@@ -116,14 +121,14 @@ public class PlayersSender {
 
             logMsg = "Successfully merged " + plannedPlayers.size() +
                     " player" + (plannedPlayers.size() > 1 ? "s" : "") + " stats";
-            log.info(address + " " + logMsg);
 
+            log.info(address + " " + logMsg);
             serverData.addMessage(logMsg);
         } catch (Throwable e) {
             logMsg = "Failed merging " + plannedPlayers.size() +
                     " player" + (plannedPlayers.size() > 1 ? "s" : "") + " stats";
-            log.warn(address + " " + logMsg, e);
 
+            log.warn(address + " " + logMsg, e);
             serverData.addMessage(logMsg + ". Exception: " + e.toString());
         }
     }

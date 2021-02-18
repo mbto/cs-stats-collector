@@ -66,9 +66,15 @@
                                  ('Flush ' += viewEditInstance.sessionsCount += ' sessions')}"
                                  disabled="#{viewEditInstance.sessionsCount == 0}"
                                  process="@this" update="@this msgs"
-                                 actionListener="#{viewEditInstance.flushSessions()}"
+                                 actionListener="#{viewEditInstance.flushAllAddresses()}"
                                  onstart="PF('buiInstects').show()" oncomplete="PF('buiInstects').hide()"
                                  icon="ui-icon-arrowstop-1-s"/>
+
+                <p:commandButton value="Refresh instance settings"
+                                 process="@this" update="@this msgs"
+                                 actionListener="#{collectorService.refresh(null)}"
+                                 onstart="PF('buiInstects').show()" oncomplete="PF('buiInstects').hide()"
+                                 icon="ui-icon-refresh"/>
             </p:panelGrid>
 
             <p:confirmDialog widgetVar="confDialDelete" header="Confirm" closeOnEscape="true" responsive="true"
