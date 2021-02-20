@@ -27,7 +27,7 @@ public class ServerData {
     private LocalDateTime lastTouchDateTime;
     private List<Pair<LocalDateTime, String>> messages = new CopyOnWriteArrayList<>();
 
-    public boolean isListening() {
+    public boolean isActive() {
         return knownServer != null && knownServer.getActive();
     }
 
@@ -54,7 +54,7 @@ public class ServerData {
 
     @Override
     public String toString() {
-        return String.format("%-15s", isListening() ? "[LISTENING]" : "[NOT LISTENING]")
+        return String.format("%-12s", isActive() ? "[ACTIVE]" : "[NOT ACTIVE]")
                 + " " + knownServer.getIpport()
                 + ", Project: [" + project.getId() + "] " + project.getName()
                 + ", Known server: [" + knownServer.getId() + "] " + knownServer.getName()

@@ -24,7 +24,7 @@ public class JooqConfig {
 
     @Bean
     @ConfigurationProperties("collector.datasource")
-    @DependsOn("coreExecutor")
+    @DependsOn("brokerTE")
     public HikariDataSource collectorDataSource() {
         return buildHikariDataSource("collector-pool");
     }

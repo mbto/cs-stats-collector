@@ -7,7 +7,7 @@ import java.util.concurrent.LinkedBlockingDeque;
 @Getter
 public class MessageQueue<T> {
     private final int queueId;
-    private int countListening;
+    private int countActive;
     private final LinkedBlockingDeque<T> messageQueue;
 
     public MessageQueue(int queueId) {
@@ -18,11 +18,11 @@ public class MessageQueue<T> {
         this.messageQueue = new LinkedBlockingDeque<>(Integer.MAX_VALUE);
     }
 
-    public void incListening() {
-        ++countListening;
+    public void incActive() {
+        ++countActive;
     }
-    public void decListening() {
-        --countListening;
+    public void decActive() {
+        --countActive;
     }
 
     @Override

@@ -10,12 +10,12 @@
 <ui:composition template="../template/layout.xhtml">
 <ui:define name="head">
 <style type="text/css">
-.stListening {
+.stActive {
     background-color: #d7ffd7 !important;
     background-image: none !important;
     color: #000000 !important;
 }
-.stNotListening {
+.stNotActive {
     background-color: #fff0d7 !important;
     background-image: none !important;
     color: #000000 !important;
@@ -45,19 +45,19 @@
     </p:panel>
 </div>
 <div class="ui-g-12 ui-xl-4 ui-lg-5 ui-md-8 ui-sm-12 ui-g-nopad">
-    <p:panel header="Thread pools sizes" >
+    <p:panel header="Thread pools sizes">
         <div class="ui-g">
             <div class="ui-g-12 ui-xl-4 ui-lg-4 ui-md-4 ui-sm-4 ui-g-nopad">
                 <p:panelGrid columns="2" layout="grid">
                     <f:facet name="header">
-                        <h:outputText value="Core"/>
+                        <h:outputText value="Broker"/>
                     </f:facet>
                     <h:outputText value="core"/>
-                    <h:outputText value="#{coreExecutor.getCorePoolSize()}"/>
+                    <h:outputText value="#{brokerTE.getCorePoolSize()}"/>
                     <h:outputText value="max"/>
-                    <h:outputText value="#{coreExecutor.getMaxPoolSize()}"/>
+                    <h:outputText value="#{brokerTE.getMaxPoolSize()}"/>
                     <h:outputText value="queue"/>
-                    <h:outputText value="#{coreExecutor.getThreadPoolExecutor().getQueue().size()}"/>
+                    <h:outputText value="#{brokerTE.getThreadPoolExecutor().getQueue().size()}"/>
                 </p:panelGrid>
             </div>
             <div class="ui-g-12 ui-xl-4 ui-lg-4 ui-md-4 ui-sm-4 ui-g-nopad">
@@ -66,11 +66,11 @@
                         <h:outputText value="Consumer"/>
                     </f:facet>
                     <h:outputText value="core"/>
-                    <h:outputText value="#{consumerTaskExecutor.getCorePoolSize()}"/>
+                    <h:outputText value="#{consumerTE.getCorePoolSize()}"/>
                     <h:outputText value="max"/>
-                    <h:outputText value="#{consumerTaskExecutor.getMaxPoolSize()}"/>
+                    <h:outputText value="#{consumerTE.getMaxPoolSize()}"/>
                     <h:outputText value="queue"/>
-                    <h:outputText value="#{consumerTaskExecutor.getThreadPoolExecutor().getQueue().size()}"/>
+                    <h:outputText value="#{consumerTE.getThreadPoolExecutor().getQueue().size()}"/>
                 </p:panelGrid>
             </div>
             <div class="ui-g-12 ui-xl-4 ui-lg-4 ui-md-4 ui-sm-4 ui-g-nopad">
@@ -79,11 +79,11 @@
                         <h:outputText value="Sender"/>
                     </f:facet>
                     <h:outputText value="core"/>
-                    <h:outputText value="#{playersSenderTaskExecutor.getCorePoolSize()}"/>
+                    <h:outputText value="#{senderTE.getCorePoolSize()}"/>
                     <h:outputText value="max"/>
-                    <h:outputText value="#{playersSenderTaskExecutor.getMaxPoolSize()}"/>
+                    <h:outputText value="#{senderTE.getMaxPoolSize()}"/>
                     <h:outputText value="queue"/>
-                    <h:outputText value="#{playersSenderTaskExecutor.getThreadPoolExecutor().getQueue().size()}"/>
+                    <h:outputText value="#{senderTE.getThreadPoolExecutor().getQueue().size()}"/>
                 </p:panelGrid>
             </div>
         </div>
@@ -94,6 +94,9 @@
     <f:facet name="header">Queues</f:facet>
     <p:column headerText="ID">
         <h:outputText value="#{datagramsEntry.key}"/>
+    </p:column>
+    <p:column headerText="Active">
+        <h:outputText value="#{datagramsEntry.value.countActive}"/>
     </p:column>
     <p:column headerText="Size"
 style="background-color: #{empty datagramsEntry.value.messageQueue ? '#d7ffd7' : '#ffcc74'}">
@@ -111,7 +114,7 @@ style="background-color: #{empty datagramsEntry.value.messageQueue ? '#d7ffd7' :
 <p:dataTable value="#{requestDashboard.sortedServerData}" var="serverData" emptyMessage="No known servers found"
              reflow="true"
              selectionMode="single" rowKey="#{serverData.knownServer.ipport}"
-             rowStyleClass="#{serverData.listening ? 'stListening' : 'stNotListening'}">
+             rowStyleClass="#{serverData.active ? 'stActive' : 'stNotActive'}">
     <f:facet name="header">
         Known servers: #{serverDataByAddress.size()} |
         instance: [#{instanceHolder.currentInstanceId}] #{instanceHolder.availableInstances.get(instanceHolder.currentInstanceId).name}
@@ -124,7 +127,8 @@ style="background-color: #{empty datagramsEntry.value.messageQueue ? '#d7ffd7' :
         <h:outputText value="#{serverData.queueId}"/>
     </p:column>
     <p:column headerText="Status" width="145">
-        <h:outputText value="#{serverData.listening ? '[LISTENING]' : '[NOT LISTENING]'}"/>
+        <h:outputText value="#{serverData.active ? '[Active]' : '[Not active]'}"/>
+        <!-- TODO: use ICONS -->
     </p:column>
     <p:column headerText="Address" width="200">
         <h:outputText value="#{serverData.knownServer.ipport}"/>

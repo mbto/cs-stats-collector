@@ -10,7 +10,7 @@ plugins {
     id("dev.bombinating.jooq-codegen") version "1.7.0"
 }
 
-jooq {
+jooq { // TODO: run task
     version = "3.11.10" //todo: if migrates to new spring-boot version, can use new code-generator version 3.13.+
     jdbc {
         driver = "com.mysql.cj.jdbc.Driver"

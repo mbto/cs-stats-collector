@@ -42,7 +42,7 @@ import static ru.csdm.stats.common.utils.SomeUtils.timezoneEnumByLiteral;
 @SpringBootTest
 @RunWith(SpringRunner.class)
 @ActiveProfiles("test")
-@DependsOn("coreExecutor")
+@DependsOn("brokerTE")
 @Slf4j
 public class LogsTests {
     @Autowired

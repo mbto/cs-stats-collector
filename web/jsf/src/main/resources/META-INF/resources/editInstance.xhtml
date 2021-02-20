@@ -57,25 +57,10 @@
             </p:confirmDialog>
         </ui:fragment>
         <ui:fragment rendered="#{viewEditInstance.selectedInstance.id == instanceHolder.currentInstanceId}">
-            <p:panelGrid layout="grid" columns="1" style="float:right;" styleClass="ui-fluid ui-panelgrid-blank">
-                <p:commandButton type="button" value="Shutdown instance" onclick="PF('confDialDelete').show()"
-                                 icon="ui-icon-power" styleClass="ui-button-danger"/>
+            <p:commandButton type="button" value="Shutdown instance" onclick="PF('confDialDelete').show()"
+                             icon="ui-icon-power" style="float:right;" styleClass="ui-button-danger"/>
 
-                <p:commandButton value="#{viewEditInstance.sessionsCount == 0
-                                 ? 'No sessions for flush' :
-                                 ('Flush ' += viewEditInstance.sessionsCount += ' sessions')}"
-                                 disabled="#{viewEditInstance.sessionsCount == 0}"
-                                 process="@this" update="@this msgs"
-                                 actionListener="#{viewEditInstance.flushAllAddresses()}"
-                                 onstart="PF('buiInstects').show()" oncomplete="PF('buiInstects').hide()"
-                                 icon="ui-icon-arrowstop-1-s"/>
 
-                <p:commandButton value="Refresh instance settings"
-                                 process="@this" update="@this msgs"
-                                 actionListener="#{collectorService.refresh(null)}"
-                                 onstart="PF('buiInstects').show()" oncomplete="PF('buiInstects').hide()"
-                                 icon="ui-icon-refresh"/>
-            </p:panelGrid>
 
             <p:confirmDialog widgetVar="confDialDelete" header="Confirm" closeOnEscape="true" responsive="true"
                              message="Are you sure you want to shutdown instance [#{viewEditInstance.selectedInstance.id}] #{viewEditInstance.selectedInstance.name} ?">

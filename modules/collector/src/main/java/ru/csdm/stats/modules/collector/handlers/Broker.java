@@ -1,6 +1,5 @@
 package ru.csdm.stats.modules.collector.handlers;
 
-import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -25,24 +24,20 @@ import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.time.LocalDateTime;
 import java.util.*;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.BrokenBarrierException;
-import java.util.concurrent.CyclicBarrier;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import static ru.csdm.stats.common.SystemEvent.*;
 import static ru.csdm.stats.common.SystemEvent.CONSUME_DATAGRAM;
-import static ru.csdm.stats.common.SystemEvent.CONSUME_GAMELOG;
 import static ru.csdm.stats.common.utils.SomeUtils.addressToString;
 
 @Service
 @Lazy(false)
 @Slf4j
-public class Listener {
+public class Broker {
     @Autowired
-    private BlockingQueue<Message<?>> listenerQueue;
+    private BlockingDeque<Message<?>> brokerQueue;
     @Autowired
     private Map<String, ServerData> serverDataByAddress;
     @Autowired
@@ -53,7 +48,7 @@ public class Listener {
     private Map<String, Map<String, CollectedPlayer>> gameSessionByAddress;
 
     @Autowired
-    private ThreadPoolTaskExecutor consumerTaskExecutor;
+    private ThreadPoolTaskExecutor consumerTE;
 
     @Autowired
     private DatagramsConsumer datagramsConsumer;
@@ -64,16 +59,16 @@ public class Listener {
     @Setter
     private DatagramSocket datagramSocket;
 
-    @Getter
-    @Setter /* Setter - allowing calling from another class/thread, with spring proxy, without volatile */
-    private boolean deactivated;
+//    @Getter
+//    @Setter /* Setter - allowing calling from another class/thread, with spring proxy, without volatile */
+//    private boolean deactivated;
 
     @PreDestroy
     public void destroy() {
         if(log.isDebugEnabled())
             log.debug("destroy() start");
 
-        setDeactivated(true);
+//        setDeactivated(true);
 
         if(Objects.nonNull(datagramSocket)) {
             try {
@@ -108,29 +103,25 @@ public class Listener {
         }
     }
 
-    @Async("coreExecutor")
+    @Async("brokerTE")
     public void launchReceiverAsync() {
         log.info("Receiver started at " + addressToString(datagramSocket.getLocalSocketAddress()));
 
-        byte[] buffer = new byte[1024];
-        DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
+        DatagramPacket packet = new DatagramPacket(new byte[1024], 1024);
 
         while (true) {
-            if (isDeactivated()) {
+            if (datagramSocket.isClosed()) {
                 log.info("Deactivation detected");
                 break;
             }
 
             try {
                 datagramSocket.receive(packet);
-                //todo: debug for search another concat method
-                String address = addressToString(packet.getSocketAddress());
-
-                Message<DatagramPacket> message = new Message<>(address, packet, CONSUME_DATAGRAM);
-
-                listenerQueue.put(message); // todo:review? move to another catch block? or remove comment
             } catch (Throwable e) {
-                if (isDeactivated()) {
+                if(Thread.currentThread().isInterrupted())
+                    Thread.interrupted();
+
+                if (datagramSocket.isClosed()) {
                     log.info("Deactivation detected");
                     break;
                 }
@@ -138,40 +129,55 @@ public class Listener {
                 log.warn("Exception while receiving/sending datagram packet", e);
                 continue;
             }
+
+            //todo: change to port
+            String address = addressToString(packet.getSocketAddress());
+            Message<DatagramPacket> message = new Message<>(address, packet, CONSUME_DATAGRAM);
+
+            putLastWithTryes(brokerQueue, message);
         }
+
+        putLastWithTryes(brokerQueue, new Message<>(null, null, FLUSH_AND_QUIT));
 
         log.info("Receiver deactivated");
     }
 
-    @Async("coreExecutor")
+    @Async("brokerTE")
     public void launchDistributorAsync() {
         log.info("Distributor started");
 
         Message<?> originalMessage;
 
         while (true) {
-            if (isDeactivated()) {
-                log.info("Deactivation detected");
-                break;
-            }
-
             try {
-                originalMessage = listenerQueue.take();
+                originalMessage = brokerQueue.takeFirst();
             } catch (Throwable e) {
-                if (isDeactivated()) {
-                    log.info("Deactivation detected");
-                    break;
-                }
+                if(Thread.currentThread().isInterrupted())
+                    Thread.interrupted();
 
-                log.warn("Exception while taking datagram packet", e);
+                log.warn("Exception while taking message", e);
                 continue;
             }
-
+/* BlockingDeque<Message<?>> brokerQueue
+Map<String, ServerData> serverDataByAddress
+Map<String, MessageQueue<Message<?>>> messageQueueByAddress
+Map<Integer, MessageQueue<Message<?>>> messageQueueByQueueId
+Map<String, Map<String, CollectedPlayer>> gameSessionByAddress */
             SystemEvent systemEvent = originalMessage.getSystemEvent();
             if(systemEvent == CONSUME_DATAGRAM) {
                 consumeDatagram(originalMessage);
             } else if(systemEvent == REFRESH) {
                 consumeRefreshEvent(originalMessage);
+            } else if(systemEvent == FLUSH_FROM_FRONTEND || systemEvent == FLUSH_FROM_SCHEDULER) {
+                consumeFlush((Message<ServerData>) originalMessage);
+            } else if(systemEvent == FLUSH_AND_QUIT) {
+                Message<?> message = new Message<>(null, null, originalMessage.getSystemEvent());
+
+                for (Map.Entry<Integer, MessageQueue<Message<?>>> entry : messageQueueByQueueId.entrySet()) {
+                    putLastWithTryes(entry.getValue(), message);
+                }
+
+                break;
             } else {
                 log.warn("Unknown system event '" + systemEvent + "'");
             }
@@ -180,11 +186,48 @@ public class Listener {
         log.info("Distributor deactivated");
     }
 
+    private void consumeFlush(Message<ServerData> originalMessage) {
+        String address = originalMessage.getPayload();
+        ServerData expectedServerData = originalMessage.getPojo();
+        ServerData serverData = serverDataByAddress.get(address);
+
+        if(Objects.isNull(serverData)) // serverData & gameSessions already deleted if refreshed
+            return;
+
+        // if flush from frontend or scheduler after refresh - registry might already be modified
+        if(Objects.nonNull(expectedServerData) &&
+                !serverData.getProject().getId().equals(expectedServerData.getProject().getId())) {
+
+            String logMsg = "Skip flushing players";
+
+            Map<String, CollectedPlayer> gameSessions = gameSessionByAddress.get(address);
+            if(Objects.nonNull(gameSessions)) {
+                int sessionsCount = 0;
+                for (CollectedPlayer collectedPlayer : gameSessions.values()) {
+                    List<Session> sessions = collectedPlayer.getSessions();
+                    sessionsCount += sessions.size();
+                    sessions.clear();
+                }
+
+                logMsg += " & removed " + gameSessions.size() + " players (" + sessionsCount + " sessions)";
+            }
+
+            logMsg += ", due different project ids after refresh registry";
+            log.info(address + " " + logMsg);
+            serverData.addMessage(logMsg);
+            return;
+        }
+
+        originalMessage.setPojo(serverData);
+
+        putLastWithTryes(messageQueueByAddress.get(address), originalMessage);
+    }
+
     private void consumeDatagram(Message<?> originalMessage) {
         String address = originalMessage.getPayload();
         ServerData serverData = serverDataByAddress.get(address);
 
-        if(serverData == null || !serverData.isListening())
+        if(serverData == null || !serverData.isActive())
             return;
 
         DatagramPacket packet = (DatagramPacket) originalMessage.getPojo();
@@ -192,10 +235,10 @@ public class Listener {
         if(!PacketUtils.validate("CS16", address, packet))
             return;
 
-        Message<ServerData> message = new Message<>();
-        message.setPojo(serverData);
-        message.setPayload(PacketUtils.convert("CS16", address, packet));
-        message.setSystemEvent(CONSUME_GAMELOG);
+        Message<ServerData> message = new Message<>(
+                PacketUtils.convert("CS16", address, packet),
+                serverData,
+                null);
 
         MessageQueue<Message<?>> messageQueue = messageQueueByAddress.get(address);
 
@@ -230,10 +273,8 @@ public class Listener {
         try {
             cb.await(5, TimeUnit.SECONDS);
         } catch (Throwable e) {
-            if (isDeactivated()) {
-                log.info("Deactivation detected after await synchronization");
-                return;
-            }
+            if(Thread.currentThread().isInterrupted())
+                Thread.interrupted();
 
             log.warn("Exception after await synchronization", e);
             return;
@@ -243,20 +284,24 @@ public class Listener {
     }
 
     private boolean putLastWithTryes(MessageQueue<Message<?>> messageQueue, Message<?> message) {
+        return putLastWithTryes(messageQueue.getMessageQueue(), message);
+    }
+
+    private boolean putLastWithTryes(BlockingDeque<Message<?>> queue, Message<?> message) {
         int tryes = 0;
         while (true) {
             try {
                 ++tryes;
-                messageQueue.getMessageQueue().putLast(message);
+                queue.putLast(message);
                 return true;
             } catch (Throwable e) {
-                if(isDeactivated())
-                    return false;
+                if(Thread.currentThread().isInterrupted())
+                    Thread.interrupted();
 
-                log.warn("Exception, while putting message " + message + " in " + messageQueue + ", " + tryes + "/3");
+                log.warn("Exception, while putLast message " + message + " in queue, " + tryes + "/3");
 
                 if (tryes == 3) {
-                    log.warn("Failed put message " + message + " in " + messageQueue);
+                    log.warn("Failed putLast message " + message + " in queue");
                     return false;
                 }
             }
@@ -310,7 +355,7 @@ public class Listener {
             String address = entry.getKey();
             ServerData serverData = entry.getValue();
 
-            //ignoring other projects if projectId exists
+            //ignoring other projects if filter by projectId exists
             if(Objects.nonNull(projectId) && !serverData.getProject().getId().equals(projectId))
                 continue;
 
@@ -319,18 +364,24 @@ public class Listener {
                     .noneMatch(knownServer -> knownServer.getIpport().equals(address));
 
             if(noneMatches) {
-                iterator.remove();
+                iterator.remove(); // remove serverData
 
                 MessageQueue<Message<?>> messageQueue = messageQueueByAddress.remove(address);
-                if(Objects.nonNull(messageQueue) && serverData.isListening()) {
-                    messageQueue.decListening();
+                if(Objects.nonNull(messageQueue) && serverData.isActive()) {
+                    messageQueue.decActive();
                 }
 
-                String logMsg = "removed from listener";
+                String logMsg = "removed from registry";
 
                 Map<String, CollectedPlayer> gameSessions = gameSessionByAddress.get(address);
                 if(Objects.nonNull(gameSessions)) {
-                    logMsg += ", " + gameSessions.size() + " gameSessions removed";
+                    int sessionsCount = 0;
+                    for (CollectedPlayer collectedPlayer : gameSessions.values()) {
+                        List<Session> sessions = collectedPlayer.getSessions();
+                        sessionsCount += sessions.size();
+                        sessions.clear();
+                    }
+                    logMsg += " " + gameSessions.size() + " players (" + sessionsCount + " sessions)";
 
                     /* clear & remove gameSessions container, without flush */
                     gameSessions.clear();
@@ -355,34 +406,33 @@ public class Listener {
                     ServerData newServerData = new ServerData();
                     newServerData.setKnownServer(newKnownServer);
                     newServerData.setProject(projectByProjectId.get(newKnownServer.getProjectId()));
-                    newServerData.setNextFlushDateTime(now.plusHours(1));
+                    newServerData.setNextFlushDateTime(currentServerData.getNextFlushDateTime());
                     newServerData.setDriverProperties(driverPropertiesByProjectId.get(newKnownServer.getProjectId()));
 
                     newServerData.setLastTouchDateTime(currentServerData.getLastTouchDateTime());
                     newServerData.setMessages(currentServerData.getMessages());
 
-                    MessageQueue<Message<?>> currentMessageQueue = messageQueueByAddress.get(address);
-                    boolean currentIsListening = Objects.nonNull(currentMessageQueue) && currentServerData.isListening();
-                    if(currentIsListening)
-                        currentMessageQueue.decListening();
-
-                    MessageQueue<Message<?>> newMessageQueue = findOptimalMessageQueue();
-
-                    messageQueueByAddress.replace(address, newMessageQueue);
                     serverDataByAddress.replace(address, newServerData);
 
-                    String logMsg = "listening ";
-                    if(newServerData.isListening()) {
-                        newMessageQueue.incListening();
+                    MessageQueue<Message<?>> currentMessageQueue = messageQueueByAddress.remove(address);
+                    boolean currentIsActive = Objects.nonNull(currentMessageQueue) && currentServerData.isActive();
+                    if(currentIsActive)
+                        currentMessageQueue.decActive();
 
-                        if(currentIsListening) {
-                            logMsg += "refreshed";
+                    String logMsg = "listening ";
+                    if(newServerData.isActive()) {
+                        MessageQueue<Message<?>> newMessageQueue = findOptimalMessageQueue();
+                        newMessageQueue.incActive();
+                        messageQueueByAddress.put(address, newMessageQueue);
+
+                        if(currentIsActive) {
+                            logMsg += "refreshed: " + currentMessageQueue + " -> " + newMessageQueue;
                         } else {
-                            logMsg += "started";
+                            logMsg += "started at " + newMessageQueue;
                         }
                     } else {
-                        if(currentIsListening) {
-                            logMsg += "stopped";
+                        if(currentIsActive) {
+                            logMsg += "stopped in " + currentMessageQueue;
                         } else {
                             logMsg += "stopped again";
                         }
@@ -403,18 +453,17 @@ public class Listener {
 
                     serverData.setLastTouchDateTime(now);
 
-                    MessageQueue<Message<?>> messageQueue = findOptimalMessageQueue();;
-
-                    messageQueueByAddress.put(address, messageQueue);
                     serverDataByAddress.put(address, serverData);
 
                     String logMsg;
-                    if(serverData.isListening()) {
-                        messageQueue.incListening();
+                    if(serverData.isActive()) {
+                        MessageQueue<Message<?>> messageQueue = findOptimalMessageQueue();;
+                        messageQueue.incActive();
+                        messageQueueByAddress.put(address, messageQueue);
 
-                        logMsg = "listening started";
+                        logMsg = "listening started at " + messageQueue;
                     } else {
-                        logMsg = "added to listener";
+                        logMsg = "added to registry";
                     }
 
                     log.info(address + " " + logMsg);
@@ -426,22 +475,22 @@ public class Listener {
         //todo: найти динамически незадействованные MessageQueue
         // (если 64 процессора - нам не нужно создавать все 64 MessageQueue на старте приложения)
 
-        int countListening = (int) serverDataByAddress.values()
+        int countActive = (int) serverDataByAddress.values()
                 .stream()
-                .filter(ServerData::isListening)
+                .filter(ServerData::isActive)
                 .count();
 
         int newPoolSize = Math.max(1,
-                Math.min(countListening, messageQueueByAddress.size())
+                Math.min(countActive, messageQueueByAddress.size())
         );
 
-        int oldPoolSize = consumerTaskExecutor.getCorePoolSize();
+        int oldPoolSize = consumerTE.getCorePoolSize();
         if(newPoolSize > oldPoolSize) {
-            consumerTaskExecutor.setMaxPoolSize(newPoolSize);
-            consumerTaskExecutor.setCorePoolSize(newPoolSize);
+            consumerTE.setMaxPoolSize(newPoolSize);
+            consumerTE.setCorePoolSize(newPoolSize);
         } else if(newPoolSize < oldPoolSize) {
-            consumerTaskExecutor.setCorePoolSize(newPoolSize);
-            consumerTaskExecutor.setMaxPoolSize(newPoolSize);
+            consumerTE.setCorePoolSize(newPoolSize);
+            consumerTE.setMaxPoolSize(newPoolSize);
         }
 
         if(newPoolSize != oldPoolSize)
@@ -461,11 +510,14 @@ public class Listener {
         }
     }
 
+    private static final int availableProcessors = Runtime.getRuntime().availableProcessors();
+
     private MessageQueue<Message<?>> findOptimalMessageQueue() {
+        //TODO: code this first
         return messageQueueByQueueId
                 .values()
                 .stream()
-                .min(Comparator.comparingInt(MessageQueue::getCountListening))
+                .min(Comparator.comparingInt(MessageQueue::getCountActive))
                 .orElseThrow(IllegalStateException::new);
     }
 }

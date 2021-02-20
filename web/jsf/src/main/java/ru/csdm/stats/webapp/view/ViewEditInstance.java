@@ -36,11 +36,6 @@ import static ru.csdm.stats.common.model.collector.tables.KnownServer.KNOWN_SERV
 public class ViewEditInstance {
     @Autowired
     private ApplicationContext applicationContext;
-    @Autowired
-    private CollectorService collectorService;
-
-    @Autowired
-    private Map<String, Map<String, CollectedPlayer>> gameSessionByAddress;
 
     @Autowired
     private DSLContext collectorDsl;
@@ -149,45 +144,6 @@ public class ViewEditInstance {
         }
 
         return "/instances?faces-redirect=true";
-    }
-
-    public int getSessionsCount() {
-        return gameSessionByAddress.values()
-                .stream()
-                .mapToInt(gameSessions -> gameSessions
-                        .values()
-                        .stream()
-                        .mapToInt(cp -> cp.getSessions().size())
-                        .sum())
-                .sum();
-    }
-
-    public void flushAllAddresses() {
-        log.info("Flush all sessions received from frontend");
-
-        List<String> msgs = new ArrayList<>();
-
-        for (String address : gameSessionByAddress.keySet()) {
-            try {
-                collectorService.flush(address, FLUSH_FROM_FRONTEND, false);
-            } catch (Exception e) {
-                log.warn(address + " Flush not registered, " + e.getMessage());
-
-                msgs.add("Flush " + address + " not registered, " + e.getMessage());
-                continue;
-            }
-
-            log.info(address + " Flush registered");
-
-            msgs.add("Flush " + address + " registered");
-        }
-
-        FacesContext fc = FacesContext.getCurrentInstance();
-        fc.addMessage("msgs", new FacesMessage(String.join("<br/>", msgs), ""));
-
-        try {
-            Thread.sleep(3 * 1000);
-        } catch (InterruptedException ignored) {}
     }
 
     public void shutdownInstance() {

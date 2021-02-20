@@ -31,7 +31,7 @@ public class PlayersSender {
     @Autowired
     private CollectorDao collectorDao;
 
-    @Async("playersSenderTaskExecutor")
+    @Async("senderTE")
     public void sendAsync(ServerData serverData, List<CollectedPlayer> collectedPlayers) {
         KnownServer knownServer = serverData.getKnownServer();
         String address = knownServer.getIpport();

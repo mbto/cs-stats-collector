@@ -24,8 +24,8 @@ import java.util.stream.IntStream;
 @Component
 @Slf4j
 public class LogsSender {
-    @Value("${collector.listener.port:8888}")
-    private int listenerPort;
+    @Value("${collector.broker.port:8888}")
+    private int brokerPort;
 
     @SneakyThrows
     public void sendLogs(String fileName, int portStart, int portEnd) {
@@ -39,7 +39,7 @@ public class LogsSender {
         }
 
         String ip = "127.0.0.1";
-        InetSocketAddress serv1 = new InetSocketAddress(ip, listenerPort);
+        InetSocketAddress serv1 = new InetSocketAddress(ip, brokerPort);
 
         CompletableFuture<Void>[] tasks = IntStream.rangeClosed(portStart, portEnd)
                 .boxed()

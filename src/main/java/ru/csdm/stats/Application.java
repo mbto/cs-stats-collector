@@ -10,17 +10,14 @@ import org.springframework.boot.web.servlet.ServletContextInitializer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.DependsOn;
 import org.springframework.scheduling.annotation.EnableAsync;
-import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import ru.csdm.stats.common.dto.CollectedPlayer;
 import ru.csdm.stats.common.dto.MessageQueue;
 import ru.csdm.stats.common.dto.Message;
 import ru.csdm.stats.common.dto.ServerData;
 
-import java.net.DatagramPacket;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.Queue;
 import java.util.concurrent.*;
 
 @SpringBootApplication(exclude = {JooqAutoConfiguration.class,
@@ -37,8 +34,8 @@ public class Application {
     }
 
     @Bean
-    public BlockingQueue<Message<?>> listenerQueue() {
-        return new LinkedBlockingQueue<>(Integer.MAX_VALUE);
+    public BlockingDeque<Message<?>> brokerQueue() {
+        return new LinkedBlockingDeque<>(Integer.MAX_VALUE);//todo: change to LinkedBlockingDeque
     }
     /**
      * Key: Server address (ip:port)
@@ -66,21 +63,21 @@ public class Application {
     }
     /**
      * Key: Server address (ip:port)
-     * Value: Map&lt;Player nick, Player&gt;
+     * Value: Map&lt;Player nick, CollectedPlayer&gt;
      */
     @Bean
     public Map<String, Map<String, CollectedPlayer>> gameSessionByAddress() {
         return new ConcurrentSkipListMap<>();
     }
     /**
-     * Pool used in Listener and DatagramsConsumer classes
+     * Pool used in Broker and DatagramsConsumer classes
      * 1 - consume from messageQueues
      *     -> accumulate players statistics and sessions
-     *     -> sending to playersSenderTaskExecutor pool;
+     *     -> sending to senderTE pool;
      */
     @Bean
-    @DependsOn("playersSenderTaskExecutor")
-    public ThreadPoolTaskExecutor consumerTaskExecutor() {
+    @DependsOn("senderTE")
+    public ThreadPoolTaskExecutor consumerTE() {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
 
         /* Pool sizes changes automatically, depends on the number of active HLDS servers (in table csstats.known_server)
@@ -90,6 +87,7 @@ public class Application {
 
         executor.setThreadGroupName("consumers");
         executor.setThreadNamePrefix("consumer-");
+        executor.setDaemon(false);
         executor.setAllowCoreThreadTimeOut(true);
         executor.setWaitForTasksToCompleteOnShutdown(true);
         executor.setAwaitTerminationSeconds(120);
@@ -104,7 +102,7 @@ public class Application {
      */
     @Bean
     @DependsOn("collectorDataSource")
-    public ThreadPoolTaskExecutor playersSenderTaskExecutor(
+    public ThreadPoolTaskExecutor senderTE(
             @Value("${collector.datasource.maximumPoolSize}") int datasourceMaximumPoolSize
     ) {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
@@ -117,6 +115,7 @@ public class Application {
 
         executor.setThreadGroupName("playersSenders");
         executor.setThreadNamePrefix("playerSender-");
+        executor.setDaemon(false);
         executor.setAllowCoreThreadTimeOut(true);
         executor.setWaitForTasksToCompleteOnShutdown(true);
         executor.setAwaitTerminationSeconds(120);
@@ -126,19 +125,20 @@ public class Application {
     }
     /**
      * Pool used in 2 cases:
-     * 1 - consume from UDP port -> send to listenerQueue;
-     * 2 - consume from listenerQueue -> distribute to messageQueues;
+     * 1 - consume from UDP port -> send to brokerQueue;
+     * 2 - consume from brokerQueue -> distribute to messageQueues;
      * TODO: 3 - scheduler
      */
-    @Bean("coreExecutor")
-    public ThreadPoolTaskExecutor coreExecutor() {
+    @Bean("brokerTE")
+    public ThreadPoolTaskExecutor brokerTE() {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
 
         int poolSize = 2; // todo: +1 scheduler
         executor.setCorePoolSize(poolSize);
         executor.setMaxPoolSize(poolSize);
 
-        executor.setThreadNamePrefix("coreExecutor-");
+        executor.setThreadNamePrefix("brokerTE-");
+        executor.setDaemon(false);
         executor.setAllowCoreThreadTimeOut(true);
         executor.setWaitForTasksToCompleteOnShutdown(true);
         executor.setAwaitTerminationSeconds(120);

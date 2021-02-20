@@ -3,6 +3,7 @@ package ru.csdm.stats.webapp.request;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.jooq.types.UInteger;
 import org.primefaces.event.SelectEvent;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.util.LinkedCaseInsensitiveMap;
@@ -62,8 +63,8 @@ public class RequestDashboard {
                 .sum();
     }
 
-    private final Comparator<ServerData> cmpByProjectIdDesc = Comparator.comparing(o -> o.getKnownServer().getProjectId());
-    private final Comparator<ServerData> cmpByKnownServerId = Comparator.comparing(o -> o.getKnownServer().getId());
+    private static final Comparator<ServerData> cmpByProjectIdDesc = Comparator.comparing(o -> o.getKnownServer().getProjectId());
+    private static final Comparator<ServerData> cmpByKnownServerId = Comparator.comparing(o -> o.getKnownServer().getId());
 
     public List<ServerData> getSortedServerData() {
         if(log.isDebugEnabled())

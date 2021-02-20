@@ -7,7 +7,7 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
-import ru.csdm.stats.modules.collector.handlers.Listener;
+import ru.csdm.stats.modules.collector.handlers.Broker;
 import ru.csdm.stats.service.CollectorService;
 
 import javax.annotation.PostConstruct;
@@ -20,24 +20,24 @@ public class Module {
     @Autowired
     private ApplicationContext applicationContext;
     @Autowired
-    private Listener listener;
+    private Broker broker;
     @Autowired
     private CollectorService collectorService;
-    @Value("${collector.listener.port:8888}")
-    private int listenerPort;
+    @Value("${collector.broker.port:8888}")
+    private int brokerPort;
 
     @PostConstruct
     public void init() {
         if(log.isDebugEnabled())
             log.debug("init() start");
 
-        log.info("Activating listener at port " + listenerPort);
+        log.info("Activating broker at port " + brokerPort);
 
         DatagramSocket datagramSocket;
         try {
-            datagramSocket = new DatagramSocket(listenerPort);
+            datagramSocket = new DatagramSocket(brokerPort);
         } catch (Throwable e) {
-            log.warn("Failed initialize listener at port " + listenerPort, e);
+            log.warn("Failed initialize broker at port " + brokerPort, e);
             int code = SpringApplication.exit(applicationContext, () -> 1);
             System.exit(code);
             return;
@@ -52,10 +52,9 @@ public class Module {
             throw e;
         }
 
-        listener.setDatagramSocket(datagramSocket);
-        listener.setupConsumers();
-        listener.launchReceiverAsync();
-        listener.launchDistributorAsync();
+        broker.setDatagramSocket(datagramSocket);
+        broker.launchReceiverAsync();
+        broker.launchDistributorAsync();
 
         if(log.isDebugEnabled())
             log.debug("init() finish");

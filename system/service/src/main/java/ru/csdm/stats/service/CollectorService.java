@@ -15,7 +15,9 @@ import ru.csdm.stats.common.utils.SomeUtils;
 import java.time.LocalDateTime;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.BlockingDeque;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingDeque;
 
 import static ru.csdm.stats.common.SystemEvent.REFRESH;
 
@@ -24,13 +26,13 @@ import static ru.csdm.stats.common.SystemEvent.REFRESH;
 @Slf4j
 public class CollectorService {
     @Autowired
-    private BlockingQueue<Message<?>> listenerQueue;
+    private BlockingDeque<Message<?>> brokerQueue;
     @Autowired
     private Map<String, ServerData> serverDataByAddress;
-    @Autowired
-    private Map<String, MessageQueue<Message<?>>> messageQueueByAddress;
-    @Autowired
-    private Map<Integer, MessageQueue<Message<?>>> messageQueueByQueueId;
+//    @Autowired
+//    private Map<String, MessageQueue<Message<?>>> messageQueueByAddress;
+//    @Autowired
+//    private Map<Integer, MessageQueue<Message<?>>> messageQueueByQueueId;
 //TODO:
 //    @Scheduled(fixedDelay = 1 * 60 * 60 * 1000 /* 1h */, initialDelay = 1 * 60 * 60 * 1000 /* 1h */)
 //    public void flushOneMapServers() {
@@ -39,9 +41,12 @@ public class CollectorService {
 //        }
 //    }
 
+    /**
+     * Refresh changes in registries
+     */
     public void refresh(UInteger projectId) throws IllegalStateException {
         Message<UInteger> message = new Message<>(null, projectId, REFRESH);
-        listenerQueue.add(message);
+        brokerQueue.addFirst(message);
     }
 
     public void flush(String address,
@@ -66,22 +71,11 @@ public class CollectorService {
             }
         }
 
-        MessageQueue<Message<?>> messageQueue = messageQueueByAddress.get(address);
-        if(Objects.isNull(messageQueue)) {
-            logMsg = "No messageQueue found at address '" + address + "'";
-
-            serverData.addMessage("Flush " + address + " not registered, " + logMsg);
-            throw new IllegalArgumentException(logMsg);
-        }
-
-        Message<ServerData> message = new Message<>();
-        message.setPayload(address);
-        message.setPojo(serverData);
-        message.setSystemEvent(systemEvent);
+        Message<ServerData> message = new Message<>(address, serverData, systemEvent);
 
         try {
-            messageQueue.getMessageQueue().addLast(message);
-        } catch (Exception e) {
+            brokerQueue.addFirst(message);
+        } catch (Throwable e) {
             serverData.addMessage("Flush " + address + " not registered, " + e.getMessage());
 
             throw new RuntimeException(e);

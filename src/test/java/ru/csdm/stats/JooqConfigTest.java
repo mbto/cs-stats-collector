@@ -21,7 +21,7 @@ public class JooqConfigTest {
 
     @Bean
     @ConfigurationProperties("collector.admin.datasource")
-    @DependsOn("coreExecutor")
+    @DependsOn("brokerTE")
     public HikariDataSource collectorAdminDataSource() {
         return buildHikariDataSource("collector-admin-pool");
     }

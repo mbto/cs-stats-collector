@@ -1,10 +1,7 @@
 package ru.csdm.stats.modules.collector.handlers;
 
-import lombok.Getter;
-import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
-import org.jooq.types.UInteger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.scheduling.annotation.Async;
@@ -21,10 +18,7 @@ import ru.csdm.stats.dao.CollectorDao;
 import javax.annotation.PreDestroy;
 import java.time.LocalDateTime;
 import java.util.*;
-import java.util.concurrent.BrokenBarrierException;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.CyclicBarrier;
-import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 
 import static ru.csdm.stats.common.Constants.MMDDYYYY_HHMMSS_PATTERN;
@@ -39,21 +33,23 @@ public class DatagramsConsumer {
     @Autowired
     private CollectorDao collectorDao;
     @Autowired
-    private ThreadPoolTaskExecutor consumerTaskExecutor;
+    private ThreadPoolTaskExecutor consumerTE;
 
     @Autowired
     private Map<String, ServerData> serverDataByAddress;
+    @Autowired
+    private Map<String, MessageQueue<Message<?>>> messageQueueByAddress;
     @Autowired
     private Map<String, Map<String, CollectedPlayer>> gameSessionByAddress;
 
     @Autowired
     private PlayersSender playersSender;
 
-    private CountDownLatch deactivationLatch;
+//    private CountDownLatch deactivationLatch;
 
-    @Getter
-    @Setter /* Setter - allowing calling from another class/thread, with spring proxy, without volatile */
-    private boolean deactivated;
+//    @Getter
+//    @Setter /* Setter - allowing calling from another class/thread, with spring proxy, without volatile */
+//    private boolean deactivated;
 
     @PreDestroy
     public void destroy() {
@@ -61,12 +57,12 @@ public class DatagramsConsumer {
         if(debugEnabled)
             log.debug("destroy() start");
 
-        setDeactivated(true);
+        /*setDeactivated(true);
 
-        int poolSize = consumerTaskExecutor.getPoolSize();
+        int poolSize = consumerTE.getPoolSize();
         deactivationLatch = new CountDownLatch(poolSize);
 
-        ThreadGroup tg = consumerTaskExecutor.getThreadGroup();
+        ThreadGroup tg = consumerTE.getThreadGroup();
         if(Objects.nonNull(tg)) {
             Thread[] consumers = new Thread[poolSize];
             tg.enumerate(consumers);
@@ -86,13 +82,13 @@ public class DatagramsConsumer {
 
         for (String address : gameSessionByAddress.keySet()) {
             flushSessions(address, null, null, PRE_DESTROY_LIFECYCLE);
-        }
+        }*/
 
         if(debugEnabled)
             log.debug("destroy() end");
     }
 
-    @Async("consumerTaskExecutor")
+    @Async("consumerTE")
     public void startConsumeAsync(MessageQueue<Message<?>> messageQueue) {
         log.info("Activating DatagramsConsumer for MessageQueue #" + messageQueue.getQueueId());
 
@@ -101,29 +97,20 @@ public class DatagramsConsumer {
 
             Message<?> message;
             try {
-                if (isDeactivated()) {
-                    log.info("Deactivation detected");
-                    break;
-                }
-
                 if(debugEnabled)
                     log.debug("Waiting message from messageQueue...");
 
                 message = messageQueue.getMessageQueue().takeFirst();
 
-                if(debugEnabled) {
+                if(debugEnabled)
                     log.debug("Taked message: " + message);
-                }
             } catch (Throwable e) {
-                if (isDeactivated()) {
-                    log.info("Deactivation detected");
-                    break;
-                }
+                if(Thread.currentThread().isInterrupted())
+                    Thread.interrupted();
 
                 log.warn("Exception while receiving message", e);
                 continue;
             }
-
 
             if(Objects.nonNull(message.getSystemEvent())) {
                 if(log.isDebugEnabled()) {
@@ -144,10 +131,8 @@ public class DatagramsConsumer {
                     try {
                         cb.await();
                     } catch (Throwable e) {
-                        if (isDeactivated()) {
-                            log.info("Deactivation detected after await synchronization");
-                            break;
-                        }
+                        if(Thread.currentThread().isInterrupted())
+                            Thread.interrupted();
 
                         log.warn("Exception after await synchronization", e);
                         continue;
@@ -155,24 +140,35 @@ public class DatagramsConsumer {
 
                     log.info("Finished synchronization");
                 } else if(message.getSystemEvent() == SystemEvent.FLUSH_FROM_FRONTEND) {
-                    flushSessions(message.getPayload(), (ServerData) message.getPojo(), null, FRONTEND);
+                    flushSessions((ServerData) message.getPojo(), null, FRONTEND);
                 } else if(message.getSystemEvent() == SystemEvent.FLUSH_FROM_SCHEDULER) {
-                    flushSessions(message.getPayload(), (ServerData) message.getPojo(), null, SCHEDULER);
+                    flushSessions((ServerData) message.getPojo(), null, SCHEDULER);
+                } else if(message.getSystemEvent() == SystemEvent.FLUSH_AND_QUIT) {
+                    List<ServerData> messageQueueServerDatas = new ArrayList<>();
+
+                    for (Map.Entry<String, MessageQueue<Message<?>>> entry : messageQueueByAddress.entrySet()) {
+                        if(messageQueue.getQueueId() == entry.getValue().getQueueId()) {
+                            String address = entry.getKey();
+                            messageQueueServerDatas.add(serverDataByAddress.get(address));
+                        }
+                    }
+
+                    for (ServerData serverData : messageQueueServerDatas) {
+                        flushSessions(serverData, null, PRE_DESTROY_LIFECYCLE);
+                    }
+
+                    break;
                 }
 
                 continue;
             }
-
-            ServerData serverData = (ServerData) message.getPojo();
-
-            if(!serverData.isListening())
-                continue;
 
             Matcher msgMatcher = LOG.pattern.matcher(message.getPayload());
 
             if(!msgMatcher.find())
                 continue;
 
+            ServerData serverData = (ServerData) message.getPojo();
             KnownServer knownServer = serverData.getKnownServer();
             String address = knownServer.getIpport();
 
@@ -417,7 +413,7 @@ public class DatagramsConsumer {
 
 /* L 01/01/2020 - 20:50:08: Started map "de_dust2" (CRC "1159425449") */
                 if(eventName.equals("Started map")) {
-                    flushSessions(address, null, dateTime, NEW_GAME_MAP);
+                    flushSessions(serverData, dateTime, NEW_GAME_MAP);
                     continue;
                 }
 
@@ -428,15 +424,15 @@ public class DatagramsConsumer {
 
 /* L 01/01/2020 - 20:52:15: Server shutdown */
             if(rawMsg.equals("Server shutdown")) {
-                flushSessions(address, null, dateTime, SHUTDOWN_GAME_SERVER);
+                flushSessions(serverData, dateTime, SHUTDOWN_GAME_SERVER);
                 continue;
             }
         }
 
-        if(Objects.nonNull(deactivationLatch))
-            deactivationLatch.countDown();
+//        if(Objects.nonNull(deactivationLatch))
+//            deactivationLatch.countDown();
 
-        log.info("Deactivated");
+        log.info("Deactivated DatagramsConsumer for MessageQueue #" + messageQueue.getQueueId());
     }
 
     private void countFrag(KnownServer knownServer,
@@ -506,35 +502,21 @@ public class DatagramsConsumer {
         return collectedPlayer;
     }
 
-    private void flushSessions(String address,
-                               ServerData expectedServerData,
+    private void flushSessions(ServerData serverData,
                                LocalDateTime dateTime,
                                FlushEvent fromEvent) {
-        ServerData serverData = serverDataByAddress.get(address);
-        if(Objects.isNull(serverData)) {
-            log.info(address + " Skip flush sessions, due serverData not exists. Event: " + fromEvent);
-            return;//todo: remove sessions?
-        }
+        String address = serverData.getKnownServer().getIpport();
 
         String logMsg = "Started flush sessions by event " + fromEvent;
         log.info(address + " " + logMsg);
         serverData.addMessage(logMsg);
 
-        // if flush from frontend or scheduler - registry might already be modified
-        if(Objects.nonNull(expectedServerData) &&
-                !serverData.getProject().getId().equals(expectedServerData.getProject().getId())) {
-            logMsg = "Skip flushing players, due different project ids after refresh registry";
-            log.info(address + " " + logMsg);//todo:review? remove sessions?
-            serverData.addMessage(logMsg);
-            return;
-        }
-
         Map<String, CollectedPlayer> gameSessions = allocateGameSession(address,
                 (fromEvent == PRE_DESTROY_LIFECYCLE /*|| */)
                         ? REMOVE : REPLACE_IF_EXISTS);
 
-        if(Objects.isNull(gameSessions)) {
-            logMsg = "Skip flush sessions, due gameSessions container not exists or empty";
+        if(Objects.isNull(gameSessions) || gameSessions.isEmpty()) {
+            logMsg = "Skip flush sessions, due empty gameSessions container or not exists";
             log.info(address + " " + logMsg);
             serverData.addMessage(logMsg);
             return;
@@ -543,12 +525,12 @@ public class DatagramsConsumer {
         List<CollectedPlayer> collectedPlayers = new ArrayList<>(gameSessions.values());
 
         int playersSize = collectedPlayers.size();
-        if (playersSize == 0) {
+        /*if (playersSize == 0) { //todo: why I'm write this?
             logMsg = "Skip flush sessions, due empty collectedPlayers container";
             log.info(address + " " + logMsg);
             serverData.addMessage(logMsg);
             return;
-        }
+        }*/
 
         logMsg = "Prepared " + playersSize + " player" + (playersSize > 1 ? "s" : "") + " to flush";
         log.info(address + " " + logMsg);

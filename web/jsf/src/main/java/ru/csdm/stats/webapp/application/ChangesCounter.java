@@ -10,7 +10,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 @ApplicationScoped
 @Named
 @Slf4j
-public class ChangesCounter {
+public class ChangesCounter { //TODO: move to InstaneHolder, or remove
     @Getter
     private final AtomicInteger counter = new AtomicInteger(0);
 

@@ -7,53 +7,76 @@
       xmlns:p="http://primefaces.org/ui"
       xmlns:ui="http://xmlns.jcp.org/jsf/facelets">
 <f:metadata>
-    <f:viewAction action="#{requestKnownServersByInstanceId.fetch()}" onPostback="false" immediate="true"/>
+    <f:viewAction action="#{viewKnownServersByInstanceId.fetch()}" onPostback="false" immediate="true"/>
 </f:metadata>
 
 <ui:composition template="../template/layout.xhtml">
 <ui:define name="center">
-<p:messages id="fetchMsgs" showSummary="true" showDetail="true" rendered="#{empty requestKnownServersByInstanceId.selectedInstance}"/>
-<ui:fragment rendered="#{not empty requestKnownServersByInstanceId.selectedInstance}">
+<p:messages id="fetchMsgs" showSummary="true" showDetail="true" rendered="#{empty viewKnownServersByInstanceId.selectedInstance}"/>
+<ui:fragment rendered="#{not empty viewKnownServersByInstanceId.selectedInstance}">
+<p:outputPanel id="knServsOutPanel">
+<h:form id="manageBtnsForm">
+<p:panelGrid layout="grid" columns="1" style="float:right;" styleClass="ui-fluid ui-panelgrid-blank">
+<p:commandButton value="#{viewKnownServersByInstanceId.sessionsCount == 0
+                         ? 'No sessions for flush' :
+                         ('Flush ' += viewKnownServersByInstanceId.sessionsCount += ' sessions')}"
+                 disabled="#{viewKnownServersByInstanceId.sessionsCount == 0}"
+                 process="@this" update="@this msgs"
+                 actionListener="#{viewKnownServersByInstanceId.flushAllAddresses()}"
+                 onstart="PF('buiKnServs').show()" oncomplete="PF('buiKnServs').hide()"
+                 icon="ui-icon-arrowstop-1-s"/>
+
+<p:commandButton value="Refresh instance settings"
+                 process="@this" update="@form msgs"
+                 actionListener="#{viewKnownServersByInstanceId.refreshAllAddresses()}"
+                 onstart="PF('buiKnServs').show()" oncomplete="PF('buiKnServs').hide()"
+                 icon="ui-icon-refresh"/>
+</p:panelGrid>
+</h:form>
+<p:messages id="msgs" showSummary="true" showDetail="true" escape="false"/>
+
 <h:form id="showKnServsForm">
-<p:dataTable id="knServsTblId" value="#{requestKnownServersByInstanceId.currentKnownServers}" var="knownServer" emptyMessage="No known servers found"
-             selectionMode="single" rowKey="#{knownServer.projectId}"
-             reflow="true">
+<p:dataTable id="knServsTblId" value="#{viewKnownServersByInstanceId.currentKnownServers}" var="knownServer" emptyMessage="No known servers found"
+             reflow="true"
+             selectionMode="single" rowKey="#{knownServer.projectId}">
     <f:facet name="header">
-        Known servers: #{requestKnownServersByInstanceId.currentKnownServers.size()} |
-        instance: [#{requestKnownServersByInstanceId.selectedInstance.id}] #{requestKnownServersByInstanceId.selectedInstance.name}
+        Known servers: #{viewKnownServersByInstanceId.currentKnownServers.size()} |
+        instance: [#{viewKnownServersByInstanceId.selectedInstance.id}] #{viewKnownServersByInstanceId.selectedInstance.name}
     </f:facet>
 
-    <p:ajax event="rowSelect" immediate="true" process="@this" update="@none"/>
+    <p:ajax event="rowSelect" immediate="true" process="@this" update="@none"
+            listener="#{viewKnownServersByInstanceId.onRowSelect}"/>
 
     <p:column headerText="Address" width="200">
         <h:outputText value="#{knownServer.ipport}"/>
     </p:column>
-
-    <p:column headerText="Project" width="200">
-        <h:outputText value="[#{knownServer.projectId}] #{requestKnownServersByInstanceId.projectNameByProjectId.get(knownServer.projectId)}"/>
+    <p:column headerText="Sessions" width="65">
+        <h:outputText value="#{viewKnownServersByInstanceId.getSessionCount(knownServer.ipport)}"/>
     </p:column>
-
+    <p:column headerText="Project" width="200">
+        <h:outputText value="[#{knownServer.projectId}] #{viewKnownServersByInstanceId.projectNameByProjectId.get(knownServer.projectId)}"/>
+    </p:column>
     <p:column headerText="Name" width="200">
         <h:outputText value="#{knownServer.name}"/>
     </p:column>
-
     <p:column headerText="Active" width="60">
         <h:outputText value="#{knownServer.active ? 'Yes' : 'No'}" rendered="#{not empty knownServer.active}"/>
     </p:column>
-
     <p:column headerText="FFA" width="60">
         <h:outputText value="#{knownServer.ffa ? 'Yes' : 'No'}" rendered="#{not empty knownServer.ffa}"/>
     </p:column>
-
     <p:column headerText="Ignore bots" width="60">
         <h:outputText value="#{knownServer.ignoreBots ? 'Yes' : 'No'}" rendered="#{not empty knownServer.ignoreBots}"/>
     </p:column>
-
     <p:column headerText="Start session on action" width="80">
         <h:outputText value="#{knownServer.startSessionOnAction ? 'Yes' : 'No'}" rendered="#{not empty knownServer.startSessionOnAction}"/>
     </p:column>
 </p:dataTable>
 </h:form>
+</p:outputPanel>
+<p:blockUI widgetVar="buiKnServs" block="knServsOutPanel">
+    <p:graphicImage library="images" name="ajaxloadingbar.gif"/>
+</p:blockUI>
 </ui:fragment>
 </ui:define>
 </ui:composition>
