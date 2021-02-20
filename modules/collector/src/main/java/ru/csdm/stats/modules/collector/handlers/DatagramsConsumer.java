@@ -31,65 +31,24 @@ import static ru.csdm.stats.modules.collector.settings.Patterns.*;
 @Slf4j
 public class DatagramsConsumer {
     @Autowired
-    private CollectorDao collectorDao;
-    @Autowired
-    private ThreadPoolTaskExecutor consumerTE;
-
-    @Autowired
     private Map<String, ServerData> serverDataByAddress;
-    @Autowired
-    private Map<String, MessageQueue<Message<?>>> messageQueueByAddress;
     @Autowired
     private Map<String, Map<String, CollectedPlayer>> gameSessionByAddress;
 
     @Autowired
     private PlayersSender playersSender;
 
-//    private CountDownLatch deactivationLatch;
-
-//    @Getter
-//    @Setter /* Setter - allowing calling from another class/thread, with spring proxy, without volatile */
-//    private boolean deactivated;
-
     @PreDestroy
     public void destroy() {
-        boolean debugEnabled = log.isDebugEnabled();
-        if(debugEnabled)
+        if(log.isDebugEnabled())
             log.debug("destroy() start");
 
-        /*setDeactivated(true);
-
-        int poolSize = consumerTE.getPoolSize();
-        deactivationLatch = new CountDownLatch(poolSize);
-
-        ThreadGroup tg = consumerTE.getThreadGroup();
-        if(Objects.nonNull(tg)) {
-            Thread[] consumers = new Thread[poolSize];
-            tg.enumerate(consumers);
-
-            if(consumers.length > 0) {
-                if(debugEnabled)
-                    log.debug("Interrupting " + consumers.length +
-                            " consumer" + (consumers.length > 1 ? "s" : "") + "...");
-
-                tg.interrupt();
-            }
-        }
-
-        try {
-            deactivationLatch.await(10, TimeUnit.SECONDS);
-        } catch (InterruptedException ignored) {}
-
-        for (String address : gameSessionByAddress.keySet()) {
-            flushSessions(address, null, null, PRE_DESTROY_LIFECYCLE);
-        }*/
-
-        if(debugEnabled)
+        if(log.isDebugEnabled())
             log.debug("destroy() end");
     }
 
     @Async("consumerTE")
-    public void startConsumeAsync(MessageQueue<Message<?>> messageQueue) {
+    public void startConsumeAsync(MessageQueue messageQueue) {
         log.info("Activating DatagramsConsumer for MessageQueue #" + messageQueue.getQueueId());
 
         while (true) {
@@ -105,17 +64,16 @@ public class DatagramsConsumer {
                 if(debugEnabled)
                     log.debug("Taked message: " + message);
             } catch (Throwable e) {
-                log.warn("Exception while receiving message", e);
+                log.warn("Exception while takeFirst message", e);
                 continue;
             }
 
             if(Objects.nonNull(message.getSystemEvent())) {
-                if(log.isDebugEnabled()) {
-                    log.debug("Taked system event: " + message.getSystemEvent());
-                }
+                SystemEvent systemEvent = message.getSystemEvent();
+                log.info("Taked system event: " + systemEvent);
 
-                if(message.getSystemEvent() == SystemEvent.REFRESH) {
-                    log.info("Started synchronization by system event " + message.getSystemEvent());
+                if(systemEvent == SystemEvent.REFRESH) {
+                    log.info("Started synchronization");
 
                     CyclicBarrier cb = (CyclicBarrier) message.getPojo();
                     if(cb.isBroken()) {
@@ -128,27 +86,20 @@ public class DatagramsConsumer {
                     try {
                         cb.await();
                     } catch (Throwable e) {
-                        log.warn("Exception after await synchronization", e);
+                        log.warn("Exception while await synchronization", e);
                         continue;
                     }
 
                     log.info("Finished synchronization");
-                } else if(message.getSystemEvent() == SystemEvent.FLUSH_FROM_FRONTEND) {
-                    flushSessions((ServerData) message.getPojo(), null, FRONTEND);
-                } else if(message.getSystemEvent() == SystemEvent.FLUSH_FROM_SCHEDULER) {
-                    flushSessions((ServerData) message.getPojo(), null, SCHEDULER);
-                } else if(message.getSystemEvent() == SystemEvent.FLUSH_AND_QUIT) {
-                    List<ServerData> messageQueueServerDatas = new ArrayList<>();
-
-                    for (Map.Entry<String, MessageQueue<Message<?>>> entry : messageQueueByAddress.entrySet()) {
-                        if(messageQueue.getQueueId() == entry.getValue().getQueueId()) {
-                            String address = entry.getKey();
-                            messageQueueServerDatas.add(serverDataByAddress.get(address));
-                        }
-                    }
-
-                    for (ServerData serverData : messageQueueServerDatas) {
-                        flushSessions(serverData, null, PRE_DESTROY_LIFECYCLE);
+                } else if(systemEvent == SystemEvent.FLUSH_FROM_FRONTEND) {
+                    flushSessions((ServerData) message.getPojo(), FRONTEND);
+                } else if(systemEvent == SystemEvent.FLUSH_FROM_SCHEDULER) {
+                    flushSessions((ServerData) message.getPojo(), SCHEDULER);
+                } else if(systemEvent == SystemEvent.QUIT) {
+                    break;
+                } else if(systemEvent == SystemEvent.FLUSH_AND_QUIT) {
+                    for (String port : messageQueue.getKnownServersPorts()) {
+                        flushSessions(serverDataByAddress.get(port), PRE_DESTROY_LIFECYCLE);
                     }
 
                     break;
@@ -448,7 +399,7 @@ public class DatagramsConsumer {
             Map<String, CollectedPlayer> gameSessions = gameSessionByAddress.get(address);
 
             if (Objects.isNull(gameSessions)) {
-                gameSessions = new LinkedCaseInsensitiveMap<>();
+                gameSessions = new LinkedCaseInsensitiveMap<>(); /* Player names registry */
                 gameSessionByAddress.put(address, gameSessions);
 
                 log.info(address + " Created gameSessions container");
@@ -458,7 +409,7 @@ public class DatagramsConsumer {
         }
         else if(gsFetchMode == REPLACE_IF_EXISTS) {
             Map<String, CollectedPlayer> oldGameSessions = gameSessionByAddress
-                    .replace(address, new LinkedCaseInsensitiveMap<>());
+                    .replace(address, new LinkedCaseInsensitiveMap<>()); /* Player names registry */
 
             if(Objects.nonNull(oldGameSessions))
                 log.info(address + " Recreated gameSessions container");
@@ -496,9 +447,10 @@ public class DatagramsConsumer {
         return collectedPlayer;
     }
 
-    private void flushSessions(ServerData serverData,
-                               LocalDateTime dateTime,
-                               FlushEvent fromEvent) {
+    private void flushSessions(ServerData serverData, FlushEvent fromEvent) {
+        flushSessions(serverData, null, fromEvent);
+    }
+    private void flushSessions(ServerData serverData, LocalDateTime dateTime, FlushEvent fromEvent) {
         String address = serverData.getKnownServer().getIpport();
 
         String logMsg = "Started flush sessions by event " + fromEvent;

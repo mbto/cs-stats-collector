@@ -5,5 +5,6 @@ public enum SystemEvent {
     REFRESH,
     FLUSH_FROM_FRONTEND,
     FLUSH_FROM_SCHEDULER,
+    QUIT,
     FLUSH_AND_QUIT,
 }

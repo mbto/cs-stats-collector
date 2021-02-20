@@ -7,8 +7,7 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
-import ru.csdm.stats.modules.collector.handlers.Broker;
-import ru.csdm.stats.service.CollectorService;
+import ru.csdm.stats.service.EventService;
 
 import javax.annotation.PostConstruct;
 import java.net.DatagramSocket;
@@ -21,8 +20,6 @@ public class Module {
     private ApplicationContext applicationContext;
     @Autowired
     private Broker broker;
-    @Autowired
-    private CollectorService collectorService;
     @Value("${collector.broker.port:8888}")
     private int brokerPort;
 
@@ -31,20 +28,20 @@ public class Module {
         if(log.isDebugEnabled())
             log.debug("init() start");
 
-        log.info("Activating broker at port " + brokerPort);
+        log.info("Binding broker port " + brokerPort);
 
         DatagramSocket datagramSocket;
         try {
             datagramSocket = new DatagramSocket(brokerPort);
         } catch (Throwable e) {
-            log.warn("Failed initialize broker at port " + brokerPort, e);
+            log.warn("Failed binding broker port " + brokerPort, e);
             int code = SpringApplication.exit(applicationContext, () -> 1);
             System.exit(code);
             return;
         }
 
         try {
-            collectorService.refresh(null);
+            broker.refresh(null);
         } catch (Throwable e) {
             try {
                 datagramSocket.close();

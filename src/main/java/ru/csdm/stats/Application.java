@@ -38,32 +38,36 @@ public class Application {
         return new LinkedBlockingDeque<>(Integer.MAX_VALUE);
     }
     /**
+     * Relationship registry
      * Key: Server address (ip:port)
-     * Value: ServerData
+     * Value: null or ServerData
      */
     @Bean
     public Map<String, ServerData> serverDataByAddress() {
         return new ConcurrentSkipListMap<>();
     }
     /**
+     * Relationship registry
      * Key: Server address (ip:port)<br/>
-     * Value: MessageQueue&lt;Message&lt;?&gt;&gt;
+     * Value: null or MessageQueue
      */
     @Bean
-    public Map<String, MessageQueue<Message<?>>> messageQueueByAddress() {
+    public Map<String, MessageQueue> messageQueueByAddress() {
         return new ConcurrentSkipListMap<>(); // TODO: check for LinkedHashMap
     }
     /**
+     * MessageQueue registry
      * Key: Queue ID<br/>
-     * Value: MessageQueue&lt;Message&lt;?&gt;&gt;
+     * Value: MessageQueue
      */
     @Bean
-    public Map<Integer, MessageQueue<Message<?>>> messageQueueByQueueId() {
+    public Map<Integer, MessageQueue> messageQueueByQueueId() {
         return new LinkedHashMap<>();
     }
     /**
+     * Relationship registry
      * Key: Server address (ip:port)
-     * Value: Map&lt;Player nick, CollectedPlayer&gt;
+     * Value: null or Map&lt;Player nick, CollectedPlayer&gt;
      */
     @Bean
     public Map<String, Map<String, CollectedPlayer>> gameSessionByAddress() {

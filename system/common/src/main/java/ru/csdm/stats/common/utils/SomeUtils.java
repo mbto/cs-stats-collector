@@ -58,6 +58,7 @@ public class SomeUtils {
         return null;
     }
 
+    /* ProjectDatabaseServerTimezone registry */
     public static final Map<String, ProjectDatabaseServerTimezone> timezoneEnumByLiteral = new LinkedCaseInsensitiveMap<>();
 
     static {

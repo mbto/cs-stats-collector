@@ -1,4 +1,4 @@
-package ru.csdm.stats.modules.collector.handlers;
+package ru.csdm.stats.modules.collector;
 
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
@@ -16,6 +16,7 @@ import ru.csdm.stats.common.model.collector.tables.pojos.Instance;
 import ru.csdm.stats.common.model.collector.tables.pojos.KnownServer;
 import ru.csdm.stats.common.model.collector.tables.pojos.Project;
 import ru.csdm.stats.dao.CollectorDao;
+import ru.csdm.stats.modules.collector.handlers.DatagramsConsumer;
 import ru.csdm.stats.modules.collector.settings.PacketUtils;
 import ru.csdm.stats.service.InstanceHolder;
 
@@ -26,7 +27,6 @@ import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 
 import static ru.csdm.stats.common.SystemEvent.*;
 import static ru.csdm.stats.common.SystemEvent.CONSUME_DATAGRAM;
@@ -41,9 +41,9 @@ public class Broker {
     @Autowired
     private Map<String, ServerData> serverDataByAddress;
     @Autowired
-    private Map<String, MessageQueue<Message<?>>> messageQueueByAddress;
+    private Map<String, MessageQueue> messageQueueByAddress;
     @Autowired
-    private Map<Integer, MessageQueue<Message<?>>> messageQueueByQueueId;
+    private Map<Integer, MessageQueue> messageQueueByQueueId;
     @Autowired
     private Map<String, Map<String, CollectedPlayer>> gameSessionByAddress;
 
@@ -59,16 +59,12 @@ public class Broker {
     @Setter
     private DatagramSocket datagramSocket;
 
-//    @Getter
-//    @Setter /* Setter - allowing calling from another class/thread, with spring proxy, without volatile */
-//    private boolean deactivated;
+    private static final int availableProcessors = Runtime.getRuntime().availableProcessors();
 
     @PreDestroy
     public void destroy() {
         if(log.isDebugEnabled())
             log.debug("destroy() start");
-
-//        setDeactivated(true);
 
         if(Objects.nonNull(datagramSocket)) {
             try {
@@ -80,38 +76,15 @@ public class Broker {
             log.debug("destroy() end");
     }
 
-    public void setupConsumers() {
-        int availableProcessors = Runtime.getRuntime().availableProcessors();
-        log.info("Setup consumer" + (availableProcessors > 1 ? "s" : "")
-                + ": available " + availableProcessors + " processor"
-                + (availableProcessors > 1 ? "s" : ""));
-
-        int[] queueIds = IntStream.range(0, availableProcessors)
-                .map(num -> num + 1)
-                .toArray();
-
-        log.info("Creating " + queueIds.length
-                + " MessageQueue" + (queueIds.length > 1 ? "s" : "")
-                + " with id" + (queueIds.length > 1 ? "s" : "")
-                + " # " + Arrays.toString(queueIds));
-
-        for (int queueId : queueIds) {
-            MessageQueue<Message<?>> messageQueue = new MessageQueue<>(queueId);
-            messageQueueByQueueId.put(queueId, messageQueue);
-
-            datagramsConsumer.startConsumeAsync(messageQueue);
-        }
-    }
-
     @Async("brokerTE")
     public void launchReceiverAsync() {
-        log.info("Receiver started at " + addressToString(datagramSocket.getLocalSocketAddress()));
+        log.info("Activating receiver at " + addressToString(datagramSocket.getLocalSocketAddress()));
 
         DatagramPacket packet = new DatagramPacket(new byte[1024], 1024);
 
         while (true) {
             if (datagramSocket.isClosed()) {
-                log.info("Deactivation detected");
+                log.info("Deactivation receiver detected");
                 break;
             }
 
@@ -119,11 +92,11 @@ public class Broker {
                 datagramSocket.receive(packet);
             } catch (Throwable e) {
                 if (datagramSocket.isClosed()) {
-                    log.info("Deactivation detected");
+                    log.info("Deactivation receiver detected");
                     break;
                 }
 
-                log.warn("Exception while receiving/sending datagram packet", e);
+                log.warn("Exception while receive datagram packet", e);
                 continue;
             }
 
@@ -136,40 +109,33 @@ public class Broker {
 
         putLastWithTryes(brokerQueue, new Message<>(null, null, FLUSH_AND_QUIT));
 
-        log.info("Receiver deactivated");
+        log.info("Deactivated receiver");
     }
 
     @Async("brokerTE")
     public void launchDistributorAsync() {
-        log.info("Distributor started");
+        log.info("Activating distributor");
 
-        Message<?> originalMessage;
+        Message<?> message;
 
         while (true) {
             try {
-                originalMessage = brokerQueue.takeFirst();
+                message = brokerQueue.takeFirst();
             } catch (Throwable e) {
-                log.warn("Exception while taking message", e);
+                log.warn("Exception while takeFirst message", e);
                 continue;
             }
-/* BlockingDeque<Message<?>> brokerQueue
-Map<String, ServerData> serverDataByAddress
-Map<String, MessageQueue<Message<?>>> messageQueueByAddress
-Map<Integer, MessageQueue<Message<?>>> messageQueueByQueueId
-Map<String, Map<String, CollectedPlayer>> gameSessionByAddress */
-            SystemEvent systemEvent = originalMessage.getSystemEvent();
-            if(systemEvent == CONSUME_DATAGRAM) {
-                consumeDatagram(originalMessage);
-            } else if(systemEvent == REFRESH) {
-                consumeRefreshEvent(originalMessage);
-            } else if(systemEvent == FLUSH_FROM_FRONTEND || systemEvent == FLUSH_FROM_SCHEDULER) {
-                consumeFlush((Message<ServerData>) originalMessage);
-            } else if(systemEvent == FLUSH_AND_QUIT) {
-                Message<?> message = new Message<>(null, null, originalMessage.getSystemEvent());
 
-                for (Map.Entry<Integer, MessageQueue<Message<?>>> entry : messageQueueByQueueId.entrySet()) {
-                    putLastWithTryes(entry.getValue(), message);
-                }
+            SystemEvent systemEvent = message.getSystemEvent();
+
+            if(systemEvent == CONSUME_DATAGRAM) {
+                consumeDatagram(message);
+            } else if(systemEvent == REFRESH) {
+                consumeRefreshEvent(message);
+            } else if(systemEvent == FLUSH_FROM_FRONTEND || systemEvent == FLUSH_FROM_SCHEDULER) {
+                consumeFlush(message);
+            } else if(systemEvent == FLUSH_AND_QUIT) {
+                consumeFlushAndQuit(message);
 
                 break;
             } else {
@@ -177,12 +143,69 @@ Map<String, Map<String, CollectedPlayer>> gameSessionByAddress */
             }
         }
 
-        log.info("Distributor deactivated");
+        log.info("Deactivated distributor");
     }
 
-    private void consumeFlush(Message<ServerData> originalMessage) {
+    private void consumeDatagram(Message<?> originalMessage) {
         String address = originalMessage.getPayload();
-        ServerData expectedServerData = originalMessage.getPojo();
+        ServerData serverData = serverDataByAddress.get(address);
+
+        if(serverData == null || !serverData.isKnownServerActive())
+            return;
+
+        DatagramPacket packet = (DatagramPacket) originalMessage.getPojo();
+
+        if(!PacketUtils.validate("CS16", address, packet))
+            return;
+
+        Message<ServerData> message = new Message<>(
+                PacketUtils.convert("CS16", address, packet),
+                serverData,
+                null);
+
+        MessageQueue messageQueue = messageQueueByAddress.get(address);
+
+        if(log.isDebugEnabled())
+            log.debug(address + " Sending to " + messageQueue + " message: " + message);
+
+        putLastWithTryes(messageQueue, message);
+    }
+
+    private void consumeRefreshEvent(Message<?> originalMessage) {
+        log.info("Started synchronization by system event " + originalMessage.getSystemEvent());
+
+        Collection<MessageQueue> messageQueues = messageQueueByQueueId.values();
+        CyclicBarrier cb = new CyclicBarrier(messageQueues.size() + 1,
+                () -> refresh((UInteger) originalMessage.getPojo()));
+
+        Message<CyclicBarrier> message = new Message<>(null, cb, originalMessage.getSystemEvent());
+
+        for (MessageQueue messageQueue : messageQueues) {
+            if (!putLastWithTryes(messageQueue, message)) {
+                break;
+            }
+        }
+
+        if(cb.isBroken()) {
+            log.warn("Failed synchronization");
+            return;
+        }
+
+        log.info("Waiting synchronization");
+
+        try {
+            cb.await(5, TimeUnit.SECONDS);
+        } catch (Throwable e) {
+            log.warn("Exception while await synchronization", e);
+            return;
+        }
+
+        log.info("Finished synchronization");
+    }
+
+    private void consumeFlush(Message message) {
+        String address = message.getPayload();
+        ServerData expectedServerData = (ServerData) message.getPojo();
         ServerData serverData = serverDataByAddress.get(address);
 
         if(Objects.isNull(serverData)) // serverData & gameSessions already deleted if refreshed
@@ -212,91 +235,21 @@ Map<String, Map<String, CollectedPlayer>> gameSessionByAddress */
             return;
         }
 
-        originalMessage.setPojo(serverData);
+        message.setPojo(serverData); // without creating new Message
 
-        putLastWithTryes(messageQueueByAddress.get(address), originalMessage);
+        putLastWithTryes(messageQueueByAddress.get(address), message);
     }
 
-    private void consumeDatagram(Message<?> originalMessage) {
-        String address = originalMessage.getPayload();
-        ServerData serverData = serverDataByAddress.get(address);
+    private void consumeFlushAndQuit(Message<?> message) {
+        log.info("Deactivation distributor detected");
 
-        if(serverData == null || !serverData.isKnownServerActive())
-            return;
-
-        DatagramPacket packet = (DatagramPacket) originalMessage.getPojo();
-
-        if(!PacketUtils.validate("CS16", address, packet))
-            return;
-
-        Message<ServerData> message = new Message<>(
-                PacketUtils.convert("CS16", address, packet),
-                serverData,
-                null);
-
-        MessageQueue<Message<?>> messageQueue = messageQueueByAddress.get(address);
-
-        if(log.isDebugEnabled())
-            log.debug(address + " Sending to " + messageQueue + " message: " + message);
-
-        putLastWithTryes(messageQueue, message);
-    }
-
-    private void consumeRefreshEvent(Message<?> originalMessage) {
-        log.info("Started synchronization by system event " + originalMessage.getSystemEvent());
-
-        Collection<MessageQueue<Message<?>>> messageQueues = messageQueueByQueueId.values();
-        CyclicBarrier cb = new CyclicBarrier(messageQueues.size() + 1,
-                () -> refresh((UInteger) originalMessage.getPojo()));
-
-        Message<CyclicBarrier> message = new Message<>(null, cb, originalMessage.getSystemEvent());
-
-        for (MessageQueue<Message<?>> messageQueue : messageQueues) {
-            if (!putLastWithTryes(messageQueue, message)) {
-                break;
-            }
-        }
-
-        if(cb.isBroken()) {
-            log.warn("Failed synchronization");
-            return;
-        }
-
-        log.info("Waiting synchronization");
-
-        try {
-            cb.await(5, TimeUnit.SECONDS);
-        } catch (Throwable e) {
-            log.warn("Exception after await synchronization", e);
-            return;
-        }
-
-        log.info("Finished synchronization");
-    }
-
-    private boolean putLastWithTryes(MessageQueue<Message<?>> messageQueue, Message<?> message) {
-        return putLastWithTryes(messageQueue.getMessageQueue(), message);
-    }
-
-    private boolean putLastWithTryes(BlockingDeque<Message<?>> queue, Message<?> message) {
-        int tryes = 0;
-        while (true) {
-            try {
-                ++tryes;
-                queue.putLast(message);
-                return true;
-            } catch (Throwable e) {
-                log.warn("Exception, while putLast message " + message + " in queue, " + tryes + "/3");
-
-                if (tryes == 3) {
-                    log.warn("Failed putLast message " + message + " in queue");
-                    return false;
-                }
-            }
+        for (Map.Entry<Integer, MessageQueue> entry : messageQueueByQueueId.entrySet()) {
+            MessageQueue messageQueue = entry.getValue();
+            putLastWithTryes(messageQueue, message);
         }
     }
 
-    public void refresh(UInteger projectId) {
+    void refresh(UInteger projectId) {
         Instance instance = instanceHolder.getAvailableInstances()
                 .get(instanceHolder.getCurrentInstanceId());
 
@@ -337,9 +290,9 @@ Map<String, Map<String, CollectedPlayer>> gameSessionByAddress */
     127.0.0.1:27018 proj2
 */
         // search noneMatches (removed) -> remove
-        Iterator<Map.Entry<String, ServerData>> iterator = serverDataByAddress.entrySet().iterator();
-        while (iterator.hasNext()) {
-            Map.Entry<String, ServerData> entry = iterator.next();
+        Iterator<Map.Entry<String, ServerData>> serverDataByAddressIterator = serverDataByAddress.entrySet().iterator();
+        while (serverDataByAddressIterator.hasNext()) {
+            Map.Entry<String, ServerData> entry = serverDataByAddressIterator.next();
             String address = entry.getKey();
             ServerData serverData = entry.getValue();
 
@@ -352,11 +305,11 @@ Map<String, Map<String, CollectedPlayer>> gameSessionByAddress */
                     .noneMatch(knownServer -> knownServer.getIpport().equals(address));
 
             if(noneMatches) {
-                iterator.remove(); // remove serverData
+                serverDataByAddressIterator.remove(); // remove relationship from registry
 
-                MessageQueue<Message<?>> messageQueue = messageQueueByAddress.remove(address);
+                MessageQueue messageQueue = messageQueueByAddress.remove(address);
                 if(Objects.nonNull(messageQueue) && serverData.isKnownServerActive()) {
-                    messageQueue.decActive();
+                    messageQueue.removePort(address);
                 }
 
                 String logMsg = "removed from registry";
@@ -402,15 +355,16 @@ Map<String, Map<String, CollectedPlayer>> gameSessionByAddress */
 
                     serverDataByAddress.replace(address, newServerData);
 
-                    MessageQueue<Message<?>> currentMessageQueue = messageQueueByAddress.remove(address);
-                    boolean isCurrentKnownServerActive = Objects.nonNull(currentMessageQueue) && currentServerData.isKnownServerActive();
+                    MessageQueue currentMessageQueue = messageQueueByAddress.remove(address); // remove relationship from registry
+                    boolean isCurrentKnownServerActive = Objects.nonNull(currentMessageQueue)
+                            && currentServerData.isKnownServerActive();
                     if(isCurrentKnownServerActive)
-                        currentMessageQueue.decActive();
+                        currentMessageQueue.removePort(address);
 
                     String logMsg = "listening ";
                     if(newServerData.isKnownServerActive()) {
-                        MessageQueue<Message<?>> newMessageQueue = findOptimalMessageQueue();
-                        newMessageQueue.incActive();
+                        MessageQueue newMessageQueue = allocateMessageQueue();
+                        newMessageQueue.addPort(address);
                         messageQueueByAddress.put(address, newMessageQueue);
 
                         if(isCurrentKnownServerActive) {
@@ -445,8 +399,8 @@ Map<String, Map<String, CollectedPlayer>> gameSessionByAddress */
 
                     String logMsg;
                     if(serverData.isKnownServerActive()) {
-                        MessageQueue<Message<?>> messageQueue = findOptimalMessageQueue();;
-                        messageQueue.incActive();
+                        MessageQueue messageQueue = allocateMessageQueue();
+                        messageQueue.addPort(address);
                         messageQueueByAddress.put(address, messageQueue);
 
                         logMsg = "listening started at " + messageQueue;
@@ -460,17 +414,22 @@ Map<String, Map<String, CollectedPlayer>> gameSessionByAddress */
             }
         }
 
-        //todo: найти динамически незадействованные MessageQueue
-        // (если 64 процессора - нам не нужно создавать все 64 MessageQueue на старте приложения)
+        if(!messageQueueByQueueId.isEmpty()) {
+            Message<?> message = new Message<>(null, null, QUIT);
 
-        int activeKnownServersCount = (int) serverDataByAddress.values()
-                .stream()
-                .filter(ServerData::isKnownServerActive)
-                .count();
+            Iterator<MessageQueue> messageQueueIterator = messageQueueByQueueId.values().iterator();
+            while (messageQueueIterator.hasNext()) {
+                MessageQueue messageQueue = messageQueueIterator.next();
 
-        int newPoolSize = Math.max(1,
-                Math.min(activeKnownServersCount, messageQueueByAddress.size())
-        );
+                if (messageQueue.getKnownServersPorts().isEmpty()) { // without relationships
+                    messageQueueIterator.remove(); // remove MessageQueue from registry
+
+                    putLastWithTryes(messageQueue, message); // send QUIT event in empty queue
+                }
+            }
+        }
+
+        int newPoolSize = Math.max(1, messageQueueByQueueId.size());
 
         int oldPoolSize = consumerTE.getCorePoolSize();
         if(newPoolSize > oldPoolSize) {
@@ -482,30 +441,58 @@ Map<String, Map<String, CollectedPlayer>> gameSessionByAddress */
         }
 
         if(newPoolSize != oldPoolSize)
-            log.info("Changing consumer pool size from " + oldPoolSize + " to " + newPoolSize + "");
+            log.info("Changing consumerTE pool size from " + oldPoolSize + " to " + newPoolSize + "");
 
-        if(serverDataByAddress.isEmpty()) {
-            log.info("No available servers with settings");
-        } else {
-            int knownServersCount = serverDataByAddress.size();
+        int size = serverDataByAddress.size();
+        log.info("Registry serverData: " + size + " relationship" + (size > 1 ? "s" : ""));
 
-            log.info("Refreshed " + knownServersCount + " known server"
-                    + (knownServersCount > 1 ? "s" : "") +" with settings:");
-
+        if(size > 0) {
             for (ServerData serverData : serverDataByAddress.values()) {
                 log.info(serverData.toString());
             }
         }
     }
 
-    private static final int availableProcessors = Runtime.getRuntime().availableProcessors();
+    private MessageQueue allocateMessageQueue() {
+        int size = messageQueueByQueueId.size();
+        if(size < availableProcessors) {
+            // add
+            int queueId = size + 1;
+            MessageQueue messageQueue = new MessageQueue(queueId);
+            log.info("Created " + messageQueue);
 
-    private MessageQueue<Message<?>> findOptimalMessageQueue() {
-        //TODO: code this first
+            messageQueueByQueueId.put(queueId, messageQueue);
+            datagramsConsumer.startConsumeAsync(messageQueue);
+            return messageQueue;
+        }
+
+        // search by min(messageQueue.knownServersPorts.size)
         return messageQueueByQueueId
                 .values()
                 .stream()
-                .min(Comparator.comparingInt(MessageQueue::getActiveKnownServersCount))
+                .min(Comparator.comparingInt(mq -> mq.getKnownServersPorts().size()))
                 .orElseThrow(IllegalStateException::new);
+    }
+
+    private boolean putLastWithTryes(MessageQueue messageQueue, Message<?> message) {
+        return putLastWithTryes(messageQueue.getMessageQueue(), message);
+    }
+
+    private boolean putLastWithTryes(BlockingDeque<Message<?>> queue, Message<?> message) {
+        int tryes = 0;
+        while (true) {
+            try {
+                ++tryes;
+                queue.putLast(message);
+                return true;
+            } catch (Throwable e) {
+                log.warn("Exception while putLast message " + message + " in queue, " + tryes + "/3");
+
+                if (tryes == 3) {
+                    log.warn("Failed putLast message " + message + " in queue");
+                    return false;
+                }
+            }
+        }
     }
 }

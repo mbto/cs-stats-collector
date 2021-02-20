@@ -7,10 +7,8 @@ import org.jooq.Record2;
 import org.springframework.beans.factory.annotation.Autowired;
 import ru.csdm.stats.common.dto.CollectedPlayer;
 import ru.csdm.stats.common.dto.ServerData;
-import ru.csdm.stats.common.model.collector.tables.pojos.KnownServer;
-import ru.csdm.stats.common.model.collector.tables.pojos.Project;
 import ru.csdm.stats.dao.CollectorDao;
-import ru.csdm.stats.service.CollectorService;
+import ru.csdm.stats.service.EventService;
 import ru.csdm.stats.service.InstanceHolder;
 import ru.csdm.stats.webapp.AggregatedPlayer;
 
@@ -20,7 +18,6 @@ import javax.faces.view.ViewScoped;
 import javax.inject.Named;
 import javax.servlet.http.HttpServletRequest;
 import java.util.*;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.stream.Collectors;
 
 import static javax.faces.application.FacesMessage.SEVERITY_WARN;
@@ -36,7 +33,7 @@ public class ViewAddressDetails {
     @Autowired
     private CollectorDao collectorDao;
     @Autowired
-    private CollectorService collectorService;
+    private EventService eventService;
     @Autowired
     private Map<String, ServerData> serverDataByAddress;
     @Autowired
@@ -133,7 +130,7 @@ public class ViewAddressDetails {
 
         FacesContext fc = FacesContext.getCurrentInstance();
         try {
-            collectorService.flush(selectedAddress, FLUSH_FROM_FRONTEND, false);
+            eventService.flush(selectedAddress, FLUSH_FROM_FRONTEND, false);
         } catch (Exception e) {
             log.warn(selectedAddress + " Flush not registered, " + e.getMessage());
 

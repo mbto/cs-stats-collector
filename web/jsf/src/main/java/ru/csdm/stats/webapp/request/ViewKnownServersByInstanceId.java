@@ -10,7 +10,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import ru.csdm.stats.common.dto.CollectedPlayer;
 import ru.csdm.stats.common.model.collector.tables.pojos.Instance;
 import ru.csdm.stats.common.model.collector.tables.pojos.KnownServer;
-import ru.csdm.stats.service.CollectorService;
+import ru.csdm.stats.service.EventService;
 import ru.csdm.stats.webapp.DependentUtil;
 
 import javax.annotation.PostConstruct;
@@ -42,7 +42,7 @@ public class ViewKnownServersByInstanceId {
     private DependentUtil util;
 
     @Autowired
-    private CollectorService collectorService;
+    private EventService eventService;
     @Autowired
     private Map<String, Map<String, CollectedPlayer>> gameSessionByAddress;
 
@@ -145,7 +145,7 @@ public class ViewKnownServersByInstanceId {
 
         for (String address : gameSessionByAddress.keySet()) {
             try {
-                collectorService.flush(address, FLUSH_FROM_FRONTEND, false);
+                eventService.flush(address, FLUSH_FROM_FRONTEND, false);
             } catch (Throwable e) {
                 log.warn(address + " Flush not registered, " + e.getMessage());
 
@@ -178,7 +178,7 @@ public class ViewKnownServersByInstanceId {
         FacesContext fc = FacesContext.getCurrentInstance();
 
         try {
-            collectorService.refresh(null);
+            eventService.refresh(null);
         } catch (Throwable e) {
             String msg = "Refresh not registered, " + e.getMessage();
             log.warn(msg);

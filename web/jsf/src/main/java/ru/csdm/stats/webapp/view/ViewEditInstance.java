@@ -10,10 +10,8 @@ import org.jooq.types.UInteger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
 import org.springframework.context.ApplicationContext;
-import ru.csdm.stats.common.dto.CollectedPlayer;
 import ru.csdm.stats.common.model.collector.tables.pojos.Instance;
 import ru.csdm.stats.common.utils.SomeUtils;
-import ru.csdm.stats.service.CollectorService;
 import ru.csdm.stats.service.InstanceHolder;
 import ru.csdm.stats.webapp.application.ChangesCounter;
 
@@ -26,7 +24,6 @@ import javax.servlet.http.HttpServletResponse;
 import java.util.*;
 
 import static javax.faces.application.FacesMessage.SEVERITY_WARN;
-import static ru.csdm.stats.common.SystemEvent.FLUSH_FROM_FRONTEND;
 import static ru.csdm.stats.common.model.collector.tables.Instance.INSTANCE;
 import static ru.csdm.stats.common.model.collector.tables.KnownServer.KNOWN_SERVER;
 

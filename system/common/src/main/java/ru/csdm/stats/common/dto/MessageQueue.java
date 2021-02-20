@@ -2,13 +2,15 @@ package ru.csdm.stats.common.dto;
 
 import lombok.Getter;
 
+import java.util.HashSet;
+import java.util.Set;
 import java.util.concurrent.LinkedBlockingDeque;
 
 @Getter
-public class MessageQueue<T> {
+public class MessageQueue {
     private final int queueId;
-    private int activeKnownServersCount;
-    private final LinkedBlockingDeque<T> messageQueue;
+    private final Set<String> knownServersPorts = new HashSet<>();
+    private final LinkedBlockingDeque<Message<?>> messageQueue;
 
     public MessageQueue(int queueId) {
         this.queueId = queueId;
@@ -18,11 +20,11 @@ public class MessageQueue<T> {
         this.messageQueue = new LinkedBlockingDeque<>(Integer.MAX_VALUE);
     }
 
-    public void incActive() {
-        ++activeKnownServersCount;
+    public void addPort(String port) {
+        knownServersPorts.add(port);
     }
-    public void decActive() {
-        --activeKnownServersCount;
+    public void removePort(String port) {
+        knownServersPorts.remove(port);
     }
 
     @Override

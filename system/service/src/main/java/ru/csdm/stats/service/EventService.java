@@ -24,15 +24,15 @@ import static ru.csdm.stats.common.SystemEvent.REFRESH;
 @Service
 @Lazy(false)
 @Slf4j
-public class CollectorService {
+public class EventService {
     @Autowired
     private BlockingDeque<Message<?>> brokerQueue;
     @Autowired
     private Map<String, ServerData> serverDataByAddress;
 //    @Autowired
-//    private Map<String, MessageQueue<Message<?>>> messageQueueByAddress;
+//    private Map<String, MessageQueue> messageQueueByAddress;
 //    @Autowired
-//    private Map<Integer, MessageQueue<Message<?>>> messageQueueByQueueId;
+//    private Map<Integer, MessageQueue> messageQueueByQueueId;
 //TODO:
 //    @Scheduled(fixedDelay = 1 * 60 * 60 * 1000 /* 1h */, initialDelay = 1 * 60 * 60 * 1000 /* 1h */)
 //    public void flushOneMapServers() {
@@ -60,9 +60,9 @@ public class CollectorService {
         String logMsg;
         if(stopIfRecentlyFlushed) {
             LocalDateTime nextFlushDateTime = serverData.getNextFlushDateTime();
-            LocalDateTime now = LocalDateTime.now();
+            LocalDateTime now;
 
-            if(Objects.nonNull(nextFlushDateTime) && nextFlushDateTime.isAfter(now)) {
+            if(Objects.nonNull(nextFlushDateTime) && nextFlushDateTime.isAfter(now = LocalDateTime.now())) {
                 logMsg = "Flush " + address + " not available, waiting "
                         + SomeUtils.humanLifetime(nextFlushDateTime, now) + " until next flush";
 

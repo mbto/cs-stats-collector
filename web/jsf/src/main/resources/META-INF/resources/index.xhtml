@@ -96,7 +96,7 @@
         <h:outputText value="#{datagramsEntry.key}"/>
     </p:column>
     <p:column headerText="Active">
-        <h:outputText value="#{datagramsEntry.value.activeKnownServersCount}"/>
+        <h:outputText value="#{datagramsEntry.value.knownServersPorts.size()}"/>
     </p:column>
     <p:column headerText="Size"
 style="background-color: #{empty datagramsEntry.value.messageQueue ? '#d7ffd7' : '#ffcc74'}">

@@ -11,6 +11,7 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
+import ru.csdm.stats.common.SystemEvent;
 import ru.csdm.stats.common.model.collector.tables.pojos.Instance;
 
 import javax.annotation.PostConstruct;
@@ -18,6 +19,7 @@ import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.locks.ReentrantLock;
 
 import static ru.csdm.stats.common.model.collector.tables.Instance.INSTANCE;
 
@@ -36,7 +38,7 @@ public class InstanceHolder {
     private boolean isDevEnvironment;
 
     private Map<UInteger, Instance> availableInstances;
-    private LocalDateTime nextRefreshAvailableInstances;
+    private long nextRefreshAvailableInstances;
 
     @PostConstruct
     public void init() {
@@ -96,12 +98,13 @@ public class InstanceHolder {
     }
 
     public synchronized Map<UInteger, Instance> getAvailableInstances(boolean needRefresh) {
-        LocalDateTime now = LocalDateTime.now();
-        if (needRefresh || Objects.isNull(nextRefreshAvailableInstances) || now.isAfter(nextRefreshAvailableInstances)) {
+        long now = System.currentTimeMillis() / 1000;
+
+        if (needRefresh || nextRefreshAvailableInstances == 0 || now >= nextRefreshAvailableInstances) {
             availableInstances = collectorDsl.selectFrom(INSTANCE)
                     .fetchMap(INSTANCE.ID, Instance.class);
 
-            nextRefreshAvailableInstances = now.plusMinutes(10);
+            nextRefreshAvailableInstances = now + (60 * 10); /* +10 mins */
         }
 
         return availableInstances;
