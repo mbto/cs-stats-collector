@@ -35,7 +35,7 @@ public class Application {
 
     @Bean
     public BlockingDeque<Message<?>> brokerQueue() {
-        return new LinkedBlockingDeque<>(Integer.MAX_VALUE);//todo: change to LinkedBlockingDeque
+        return new LinkedBlockingDeque<>(Integer.MAX_VALUE);
     }
     /**
      * Key: Server address (ip:port)

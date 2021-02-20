@@ -118,9 +118,6 @@ public class Broker {
             try {
                 datagramSocket.receive(packet);
             } catch (Throwable e) {
-                if(Thread.currentThread().isInterrupted())
-                    Thread.interrupted();
-
                 if (datagramSocket.isClosed()) {
                     log.info("Deactivation detected");
                     break;
@@ -152,9 +149,6 @@ public class Broker {
             try {
                 originalMessage = brokerQueue.takeFirst();
             } catch (Throwable e) {
-                if(Thread.currentThread().isInterrupted())
-                    Thread.interrupted();
-
                 log.warn("Exception while taking message", e);
                 continue;
             }
@@ -227,7 +221,7 @@ Map<String, Map<String, CollectedPlayer>> gameSessionByAddress */
         String address = originalMessage.getPayload();
         ServerData serverData = serverDataByAddress.get(address);
 
-        if(serverData == null || !serverData.isActive())
+        if(serverData == null || !serverData.isKnownServerActive())
             return;
 
         DatagramPacket packet = (DatagramPacket) originalMessage.getPojo();
@@ -273,9 +267,6 @@ Map<String, Map<String, CollectedPlayer>> gameSessionByAddress */
         try {
             cb.await(5, TimeUnit.SECONDS);
         } catch (Throwable e) {
-            if(Thread.currentThread().isInterrupted())
-                Thread.interrupted();
-
             log.warn("Exception after await synchronization", e);
             return;
         }
@@ -295,9 +286,6 @@ Map<String, Map<String, CollectedPlayer>> gameSessionByAddress */
                 queue.putLast(message);
                 return true;
             } catch (Throwable e) {
-                if(Thread.currentThread().isInterrupted())
-                    Thread.interrupted();
-
                 log.warn("Exception, while putLast message " + message + " in queue, " + tryes + "/3");
 
                 if (tryes == 3) {
@@ -367,7 +355,7 @@ Map<String, Map<String, CollectedPlayer>> gameSessionByAddress */
                 iterator.remove(); // remove serverData
 
                 MessageQueue<Message<?>> messageQueue = messageQueueByAddress.remove(address);
-                if(Objects.nonNull(messageQueue) && serverData.isActive()) {
+                if(Objects.nonNull(messageQueue) && serverData.isKnownServerActive()) {
                     messageQueue.decActive();
                 }
 
@@ -415,23 +403,23 @@ Map<String, Map<String, CollectedPlayer>> gameSessionByAddress */
                     serverDataByAddress.replace(address, newServerData);
 
                     MessageQueue<Message<?>> currentMessageQueue = messageQueueByAddress.remove(address);
-                    boolean currentIsActive = Objects.nonNull(currentMessageQueue) && currentServerData.isActive();
-                    if(currentIsActive)
+                    boolean isCurrentKnownServerActive = Objects.nonNull(currentMessageQueue) && currentServerData.isKnownServerActive();
+                    if(isCurrentKnownServerActive)
                         currentMessageQueue.decActive();
 
                     String logMsg = "listening ";
-                    if(newServerData.isActive()) {
+                    if(newServerData.isKnownServerActive()) {
                         MessageQueue<Message<?>> newMessageQueue = findOptimalMessageQueue();
                         newMessageQueue.incActive();
                         messageQueueByAddress.put(address, newMessageQueue);
 
-                        if(currentIsActive) {
+                        if(isCurrentKnownServerActive) {
                             logMsg += "refreshed: " + currentMessageQueue + " -> " + newMessageQueue;
                         } else {
                             logMsg += "started at " + newMessageQueue;
                         }
                     } else {
-                        if(currentIsActive) {
+                        if(isCurrentKnownServerActive) {
                             logMsg += "stopped in " + currentMessageQueue;
                         } else {
                             logMsg += "stopped again";
@@ -456,7 +444,7 @@ Map<String, Map<String, CollectedPlayer>> gameSessionByAddress */
                     serverDataByAddress.put(address, serverData);
 
                     String logMsg;
-                    if(serverData.isActive()) {
+                    if(serverData.isKnownServerActive()) {
                         MessageQueue<Message<?>> messageQueue = findOptimalMessageQueue();;
                         messageQueue.incActive();
                         messageQueueByAddress.put(address, messageQueue);
@@ -475,13 +463,13 @@ Map<String, Map<String, CollectedPlayer>> gameSessionByAddress */
         //todo: найти динамически незадействованные MessageQueue
         // (если 64 процессора - нам не нужно создавать все 64 MessageQueue на старте приложения)
 
-        int countActive = (int) serverDataByAddress.values()
+        int activeKnownServersCount = (int) serverDataByAddress.values()
                 .stream()
-                .filter(ServerData::isActive)
+                .filter(ServerData::isKnownServerActive)
                 .count();
 
         int newPoolSize = Math.max(1,
-                Math.min(countActive, messageQueueByAddress.size())
+                Math.min(activeKnownServersCount, messageQueueByAddress.size())
         );
 
         int oldPoolSize = consumerTE.getCorePoolSize();
@@ -517,7 +505,7 @@ Map<String, Map<String, CollectedPlayer>> gameSessionByAddress */
         return messageQueueByQueueId
                 .values()
                 .stream()
-                .min(Comparator.comparingInt(MessageQueue::getCountActive))
+                .min(Comparator.comparingInt(MessageQueue::getActiveKnownServersCount))
                 .orElseThrow(IllegalStateException::new);
     }
 }

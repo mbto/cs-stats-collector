@@ -7,7 +7,7 @@ import java.util.concurrent.LinkedBlockingDeque;
 @Getter
 public class MessageQueue<T> {
     private final int queueId;
-    private int countActive;
+    private int activeKnownServersCount;
     private final LinkedBlockingDeque<T> messageQueue;
 
     public MessageQueue(int queueId) {
@@ -19,10 +19,10 @@ public class MessageQueue<T> {
     }
 
     public void incActive() {
-        ++countActive;
+        ++activeKnownServersCount;
     }
     public void decActive() {
-        --countActive;
+        --activeKnownServersCount;
     }
 
     @Override

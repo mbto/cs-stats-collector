@@ -105,9 +105,6 @@ public class DatagramsConsumer {
                 if(debugEnabled)
                     log.debug("Taked message: " + message);
             } catch (Throwable e) {
-                if(Thread.currentThread().isInterrupted())
-                    Thread.interrupted();
-
                 log.warn("Exception while receiving message", e);
                 continue;
             }
@@ -131,9 +128,6 @@ public class DatagramsConsumer {
                     try {
                         cb.await();
                     } catch (Throwable e) {
-                        if(Thread.currentThread().isInterrupted())
-                            Thread.interrupted();
-
                         log.warn("Exception after await synchronization", e);
                         continue;
                     }

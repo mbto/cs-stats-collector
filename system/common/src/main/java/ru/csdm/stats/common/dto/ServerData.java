@@ -27,7 +27,7 @@ public class ServerData {
     private LocalDateTime lastTouchDateTime;
     private List<Pair<LocalDateTime, String>> messages = new CopyOnWriteArrayList<>();
 
-    public boolean isActive() {
+    public boolean isKnownServerActive() {
         return knownServer != null && knownServer.getActive();
     }
 
@@ -54,7 +54,7 @@ public class ServerData {
 
     @Override
     public String toString() {
-        return String.format("%-12s", isActive() ? "[ACTIVE]" : "[NOT ACTIVE]")
+        return String.format("%-12s", isKnownServerActive() ? "[ACTIVE]" : "[NOT ACTIVE]")
                 + " " + knownServer.getIpport()
                 + ", Project: [" + project.getId() + "] " + project.getName()
                 + ", Known server: [" + knownServer.getId() + "] " + knownServer.getName()

@@ -96,7 +96,7 @@
         <h:outputText value="#{datagramsEntry.key}"/>
     </p:column>
     <p:column headerText="Active">
-        <h:outputText value="#{datagramsEntry.value.countActive}"/>
+        <h:outputText value="#{datagramsEntry.value.activeKnownServersCount}"/>
     </p:column>
     <p:column headerText="Size"
 style="background-color: #{empty datagramsEntry.value.messageQueue ? '#d7ffd7' : '#ffcc74'}">
@@ -114,7 +114,7 @@ style="background-color: #{empty datagramsEntry.value.messageQueue ? '#d7ffd7' :
 <p:dataTable value="#{requestDashboard.sortedServerData}" var="serverData" emptyMessage="No known servers found"
              reflow="true"
              selectionMode="single" rowKey="#{serverData.knownServer.ipport}"
-             rowStyleClass="#{serverData.active ? 'stActive' : 'stNotActive'}">
+             rowStyleClass="#{serverData.knownServerActive ? 'stActive' : 'stNotActive'}">
     <f:facet name="header">
         Known servers: #{serverDataByAddress.size()} |
         instance: [#{instanceHolder.currentInstanceId}] #{instanceHolder.availableInstances.get(instanceHolder.currentInstanceId).name}
@@ -127,7 +127,7 @@ style="background-color: #{empty datagramsEntry.value.messageQueue ? '#d7ffd7' :
         <h:outputText value="#{serverData.queueId}"/>
     </p:column>
     <p:column headerText="Status" width="145">
-        <h:outputText value="#{serverData.active ? '[Active]' : '[Not active]'}"/>
+        <h:outputText value="#{serverData.knownServerActive ? '[Active]' : '[Not active]'}"/>
         <!-- TODO: use ICONS -->
     </p:column>
     <p:column headerText="Address" width="200">
