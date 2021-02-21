@@ -124,7 +124,7 @@ style="background-color: #{empty datagramsEntry.value.messageQueue ? '#d7ffd7' :
             listener="#{requestDashboard.onRowSelect}"/>
 
     <p:column headerText="Queue ID" width="70">
-        <h:outputText value="#{serverData.queueId}"/>
+        <h:outputText value="#{messageQueueByAddress.get(serverData.knownServer.ipport).queueId}"/>
     </p:column>
     <p:column headerText="Status" width="145">
         <h:outputText value="#{serverData.knownServerActive ? '[Active]' : '[Not active]'}"/>

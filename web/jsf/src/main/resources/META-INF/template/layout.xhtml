@@ -61,7 +61,8 @@
 
         <p:dialog id="expDialog" widgetVar="excWid" header="Error on page - #{pfExceptionHandler.type}"
                              width="800" height="600" position="center,center" fitViewport="true" modal="true">
-        <h:outputText value="Refresh the page or contact technical support"/> <br />
+        <h:outputText value="Refresh the page or contact technical support or developer "/>
+        <p:link href="http://github.com/mbto/cs-stats-collector"/> <br/> <!--TODO: change too -->
         <p:button value="Reload page" style="margin:20px 5px 20px 5px" onclick="document.location.href = document.location.href;"/><br/>
         <h:outputText value="#{pfExceptionHandler.message}"/><br/>
         <h:outputText value="#{pfExceptionHandler.formattedTimestamp}"/><br/>

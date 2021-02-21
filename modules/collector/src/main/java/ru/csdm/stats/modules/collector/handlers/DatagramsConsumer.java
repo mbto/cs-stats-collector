@@ -49,7 +49,7 @@ public class DatagramsConsumer {
 
     @Async("consumerTE")
     public void startConsumeAsync(MessageQueue messageQueue) {
-        log.info("Activating DatagramsConsumer for MessageQueue #" + messageQueue.getQueueId());
+        log.info(messageQueue + " Activating");
 
         while (true) {
             boolean debugEnabled = log.isDebugEnabled();
@@ -57,12 +57,12 @@ public class DatagramsConsumer {
             Message<?> message;
             try {
                 if(debugEnabled)
-                    log.debug("Waiting message from messageQueue...");
+                    log.debug(messageQueue + " Waiting message");
 
                 message = messageQueue.getMessageQueue().takeFirst();
 
                 if(debugEnabled)
-                    log.debug("Taked message: " + message);
+                    log.debug(messageQueue + " Taked message: " + message);
             } catch (Throwable e) {
                 log.warn("Exception while takeFirst message", e);
                 continue;
@@ -70,27 +70,25 @@ public class DatagramsConsumer {
 
             if(Objects.nonNull(message.getSystemEvent())) {
                 SystemEvent systemEvent = message.getSystemEvent();
-                log.info("Taked system event: " + systemEvent);
+                log.info(messageQueue + " Taked system event: " + systemEvent);
 
                 if(systemEvent == SystemEvent.REFRESH) {
-                    log.info("Started synchronization");
-
                     CyclicBarrier cb = (CyclicBarrier) message.getPojo();
                     if(cb.isBroken()) {
-                        log.info("Cancel synchronization");
+                        log.info(messageQueue + " Cancel synchronization");
                         continue;
                     }
 
-                    log.info("Waiting synchronization");
+                    log.info(messageQueue + " Ready synchronization");
 
                     try {
                         cb.await();
                     } catch (Throwable e) {
-                        log.warn("Exception while await synchronization", e);
+                        log.warn(messageQueue + " Exception while await synchronization", e);
                         continue;
                     }
 
-                    log.info("Finished synchronization");
+                    log.info(messageQueue + " End synchronization");
                 } else if(systemEvent == SystemEvent.FLUSH_FROM_FRONTEND) {
                     flushSessions((ServerData) message.getPojo(), FRONTEND);
                 } else if(systemEvent == SystemEvent.FLUSH_FROM_SCHEDULER) {
@@ -377,7 +375,7 @@ public class DatagramsConsumer {
 //        if(Objects.nonNull(deactivationLatch))
 //            deactivationLatch.countDown();
 
-        log.info("Deactivated DatagramsConsumer for MessageQueue #" + messageQueue.getQueueId());
+        log.info(messageQueue + " Deactivated");
     }
 
     private void countFrag(KnownServer knownServer,
@@ -402,7 +400,7 @@ public class DatagramsConsumer {
                 gameSessions = new LinkedCaseInsensitiveMap<>(); /* Player names registry */
                 gameSessionByAddress.put(address, gameSessions);
 
-                log.info(address + " Created gameSessions container");
+                log.info(address + " Created gameSessions registry");
             }
 
             return gameSessions;
@@ -412,12 +410,12 @@ public class DatagramsConsumer {
                     .replace(address, new LinkedCaseInsensitiveMap<>()); /* Player names registry */
 
             if(Objects.nonNull(oldGameSessions))
-                log.info(address + " Recreated gameSessions container");
+                log.info(address + " Recreated gameSessions registry");
 
-            return oldGameSessions; /* return old container, for flush */
+            return oldGameSessions; /* return old registry, for flush */
         }
         else if(gsFetchMode == REMOVE) {
-            return gameSessionByAddress.remove(address); /* return old container, for flush */
+            return gameSessionByAddress.remove(address); /* return old registry, for flush */
         }
 
         throw new IllegalStateException("Allocation mode '" + gsFetchMode + "' not chosen");
@@ -450,6 +448,7 @@ public class DatagramsConsumer {
     private void flushSessions(ServerData serverData, FlushEvent fromEvent) {
         flushSessions(serverData, null, fromEvent);
     }
+
     private void flushSessions(ServerData serverData, LocalDateTime dateTime, FlushEvent fromEvent) {
         String address = serverData.getKnownServer().getIpport();
 
@@ -462,7 +461,7 @@ public class DatagramsConsumer {
                         ? REMOVE : REPLACE_IF_EXISTS);
 
         if(Objects.isNull(gameSessions) || gameSessions.isEmpty()) {
-            logMsg = "Skip flush sessions, due empty gameSessions container or not exists";
+            logMsg = "Skip flush sessions, due empty gameSessions registry or not exists";
             log.info(address + " " + logMsg);
             serverData.addMessage(logMsg);
             return;
@@ -472,7 +471,7 @@ public class DatagramsConsumer {
 
         int playersSize = collectedPlayers.size();
         /*if (playersSize == 0) { //todo: why I'm write this?
-            logMsg = "Skip flush sessions, due empty collectedPlayers container";
+            logMsg = "Skip flush sessions, due empty collectedPlayers registry";
             log.info(address + " " + logMsg);
             serverData.addMessage(logMsg);
             return;

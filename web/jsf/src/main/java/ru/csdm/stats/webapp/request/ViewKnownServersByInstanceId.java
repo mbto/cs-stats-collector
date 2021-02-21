@@ -67,9 +67,9 @@ public class ViewKnownServersByInstanceId {
         if(log.isDebugEnabled())
             log.debug("\nonRowSelect " + object);
 
-        String address = ((Map.Entry<String, CollectedPlayer>) object).getKey();
+        UInteger projectId = ((KnownServer) object).getProjectId();
 
-        util.sendRedirect("/knownServersByProject?projectId=" + address);
+        util.sendRedirect("/knownServersByProject?projectId=" + projectId);
     }
 
     public void fetch() {
@@ -166,14 +166,14 @@ public class ViewKnownServersByInstanceId {
             fc.addMessage("msgs", new FacesMessage(SEVERITY_WARN, String.join("<br/>", warnMsgs), ""));
 
         try {
-            Thread.sleep(3 * 1000);
+            Thread.sleep(1 * 1000);
         } catch (InterruptedException ignored) {}
 
         fetchAllSessionCount();
     }
 
     public void refreshAllAddresses() {
-        log.info("Refresh all sessions received from frontend");
+        log.info("Refresh all settings received from frontend");
 
         FacesContext fc = FacesContext.getCurrentInstance();
 
@@ -190,7 +190,7 @@ public class ViewKnownServersByInstanceId {
         fc.addMessage("msgs", new FacesMessage(SEVERITY_INFO, "Refresh registered", ""));
 
         try {
-            Thread.sleep(3 * 1000);
+            Thread.sleep(1 * 1000);
         } catch (InterruptedException ignored) {}
 
         fetchAllSessionCount();

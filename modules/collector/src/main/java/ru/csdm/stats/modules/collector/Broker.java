@@ -312,7 +312,7 @@ public class Broker {
                     messageQueue.removePort(address);
                 }
 
-                String logMsg = "removed from registry";
+                String logMsg = "Remove: ";
 
                 Map<String, CollectedPlayer> gameSessions = gameSessionByAddress.get(address);
                 if(Objects.nonNull(gameSessions)) {
@@ -322,9 +322,9 @@ public class Broker {
                         sessionsCount += sessions.size();
                         sessions.clear();
                     }
-                    logMsg += " " + gameSessions.size() + " players (" + sessionsCount + " sessions)";
+                    logMsg += gameSessions.size() + " players (" + sessionsCount + " sessions)";
 
-                    /* clear & remove gameSessions container, without flush */
+                    /* clear & remove gameSessions registry, without flush */
                     gameSessions.clear();
                     gameSessionByAddress.remove(address);
                 }
@@ -355,13 +355,17 @@ public class Broker {
 
                     serverDataByAddress.replace(address, newServerData);
 
+                    //todo: переписать, чтобы неудалялся, если выбрана таже очередь
+                    //+ разделить поиск лучшей очереди на 2 метода - поиска и создания
+                    //возможно придётся очередям присваивать UUID, тк могут создасться
+                    //с такимже номером, которые удалились недавно
                     MessageQueue currentMessageQueue = messageQueueByAddress.remove(address); // remove relationship from registry
                     boolean isCurrentKnownServerActive = Objects.nonNull(currentMessageQueue)
                             && currentServerData.isKnownServerActive();
                     if(isCurrentKnownServerActive)
                         currentMessageQueue.removePort(address);
 
-                    String logMsg = "listening ";
+                    String logMsg = "Update: listening ";
                     if(newServerData.isKnownServerActive()) {
                         MessageQueue newMessageQueue = allocateMessageQueue();
                         newMessageQueue.addPort(address);
@@ -376,7 +380,7 @@ public class Broker {
                         if(isCurrentKnownServerActive) {
                             logMsg += "stopped in " + currentMessageQueue;
                         } else {
-                            logMsg += "stopped again";
+                            logMsg += "already stopped";
                         }
                     }
 
@@ -397,15 +401,15 @@ public class Broker {
 
                     serverDataByAddress.put(address, serverData);
 
-                    String logMsg;
+                    String logMsg = "New: ";
                     if(serverData.isKnownServerActive()) {
                         MessageQueue messageQueue = allocateMessageQueue();
                         messageQueue.addPort(address);
                         messageQueueByAddress.put(address, messageQueue);
 
-                        logMsg = "listening started at " + messageQueue;
+                        logMsg += "listening started at " + messageQueue;
                     } else {
-                        logMsg = "added to registry";
+                        logMsg += "added to registry";
                     }
 
                     log.info(address + " " + logMsg);
@@ -422,6 +426,7 @@ public class Broker {
                 MessageQueue messageQueue = messageQueueIterator.next();
 
                 if (messageQueue.getKnownServersPorts().isEmpty()) { // without relationships
+                    log.info("Removing " + messageQueue);
                     messageQueueIterator.remove(); // remove MessageQueue from registry
 
                     putLastWithTryes(messageQueue, message); // send QUIT event in empty queue
@@ -429,15 +434,15 @@ public class Broker {
             }
         }
 
-        int newPoolSize = Math.max(1, messageQueueByQueueId.size());
+        int newPoolSize = messageQueueByQueueId.size();
 
         int oldPoolSize = consumerTE.getCorePoolSize();
         if(newPoolSize > oldPoolSize) {
-            consumerTE.setMaxPoolSize(newPoolSize);
+            consumerTE.setMaxPoolSize(newPoolSize != 0 ? newPoolSize : 1);
             consumerTE.setCorePoolSize(newPoolSize);
         } else if(newPoolSize < oldPoolSize) {
             consumerTE.setCorePoolSize(newPoolSize);
-            consumerTE.setMaxPoolSize(newPoolSize);
+            consumerTE.setMaxPoolSize(newPoolSize != 0 ? newPoolSize : 1);
         }
 
         if(newPoolSize != oldPoolSize)
@@ -448,7 +453,9 @@ public class Broker {
 
         if(size > 0) {
             for (ServerData serverData : serverDataByAddress.values()) {
-                log.info(serverData.toString());
+                String address = serverData.getKnownServer().getIpport();
+                log.info(serverData.toString() + (serverData.isKnownServerActive()
+                        ? ", " + messageQueueByAddress.get(address) : ""));
             }
         }
     }

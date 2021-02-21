@@ -16,7 +16,10 @@
 <ui:fragment rendered="#{not empty viewKnownServersByInstanceId.selectedInstance}">
 <p:outputPanel id="knServsOutPanel">
 <h:form id="manageBtnsForm">
-<p:panelGrid layout="grid" columns="1" style="float:right;" styleClass="ui-fluid ui-panelgrid-blank">
+    <div class="ui-g">
+    <div class="ui-g-8 ui-g-nopad"/>
+    <div class="ui-g-4 ui-g-nopad">
+<!--<p:panelGrid layout="grid" columns="2" styleClass="ui-panelgrid-blank" style="width: 50%;">-->
 <p:commandButton value="#{viewKnownServersByInstanceId.sessionsCount == 0
                          ? 'No sessions for flush' :
                          ('Flush ' += viewKnownServersByInstanceId.sessionsCount += ' sessions')}"
@@ -31,14 +34,17 @@
                  actionListener="#{viewKnownServersByInstanceId.refreshAllAddresses()}"
                  onstart="PF('buiKnServs').show()" oncomplete="PF('buiKnServs').hide()"
                  icon="ui-icon-refresh"/>
-</p:panelGrid>
+    </div>
+    </div>
+<!--</p:panelGrid>-->
 </h:form>
-<p:messages id="msgs" showSummary="true" showDetail="true" escape="false"/>
+
+<p:messages id="msgs" showSummary="true" showDetail="true" escape="false" style="margin-top:10px;"/>
 
 <h:form id="showKnServsForm">
 <p:dataTable id="knServsTblId" value="#{viewKnownServersByInstanceId.currentKnownServers}" var="knownServer" emptyMessage="No known servers found"
              reflow="true"
-             selectionMode="single" rowKey="#{knownServer.projectId}">
+             selectionMode="single" rowKey="#{knownServer.ipport}">
     <f:facet name="header">
         Known servers: #{viewKnownServersByInstanceId.currentKnownServers.size()} |
         instance: [#{viewKnownServersByInstanceId.selectedInstance.id}] #{viewKnownServersByInstanceId.selectedInstance.name}
@@ -74,7 +80,7 @@
 </p:dataTable>
 </h:form>
 </p:outputPanel>
-<p:blockUI widgetVar="buiKnServs" block="knServsOutPanel">
+<p:blockUI widgetVar="buiKnServs" block="knServsOutPanel" animate="false"><!-- TODO: animate="false" -->
     <p:graphicImage library="images" name="ajaxloadingbar.gif"/>
 </p:blockUI>
 </ui:fragment>

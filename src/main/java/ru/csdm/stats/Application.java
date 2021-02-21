@@ -84,9 +84,9 @@ public class Application {
     public ThreadPoolTaskExecutor consumerTE() {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
 
-        /* Pool sizes changes automatically, depends on the number of active HLDS servers (in table csstats.known_server)
+        /* Pool sizes changes automatically, depends on the number of active HLDS servers (in table collector.known_server)
             AND the number of processors */
-        executor.setCorePoolSize(1);
+        executor.setCorePoolSize(0);
         executor.setMaxPoolSize(1);
 
         executor.setThreadGroupName("consumers");

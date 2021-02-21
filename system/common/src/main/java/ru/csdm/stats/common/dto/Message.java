@@ -20,7 +20,7 @@ public class Message<T> {
     @Override
     public String toString() {
         return "Payload(" + payload + ")"
-                + (Objects.nonNull(pojo) ? " pojo exists" : "")
+                + (Objects.nonNull(pojo) ? " Pojo(" + pojo.getClass().getSimpleName() + ")" : "")
                 + (Objects.nonNull(systemEvent) ? " SystemEvent(" + systemEvent + ")" : "");
     }
 }

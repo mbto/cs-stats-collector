@@ -47,7 +47,7 @@ public class RequestDashboard {
         if(log.isDebugEnabled())
             log.debug("\nonRowSelect " + object);
 
-        String address = ((Map.Entry<String, CollectedPlayer>) object).getKey();
+        String address = ((ServerData) object).getKnownServer().getIpport();
 
         util.sendRedirect("/sessions?address=" + address);
     }
