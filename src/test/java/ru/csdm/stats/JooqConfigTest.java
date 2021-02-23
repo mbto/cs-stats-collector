@@ -14,13 +14,12 @@ import static ru.csdm.stats.common.utils.SomeUtils.configJooqContext;
 public class JooqConfigTest {
     @Bean
     @Lazy(false)
-    @DependsOn("collectorAdminDataSource")
     DSLContext collectorAdminDsl(HikariDataSource collectorAdminDataSource) {
         return configJooqContext(collectorAdminDataSource, SQLDialect.MYSQL, null, 10);
     }
 
-    @Bean
     @ConfigurationProperties("collector.admin.datasource")
+    @Bean
     @DependsOn("brokerTE")
     public HikariDataSource collectorAdminDataSource() {
         return buildHikariDataSource("collector-admin-pool");

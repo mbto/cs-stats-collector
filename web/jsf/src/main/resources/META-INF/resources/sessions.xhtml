@@ -16,9 +16,9 @@
 <ui:fragment rendered="#{not empty viewAddressDetails.selectedAddress}">
 <p:panel id="showSessionsPanel">
 <f:facet name="header">
-<h:outputText value="[#{viewAddressDetails.selectedServerData.project.id}] #{viewAddressDetails.selectedServerData.project.name} - "
+<h:outputText value="Port #{viewAddressDetails.selectedAddress}"/>
+<h:outputText value=" - [#{viewAddressDetails.selectedServerData.project.id}] #{viewAddressDetails.selectedServerData.project.name}"
               rendered="#{not empty viewAddressDetails.selectedServerData}"/>
-<h:outputText value="Address #{viewAddressDetails.selectedAddress} details"/>
 </f:facet>
 <h:form id="showSessionsForm">
 <p:commandButton id="flushSessionsBtn" value="#{empty viewAddressDetails.aggregatedPlayers
@@ -88,9 +88,7 @@
 </p:dataTable>
 </h:form>
 </p:panel>
-<p:blockUI block="showSessionsPanel" trigger="showSessionsForm:flushSessionsBtn">
-    <p:graphicImage library="images" name="ajaxloadingbar.gif"/>
-</p:blockUI>
+<p:blockUI block="showSessionsPanel" trigger="showSessionsForm:flushSessionsBtn"/>
 </ui:fragment>
 </ui:define>
 </ui:composition>

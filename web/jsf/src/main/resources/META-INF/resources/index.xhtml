@@ -24,81 +24,87 @@
 </ui:define>
 <ui:define name="center">
 <div class="ui-g">
-<div class="ui-g-12 ui-xl-3 ui-lg-4 ui-md-12 ui-sm-12 ui-g-nopad">
-    <p:panel header="Memory" >
-    <h:form id="dbrForm"><!--TODO: enable-->
-<!--                <p:poll process="@this" update="oP oF oM oA oTF" async="true"-->
-<!--                        interval="1" listener="#{statusShower.calculate}"/>-->
-        <p:panelGrid id="statusPanelId" columns="2" styleClass="ui-panelgrid-blank">
-            <h:outputText value="Processors"/>
-            <h:outputText id="oP" value="#{statusShower.processors}"/>
-            <h:outputText value="Free"/>
-            <h:outputText id="oF" value="#{statusShower.freeMemory} mb"/>
-            <h:outputText value="Max"/>
-            <h:outputText id="oM" value="#{statusShower.maxMemory} mb"/>
-            <h:outputText value="Allocated"/>
-            <h:outputText id="oA" value="#{statusShower.allocatedMemory} mb"/>
-            <h:outputText value="Total free"/>
-            <h:outputText id="oTF" value="#{statusShower.totalFreeMemory} mb"/>
-        </p:panelGrid>
-    </h:form>
-    </p:panel>
+<div class="ui-g-12 ui-xl-3 ui-lg-5 ui-md-12 ui-sm-12 ui-g-nopad">
+<h:form id="dbrForm"><!--TODO: enable-->
+<!--    <p:poll process="@this" update="oP oF oM oA oTF" async="true"-->
+<!--            interval="1" listener="#{statusShower.calculate}"/>-->
+<p:panelGrid style="width:350px;margin-bottom:10px;">
+<f:facet name="header">
+    <p:column colspan="2">Memory</p:column>
+</f:facet>
+<p:row>
+    <p:column width="10">Processors</p:column>
+    <p:column><h:outputText id="oP" value="#{statusShower.processors}"/></p:column>
+</p:row>
+<p:row>
+    <p:column>Free</p:column>
+    <p:column><h:outputText id="oF" value="#{statusShower.freeMemory} mb"/></p:column>
+</p:row>
+<p:row>
+    <p:column>Max</p:column>
+    <p:column><h:outputText id="oM" value="#{statusShower.maxMemory} mb"/></p:column>
+</p:row>
+<p:row>
+    <p:column>Allocated</p:column>
+    <p:column><h:outputText id="oA" value="#{statusShower.allocatedMemory} mb"/></p:column>
+</p:row>
+<p:row>
+    <p:column>Total free</p:column>
+    <p:column><h:outputText id="oTF" value="#{statusShower.totalFreeMemory} mb"/></p:column>
+</p:row>
+</p:panelGrid>
+</h:form>
 </div>
-<div class="ui-g-12 ui-xl-4 ui-lg-5 ui-md-8 ui-sm-12 ui-g-nopad">
-    <p:panel header="Thread pools sizes">
-        <div class="ui-g">
-            <div class="ui-g-12 ui-xl-4 ui-lg-4 ui-md-4 ui-sm-4 ui-g-nopad">
-                <p:panelGrid columns="2" layout="grid">
-                    <f:facet name="header">
-                        <h:outputText value="Broker"/>
-                    </f:facet>
-                    <h:outputText value="core"/>
-                    <h:outputText value="#{brokerTE.getCorePoolSize()}"/>
-                    <h:outputText value="max"/>
-                    <h:outputText value="#{brokerTE.getMaxPoolSize()}"/>
-                    <h:outputText value="queue"/>
-                    <h:outputText value="#{brokerTE.getThreadPoolExecutor().getQueue().size()}"/>
-                </p:panelGrid>
-            </div>
-            <div class="ui-g-12 ui-xl-4 ui-lg-4 ui-md-4 ui-sm-4 ui-g-nopad">
-                <p:panelGrid columns="2" layout="grid">
-                    <f:facet name="header">
-                        <h:outputText value="Consumer"/>
-                    </f:facet>
-                    <h:outputText value="core"/>
-                    <h:outputText value="#{consumerTE.getCorePoolSize()}"/>
-                    <h:outputText value="max"/>
-                    <h:outputText value="#{consumerTE.getMaxPoolSize()}"/>
-                    <h:outputText value="queue"/>
-                    <h:outputText value="#{consumerTE.getThreadPoolExecutor().getQueue().size()}"/>
-                </p:panelGrid>
-            </div>
-            <div class="ui-g-12 ui-xl-4 ui-lg-4 ui-md-4 ui-sm-4 ui-g-nopad">
-                <p:panelGrid columns="2" layout="grid">
-                    <f:facet name="header">
-                        <h:outputText value="Sender"/>
-                    </f:facet>
-                    <h:outputText value="core"/>
-                    <h:outputText value="#{senderTE.getCorePoolSize()}"/>
-                    <h:outputText value="max"/>
-                    <h:outputText value="#{senderTE.getMaxPoolSize()}"/>
-                    <h:outputText value="queue"/>
-                    <h:outputText value="#{senderTE.getThreadPoolExecutor().getQueue().size()}"/>
-                </p:panelGrid>
-            </div>
-        </div>
-    </p:panel>
+<div class="ui-g-12 ui-xl-3 ui-lg-5 ui-md-12 ui-sm-12 ui-g-nopad">
+<p:panelGrid style="width:350px;margin-bottom:10px;">
+<f:facet name="header">
+    <p:row>
+        <p:column colspan="4">Thread pools sizes</p:column>
+    </p:row>
+    <p:row>
+        <p:column/>
+        <p:column style="font-weight:normal;">core</p:column>
+        <p:column style="font-weight:normal;">max</p:column>
+        <p:column style="font-weight:normal;">pending</p:column>
+    </p:row>
+</f:facet>
+<p:row>
+    <p:column>Broker</p:column>
+    <p:column>#{brokerTE.getCorePoolSize()}</p:column>
+    <p:column>#{brokerTE.getMaxPoolSize()}</p:column>
+    <p:column style="background-color: #{empty brokerTE.getThreadPoolExecutor().getQueue()
+    ? '#d7ffd7' : '#ffcc74'}">#{brokerTE.getThreadPoolExecutor().getQueue().size()}</p:column>
+</p:row>
+<p:row>
+    <p:column>Consumer</p:column>
+    <p:column>#{consumerTE.getCorePoolSize()}</p:column>
+    <p:column>#{consumerTE.getMaxPoolSize()}</p:column>
+    <p:column style="background-color: #{empty consumerTE.getThreadPoolExecutor().getQueue()
+    ? '#d7ffd7' : '#ffcc74'}">#{consumerTE.getThreadPoolExecutor().getQueue().size()}</p:column>
+</p:row>
+<p:row>
+    <p:column>Sender</p:column>
+    <p:column>#{senderTE.getCorePoolSize()}</p:column>
+    <p:column>#{senderTE.getMaxPoolSize()}</p:column>
+    <p:column style="background-color: #{empty senderTE.getThreadPoolExecutor().getQueue()
+    ? '#d7ffd7' : '#ffcc74'}">#{senderTE.getThreadPoolExecutor().getQueue().size()}</p:column>
+</p:row>
+</p:panelGrid>
 </div>
-<div class="ui-g-12 ui-xl-1 ui-lg-2 ui-md-2 ui-sm-12 ui-g-nopad">
-<p:dataTable value="#{messageQueueByQueueId.entrySet()}" var="datagramsEntry" emptyMessage="No queues found">
+<div class="ui-g-12 ui-xl-3 ui-lg-12 ui-md-12 ui-sm-12 ui-g-nopad">
+<p:dataTable value="#{messageQueueByQueueId.entrySet()}" var="datagramsEntry" emptyMessage="No queues found"
+style="width:350px;margin-bottom:10px;">
     <f:facet name="header">Queues</f:facet>
-    <p:column headerText="ID">
+    <p:column headerText="ID" width="16">
         <h:outputText value="#{datagramsEntry.key}"/>
     </p:column>
-    <p:column headerText="Active">
-        <h:outputText value="#{datagramsEntry.value.knownServersPorts.size()}"/>
+    <p:column headerText="Active" width="82">
+        <h:outputText value="#{datagramsEntry.value.countPorts(true)}"/>
     </p:column>
-    <p:column headerText="Size"
+    <p:column headerText="Not active" width="82">
+        <h:outputText value="#{datagramsEntry.value.countPorts(false)}"/>
+    </p:column>
+    <p:column headerText="Pending"
 style="background-color: #{empty datagramsEntry.value.messageQueue ? '#d7ffd7' : '#ffcc74'}">
         <h:outputText value="#{datagramsEntry.value.messageQueue.size()}"
                       rendered="#{not empty datagramsEntry.value}"/>

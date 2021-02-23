@@ -9,7 +9,7 @@ import org.springframework.context.annotation.Lazy;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.stereotype.Service;
-import ru.csdm.stats.common.SystemEvent;
+import ru.csdm.stats.common.BrokerEvent;
 import ru.csdm.stats.common.dto.*;
 import ru.csdm.stats.common.model.collector.tables.pojos.DriverProperty;
 import ru.csdm.stats.common.model.collector.tables.pojos.Instance;
@@ -26,10 +26,9 @@ import java.net.DatagramSocket;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.*;
-import java.util.stream.Collectors;
 
-import static ru.csdm.stats.common.SystemEvent.*;
-import static ru.csdm.stats.common.SystemEvent.CONSUME_DATAGRAM;
+import static ru.csdm.stats.common.BrokerEvent.*;
+import static ru.csdm.stats.common.BrokerEvent.CONSUME_DATAGRAM;
 import static ru.csdm.stats.common.utils.SomeUtils.addressToString;
 
 @Service
@@ -107,7 +106,7 @@ public class Broker {
             putLastWithTryes(brokerQueue, message);
         }
 
-        putLastWithTryes(brokerQueue, new Message<>(null, null, FLUSH_AND_QUIT));
+        putLastWithTryes(brokerQueue, new Message<>(null, null, FLUSH_ALL_AND_BREAK));
 
         log.info("Deactivated receiver");
     }
@@ -126,20 +125,31 @@ public class Broker {
                 continue;
             }
 
-            SystemEvent systemEvent = message.getSystemEvent();
+            try {
+                BrokerEvent brokerEvent = message.getBrokerEvent();
 
-            if(systemEvent == CONSUME_DATAGRAM) {
-                consumeDatagram(message);
-            } else if(systemEvent == REFRESH) {
-                consumeRefreshEvent(message);
-            } else if(systemEvent == FLUSH_FROM_FRONTEND || systemEvent == FLUSH_FROM_SCHEDULER) {
-                consumeFlush(message);
-            } else if(systemEvent == FLUSH_AND_QUIT) {
-                consumeFlushAndQuit(message);
+                if (brokerEvent == CONSUME_DATAGRAM) {
+                    consumeDatagram(message);
+                } else if (brokerEvent == REFRESH) {
+                    consumeRefreshEvent(message);
+                } else if (brokerEvent == FLUSH_FROM_FRONTEND || brokerEvent == FLUSH_FROM_SCHEDULER) {
+                    consumeFlush(message);
+                } else if (brokerEvent == FLUSH_ALL_AND_BREAK) {
+                    log.info("Deactivation distributor detected");
 
-                break;
-            } else {
-                log.warn("Unknown system event '" + systemEvent + "'");
+                    consumeFlushAndQuit(message);
+
+                    break;
+                } else {
+                    log.warn("Unknown brokerEvent " + brokerEvent);
+                }
+            } catch (Throwable e) {
+                log.warn("Exception while handling message " + message, e);
+
+//                if(message.getBrokerEvent() == FLUSH_ALL_AND_BREAK)
+//                    break; // Unreachable statement?
+
+                continue;
             }
         }
 
@@ -172,13 +182,13 @@ public class Broker {
     }
 
     private void consumeRefreshEvent(Message<?> originalMessage) {
-        log.info("Started synchronization by system event " + originalMessage.getSystemEvent());
+        log.info("Started synchronization by brokerEvent " + originalMessage.getBrokerEvent());
 
         Collection<MessageQueue> messageQueues = messageQueueByQueueId.values();
         CyclicBarrier cb = new CyclicBarrier(messageQueues.size() + 1,
                 () -> refresh((UInteger) originalMessage.getPojo()));
 
-        Message<CyclicBarrier> message = new Message<>(null, cb, originalMessage.getSystemEvent());
+        Message<CyclicBarrier> message = new Message<>(null, cb, originalMessage.getBrokerEvent());
 
         for (MessageQueue messageQueue : messageQueues) {
             if (!putLastWithTryes(messageQueue, message)) {
@@ -237,12 +247,11 @@ public class Broker {
 
         message.setPojo(serverData); // without creating new Message
 
-        putLastWithTryes(messageQueueByAddress.get(address), message);
+        MessageQueue messageQueue = messageQueueByAddress.get(address);
+        putLastWithTryes(messageQueue, message);
     }
 
     private void consumeFlushAndQuit(Message<?> message) {
-        log.info("Deactivation distributor detected");
-
         for (Map.Entry<Integer, MessageQueue> entry : messageQueueByQueueId.entrySet()) {
             MessageQueue messageQueue = entry.getValue();
             putLastWithTryes(messageQueue, message);
@@ -271,24 +280,7 @@ public class Broker {
         Map<UInteger, List<DriverProperty>> driverPropertiesByProjectId = collectorDataSlice.getDriverPropertiesByProjectId();
 
         LocalDateTime now = LocalDateTime.now();
-/*  registry:
-    127.0.0.1:27015 - ServerData proj1
-    127.0.0.1:27016 - ServerData proj1
-    127.0.0.1:27017 - ServerData proj2
-    127.0.0.1:27018 - ServerData proj2
-    127.0.0.1:27019 - ServerData proj2
 
-    knownServersSlice: instance + projectId
-    127.0.0.1:27015 proj1
-    127.0.0.1:27016 proj1
-    127.0.0.1:27017 proj1
-
-    knownServersSlice: instance
-    127.0.0.1:27015 proj1
-    127.0.0.1:27016 proj1
-    127.0.0.1:27017 proj1
-    127.0.0.1:27018 proj2
-*/
         // search noneMatches (removed) -> remove
         Iterator<Map.Entry<String, ServerData>> serverDataByAddressIterator = serverDataByAddress.entrySet().iterator();
         while (serverDataByAddressIterator.hasNext()) {
@@ -307,12 +299,7 @@ public class Broker {
             if(noneMatches) {
                 serverDataByAddressIterator.remove(); // remove relationship from registry
 
-                MessageQueue messageQueue = messageQueueByAddress.remove(address);
-                if(Objects.nonNull(messageQueue) && serverData.isKnownServerActive()) {
-                    messageQueue.removePort(address);
-                }
-
-                String logMsg = "Remove: ";
+                String logMsg = "removed settings";
 
                 Map<String, CollectedPlayer> gameSessions = gameSessionByAddress.get(address);
                 if(Objects.nonNull(gameSessions)) {
@@ -322,7 +309,7 @@ public class Broker {
                         sessionsCount += sessions.size();
                         sessions.clear();
                     }
-                    logMsg += gameSessions.size() + " players (" + sessionsCount + " sessions)";
+                    logMsg += " and " + gameSessions.size() + " players (" + sessionsCount + " sessions)";
 
                     /* clear & remove gameSessions registry, without flush */
                     gameSessions.clear();
@@ -333,103 +320,98 @@ public class Broker {
             }
         }
 
-        Map<Boolean, List<KnownServer>> partitioned = knownServersSlice
-                .stream()
-                .collect(Collectors.partitioningBy(
-                        knownServer -> serverDataByAddress.containsKey(knownServer.getIpport())));
+        for (KnownServer knownServerSlice : knownServersSlice) {
+            String port = knownServerSlice.getIpport();
+            ServerData currentServerData = serverDataByAddress.get(port);
 
-        for (Map.Entry<Boolean, List<KnownServer>> entry : partitioned.entrySet()) {
-            if(entry.getKey()) { // exists -> update & replace
-                for (KnownServer newKnownServer : entry.getValue()) {
-                    String address = newKnownServer.getIpport();
-                    ServerData currentServerData = serverDataByAddress.get(address);
+            if(Objects.nonNull(currentServerData)) {
+                // exists -> update & replace
+                ServerData newServerData = new ServerData();
+                newServerData.setKnownServer(knownServerSlice);
+                newServerData.setProject(projectByProjectId.get(knownServerSlice.getProjectId()));
+                newServerData.setNextFlushDateTime(currentServerData.getNextFlushDateTime());
+                newServerData.setDriverProperties(driverPropertiesByProjectId.get(knownServerSlice.getProjectId()));
 
-                    ServerData newServerData = new ServerData();
-                    newServerData.setKnownServer(newKnownServer);
-                    newServerData.setProject(projectByProjectId.get(newKnownServer.getProjectId()));
-                    newServerData.setNextFlushDateTime(currentServerData.getNextFlushDateTime());
-                    newServerData.setDriverProperties(driverPropertiesByProjectId.get(newKnownServer.getProjectId()));
+                newServerData.setLastTouchDateTime(currentServerData.getLastTouchDateTime());
+                newServerData.setMessages(currentServerData.getMessages());
 
-                    newServerData.setLastTouchDateTime(currentServerData.getLastTouchDateTime());
-                    newServerData.setMessages(currentServerData.getMessages());
+                serverDataByAddress.replace(port, newServerData);
 
-                    serverDataByAddress.replace(address, newServerData);
+                String logMsg = "updated settings";
 
-                    //todo: переписать, чтобы неудалялся, если выбрана таже очередь
-                    //+ разделить поиск лучшей очереди на 2 метода - поиска и создания
-                    //возможно придётся очередям присваивать UUID, тк могут создасться
-                    //с такимже номером, которые удалились недавно
-                    MessageQueue currentMessageQueue = messageQueueByAddress.remove(address); // remove relationship from registry
-                    boolean isCurrentKnownServerActive = Objects.nonNull(currentMessageQueue)
-                            && currentServerData.isKnownServerActive();
-                    if(isCurrentKnownServerActive)
-                        currentMessageQueue.removePort(address);
+                log.info(port + " " + logMsg);
+                newServerData.addMessage(logMsg);
+            } else {
+                // not exists -> create
+                ServerData serverData = new ServerData();
+                serverData.setKnownServer(knownServerSlice);
+                serverData.setProject(projectByProjectId.get(knownServerSlice.getProjectId()));
+                serverData.setNextFlushDateTime(now.plusHours(1));
+                serverData.setDriverProperties(driverPropertiesByProjectId.get(knownServerSlice.getProjectId()));
 
-                    String logMsg = "Update: listening ";
-                    if(newServerData.isKnownServerActive()) {
-                        MessageQueue newMessageQueue = allocateMessageQueue();
-                        newMessageQueue.addPort(address);
-                        messageQueueByAddress.put(address, newMessageQueue);
+                serverData.setLastTouchDateTime(now);
 
-                        if(isCurrentKnownServerActive) {
-                            logMsg += "refreshed: " + currentMessageQueue + " -> " + newMessageQueue;
-                        } else {
-                            logMsg += "started at " + newMessageQueue;
-                        }
-                    } else {
-                        if(isCurrentKnownServerActive) {
-                            logMsg += "stopped in " + currentMessageQueue;
-                        } else {
-                            logMsg += "already stopped";
-                        }
+                serverDataByAddress.put(port, serverData);
+
+                String logMsg = "created settings";
+
+                log.info(port + " " + logMsg);
+                serverData.addMessage(logMsg);
+            }
+        }
+
+        // rebuild registry
+        messageQueueByAddress.values().forEach(MessageQueue::clearPorts);
+        messageQueueByAddress.clear();
+
+        for (Map.Entry<String, ServerData> entry : serverDataByAddress.entrySet()) {
+            String port = entry.getKey();
+            ServerData serverData = entry.getValue();
+
+            if(serverData.isKnownServerActive()) {
+                MessageQueue messageQueue = allocateMessageQueue(true);
+                messageQueue.addPort(port, true);
+                messageQueueByAddress.put(port, messageQueue);
+
+                String logMsg = "using " + messageQueue;
+
+                log.info(port + " " + logMsg);
+                serverData.addMessage(logMsg);
+            } else {
+                Map<String, CollectedPlayer> gameSessions = gameSessionByAddress.get(port);
+                if(Objects.nonNull(gameSessions)) {
+                    int countSessions = gameSessions.values()
+                            .stream()
+                            .mapToInt(cp -> cp.getSessions().size())
+                            .sum();
+
+                    if(countSessions > 0) { // if deactivated serverData has sessions for flush
+                        MessageQueue messageQueue = allocateMessageQueue(false);
+                        messageQueue.addPort(port, false);
+                        messageQueueByAddress.put(port, messageQueue);
+
+                        String logMsg = "using " + messageQueue + " for not active serverData with "
+                            + gameSessions.size() + " players (" + countSessions + " sessions)";
+
+                        log.info(port + " " + logMsg);
+                        serverData.addMessage(logMsg);
                     }
-
-                    log.info(address + " " + logMsg);
-                    newServerData.addMessage(logMsg);
-                }
-            } else { // not exists -> insert
-                for (KnownServer knownServer : entry.getValue()) {
-                    String address = knownServer.getIpport();
-
-                    ServerData serverData = new ServerData();
-                    serverData.setKnownServer(knownServer);
-                    serverData.setProject(projectByProjectId.get(knownServer.getProjectId()));
-                    serverData.setNextFlushDateTime(now.plusHours(1));
-                    serverData.setDriverProperties(driverPropertiesByProjectId.get(knownServer.getProjectId()));
-
-                    serverData.setLastTouchDateTime(now);
-
-                    serverDataByAddress.put(address, serverData);
-
-                    String logMsg = "New: ";
-                    if(serverData.isKnownServerActive()) {
-                        MessageQueue messageQueue = allocateMessageQueue();
-                        messageQueue.addPort(address);
-                        messageQueueByAddress.put(address, messageQueue);
-
-                        logMsg += "listening started at " + messageQueue;
-                    } else {
-                        logMsg += "added to registry";
-                    }
-
-                    log.info(address + " " + logMsg);
-                    serverData.addMessage(logMsg);
                 }
             }
         }
 
         if(!messageQueueByQueueId.isEmpty()) {
-            Message<?> message = new Message<>(null, null, QUIT);
+            Message<?> message = new Message<>(null, null, BREAK);
 
             Iterator<MessageQueue> messageQueueIterator = messageQueueByQueueId.values().iterator();
             while (messageQueueIterator.hasNext()) {
                 MessageQueue messageQueue = messageQueueIterator.next();
 
-                if (messageQueue.getKnownServersPorts().isEmpty()) { // without relationships
+                if (messageQueue.zeroPorts()) { // without relationships
                     log.info("Removing " + messageQueue);
                     messageQueueIterator.remove(); // remove MessageQueue from registry
 
-                    putLastWithTryes(messageQueue, message); // send QUIT event in empty queue
+                    putLastWithTryes(messageQueue, message); // send BREAK event in empty queue
                 }
             }
         }
@@ -438,15 +420,15 @@ public class Broker {
 
         int oldPoolSize = consumerTE.getCorePoolSize();
         if(newPoolSize > oldPoolSize) {
-            consumerTE.setMaxPoolSize(newPoolSize != 0 ? newPoolSize : 1);
+            consumerTE.setMaxPoolSize(newPoolSize > 0 ? newPoolSize : 1);
             consumerTE.setCorePoolSize(newPoolSize);
         } else if(newPoolSize < oldPoolSize) {
             consumerTE.setCorePoolSize(newPoolSize);
-            consumerTE.setMaxPoolSize(newPoolSize != 0 ? newPoolSize : 1);
+            consumerTE.setMaxPoolSize(newPoolSize > 0 ? newPoolSize : 1);
         }
 
         if(newPoolSize != oldPoolSize)
-            log.info("Changing consumerTE pool size from " + oldPoolSize + " to " + newPoolSize + "");
+            log.info("Changing consumerTE pool size from " + oldPoolSize + " to " + newPoolSize);
 
         int size = serverDataByAddress.size();
         log.info("Registry serverData: " + size + " relationship" + (size > 1 ? "s" : ""));
@@ -454,17 +436,21 @@ public class Broker {
         if(size > 0) {
             for (ServerData serverData : serverDataByAddress.values()) {
                 String address = serverData.getKnownServer().getIpport();
-                log.info(serverData.toString() + (serverData.isKnownServerActive()
+                log.info(serverData.toString() + (messageQueueByAddress.containsKey(address)
                         ? ", " + messageQueueByAddress.get(address) : ""));
             }
         }
     }
 
-    private MessageQueue allocateMessageQueue() {
-        int size = messageQueueByQueueId.size();
-        if(size < availableProcessors) {
+    private MessageQueue allocateMessageQueue(boolean isActive) {
+        if(messageQueueByQueueId.size() < availableProcessors) {
             // add
-            int queueId = size + 1;
+            int queueId = 1;
+            for (; queueId <= availableProcessors; queueId++) {
+                if(!messageQueueByQueueId.containsKey(queueId))
+                    break;
+            }
+
             MessageQueue messageQueue = new MessageQueue(queueId);
             log.info("Created " + messageQueue);
 
@@ -473,11 +459,15 @@ public class Broker {
             return messageQueue;
         }
 
-        // search by min(messageQueue.knownServersPorts.size)
+        // search by min(MessageQueue::countPorts(isActive))
+        return searchOptimalMessageQueue(isActive);
+    }
+
+    private MessageQueue searchOptimalMessageQueue(boolean isActive) {
         return messageQueueByQueueId
                 .values()
                 .stream()
-                .min(Comparator.comparingInt(mq -> mq.getKnownServersPorts().size()))
+                .min(Comparator.comparingInt(mq -> mq.countPorts(isActive)))
                 .orElseThrow(IllegalStateException::new);
     }
 

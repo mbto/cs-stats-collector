@@ -106,7 +106,7 @@ public class ViewEditInstance {
 
             fc.addMessage("msgs", new FacesMessage("Instance [" + selectedInstance.getId() + "] "
                     + selectedInstance.getName() + " saved", localChangesCounter + " changes"));
-        } catch (Exception e) {
+        } catch (Throwable e) {
             fc.addMessage("msgs", new FacesMessage(SEVERITY_WARN,
                     "Failed save instance [" + selectedInstance.getId() + "] " + selectedInstance.getName(),
                     e.toString()));
@@ -132,7 +132,7 @@ public class ViewEditInstance {
             changesCounter.increment(localChangesCounter);
 
             instanceHolder.getAvailableInstances(true);
-        } catch (Exception e) {
+        } catch (Throwable e) {
             FacesContext.getCurrentInstance().addMessage("msgs", new FacesMessage(SEVERITY_WARN,
                     "Failed delete instance [" + selectedInstance.getId() + "] " + selectedInstance.getName(),
                     e.toString()));

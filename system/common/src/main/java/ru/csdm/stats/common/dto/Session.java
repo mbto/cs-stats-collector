@@ -32,18 +32,4 @@ public class Session {
         if(Objects.isNull(finished))
             finished = finishedDateTime;
     }
-
-/* I guess it won't be necessary at all */
-//    @Override
-//    public boolean equals(Object o) {
-//        if (this == o) return true;
-//        if (!(o instanceof Session)) return false;
-//        Session session = (Session) o;
-//        return started.equals(session.started);
-//    }
-//
-//    @Override
-//    public int hashCode() {
-//        return Objects.hash(started);
-//    }
 }

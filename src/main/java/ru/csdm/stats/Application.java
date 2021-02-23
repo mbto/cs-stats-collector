@@ -74,6 +74,29 @@ public class Application {
         return new ConcurrentSkipListMap<>();
     }
     /**
+     * Pool used in 2 cases:
+     * 1 - consume from UDP port -> send to brokerQueue;
+     * 2 - consume from brokerQueue -> distribute to messageQueues;
+     * TODO: 3 - scheduler
+     */
+    @Bean("brokerTE")
+    public ThreadPoolTaskExecutor brokerTE() {
+        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+
+        int poolSize = 2; // todo: +1 scheduler
+        executor.setCorePoolSize(poolSize);
+        executor.setMaxPoolSize(poolSize);
+
+        executor.setThreadNamePrefix("brokerTE-");
+        executor.setDaemon(false);
+        executor.setAllowCoreThreadTimeOut(true);
+        executor.setWaitForTasksToCompleteOnShutdown(true);
+        executor.setAwaitTerminationSeconds(120);
+        executor.setRejectedExecutionHandler(new ThreadPoolExecutor.DiscardPolicy());
+        executor.initialize();
+        return executor;
+    }
+    /**
      * Pool used in Broker and DatagramsConsumer classes
      * 1 - consume from messageQueues
      *     -> accumulate players statistics and sessions
@@ -105,7 +128,7 @@ public class Application {
      *     -> merging players sessions into the csstats.* tables.
      */
     @Bean
-    @DependsOn("collectorDataSource")
+    @DependsOn("collectorDsl")
     public ThreadPoolTaskExecutor senderTE(
             @Value("${collector.datasource.maximumPoolSize}") int datasourceMaximumPoolSize
     ) {
@@ -127,30 +150,6 @@ public class Application {
         executor.initialize();
         return executor;
     }
-    /**
-     * Pool used in 2 cases:
-     * 1 - consume from UDP port -> send to brokerQueue;
-     * 2 - consume from brokerQueue -> distribute to messageQueues;
-     * TODO: 3 - scheduler
-     */
-    @Bean("brokerTE")
-    public ThreadPoolTaskExecutor brokerTE() {
-        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
-
-        int poolSize = 2; // todo: +1 scheduler
-        executor.setCorePoolSize(poolSize);
-        executor.setMaxPoolSize(poolSize);
-
-        executor.setThreadNamePrefix("brokerTE-");
-        executor.setDaemon(false);
-        executor.setAllowCoreThreadTimeOut(true);
-        executor.setWaitForTasksToCompleteOnShutdown(true);
-        executor.setAwaitTerminationSeconds(120);
-        executor.setRejectedExecutionHandler(new ThreadPoolExecutor.DiscardPolicy());
-        executor.initialize();
-        return executor;
-    }
-
 //    @Bean
 //    public Jackson2ObjectMapperBuilderCustomizer jsonCustomizer() {
 //        return builder -> {

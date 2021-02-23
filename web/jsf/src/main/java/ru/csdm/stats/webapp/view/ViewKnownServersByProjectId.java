@@ -237,7 +237,7 @@ public class ViewKnownServersByProjectId {
 
             fc.addMessage("msgs", new FacesMessage("Project [" + selectedProject.getId() + "] "
                     + selectedProject.getName() + " saved", localChangesCounter + " changes"));
-        } catch (Exception e) {
+        } catch (Throwable e) {
             fc.addMessage("msgs", new FacesMessage(SEVERITY_WARN,
                     "Failed save project [" + selectedProject.getId() + "] " + selectedProject.getName(),
                     e.toString()));

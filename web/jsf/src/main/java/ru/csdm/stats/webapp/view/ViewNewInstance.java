@@ -71,7 +71,7 @@ public class ViewNewInstance {
             instanceHolder.getAvailableInstances(true);
 
             return "/editInstance?faces-redirect=true&instanceId=" + selectedInstance.getId();
-        } catch (Exception e) {
+        } catch (Throwable e) {
             selectedInstance.setId(null);
             fc.addMessage("msgs", new FacesMessage(SEVERITY_WARN,
                     "Failed save new instance", e.toString()));

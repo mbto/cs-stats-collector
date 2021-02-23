@@ -27,7 +27,7 @@ import java.util.Objects;
 
 import static javax.faces.application.FacesMessage.SEVERITY_INFO;
 import static javax.faces.application.FacesMessage.SEVERITY_WARN;
-import static ru.csdm.stats.common.SystemEvent.FLUSH_FROM_FRONTEND;
+import static ru.csdm.stats.common.BrokerEvent.FLUSH_FROM_FRONTEND;
 import static ru.csdm.stats.common.model.collector.Tables.INSTANCE;
 import static ru.csdm.stats.common.model.collector.tables.KnownServer.KNOWN_SERVER;
 import static ru.csdm.stats.common.model.collector.tables.Project.PROJECT;
@@ -140,14 +140,14 @@ public class ViewKnownServersByInstanceId {
     public void flushAllAddresses() {
         log.info("Flush all sessions received from frontend");
 
-        List<String> infoMsgs = new ArrayList<>();
+        List<String> infoMsgs = new ArrayList<>(); //TODO: check
         List<String> warnMsgs = new ArrayList<>();
 
         for (String address : gameSessionByAddress.keySet()) {
             try {
                 eventService.flush(address, FLUSH_FROM_FRONTEND, false);
             } catch (Throwable e) {
-                log.warn(address + " Flush not registered, " + e.getMessage());
+                log.info(address + " Flush not registered, " + e.getMessage()); // info, not warn
 
                 warnMsgs.add("Flush " + address + " not registered, " + e.getMessage());
                 continue;
@@ -181,7 +181,7 @@ public class ViewKnownServersByInstanceId {
             eventService.refresh(null);
         } catch (Throwable e) {
             String msg = "Refresh not registered, " + e.getMessage();
-            log.warn(msg);
+            log.info(msg); // info, not warn
 
             fc.addMessage("msgs", new FacesMessage(SEVERITY_WARN, msg, ""));
             return;

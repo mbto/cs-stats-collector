@@ -11,15 +11,12 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
-import ru.csdm.stats.common.SystemEvent;
 import ru.csdm.stats.common.model.collector.tables.pojos.Instance;
 
 import javax.annotation.PostConstruct;
-import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.Objects;
-import java.util.concurrent.locks.ReentrantLock;
 
 import static ru.csdm.stats.common.model.collector.tables.Instance.INSTANCE;
 

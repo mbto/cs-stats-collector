@@ -144,7 +144,7 @@ public class ViewNewProject {
                                         RANK.getName()))
                         .fetchOne(DSL.count());
             });
-        } catch (Exception e) {
+        } catch (Throwable e) {
             tablesCount = null;
             fc.addMessage("msgs", new FacesMessage(SEVERITY_WARN,
                     "Failed validation new project", e.toString()));
@@ -203,7 +203,7 @@ public class ViewNewProject {
             changesCounter.increment(localChangesCounter);
 
             return "/editProject?faces-redirect=true&projectId=" + selectedProject.getId();
-        } catch (Exception e) {
+        } catch (Throwable e) {
             selectedProject.setId(null);
             fc.addMessage("msgs", new FacesMessage(SEVERITY_WARN,
                     "Failed save new project", e.toString()));

@@ -5,15 +5,13 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.scheduling.annotation.Async;
-import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedCaseInsensitiveMap;
 import ru.csdm.stats.common.FlushEvent;
 import ru.csdm.stats.common.GameSessionFetchMode;
-import ru.csdm.stats.common.SystemEvent;
+import ru.csdm.stats.common.BrokerEvent;
 import ru.csdm.stats.common.dto.*;
 import ru.csdm.stats.common.model.collector.tables.pojos.KnownServer;
-import ru.csdm.stats.dao.CollectorDao;
 
 import javax.annotation.PreDestroy;
 import java.time.LocalDateTime;
@@ -21,6 +19,7 @@ import java.util.*;
 import java.util.concurrent.CyclicBarrier;
 import java.util.regex.Matcher;
 
+import static ru.csdm.stats.common.BrokerEvent.*;
 import static ru.csdm.stats.common.Constants.MMDDYYYY_HHMMSS_PATTERN;
 import static ru.csdm.stats.common.FlushEvent.*;
 import static ru.csdm.stats.common.GameSessionFetchMode.*;
@@ -68,11 +67,11 @@ public class DatagramsConsumer {
                 continue;
             }
 
-            if(Objects.nonNull(message.getSystemEvent())) {
-                SystemEvent systemEvent = message.getSystemEvent();
-                log.info(messageQueue + " Taked system event: " + systemEvent);
+            if(Objects.nonNull(message.getBrokerEvent())) {
+                BrokerEvent brokerEvent = message.getBrokerEvent();
+                log.info(messageQueue + " Taked brokerEvent: " + brokerEvent);
 
-                if(systemEvent == SystemEvent.REFRESH) {
+                if(brokerEvent == REFRESH) {
                     CyclicBarrier cb = (CyclicBarrier) message.getPojo();
                     if(cb.isBroken()) {
                         log.info(messageQueue + " Cancel synchronization");
@@ -89,16 +88,20 @@ public class DatagramsConsumer {
                     }
 
                     log.info(messageQueue + " End synchronization");
-                } else if(systemEvent == SystemEvent.FLUSH_FROM_FRONTEND) {
+                } else if(brokerEvent == FLUSH_FROM_FRONTEND) {
                     flushSessions((ServerData) message.getPojo(), FRONTEND);
-                } else if(systemEvent == SystemEvent.FLUSH_FROM_SCHEDULER) {
+                } else if(brokerEvent == FLUSH_FROM_SCHEDULER) {
                     flushSessions((ServerData) message.getPojo(), SCHEDULER);
-                } else if(systemEvent == SystemEvent.QUIT) {
+                } else if(brokerEvent == BREAK) {
                     break;
-                } else if(systemEvent == SystemEvent.FLUSH_AND_QUIT) {
-                    for (String port : messageQueue.getKnownServersPorts()) {
-                        flushSessions(serverDataByAddress.get(port), PRE_DESTROY_LIFECYCLE);
-                    }
+                } else if(brokerEvent == FLUSH_ALL_AND_BREAK) {
+                    messageQueue.getKnownServersPorts()
+                            .values()
+                            .stream()
+                            .flatMap(Collection::stream)
+                            .forEach(port -> {
+                                flushSessions(serverDataByAddress.get(port), SHUTDOWN_APPLICATION);
+                            });
 
                     break;
                 }
@@ -372,9 +375,6 @@ public class DatagramsConsumer {
             }
         }
 
-//        if(Objects.nonNull(deactivationLatch))
-//            deactivationLatch.countDown();
-
         log.info(messageQueue + " Deactivated");
     }
 
@@ -445,19 +445,19 @@ public class DatagramsConsumer {
         return collectedPlayer;
     }
 
-    private void flushSessions(ServerData serverData, FlushEvent fromEvent) {
-        flushSessions(serverData, null, fromEvent);
+    public void flushSessions(ServerData serverData, FlushEvent flushEvent) {
+        flushSessions(serverData, null, flushEvent);
     }
 
-    private void flushSessions(ServerData serverData, LocalDateTime dateTime, FlushEvent fromEvent) {
+    public void flushSessions(ServerData serverData, LocalDateTime dateTime, FlushEvent flushEvent) {
         String address = serverData.getKnownServer().getIpport();
 
-        String logMsg = "Started flush sessions by event " + fromEvent;
+        String logMsg = "Started flush sessions by flushEvent '" + flushEvent + "'";
         log.info(address + " " + logMsg);
         serverData.addMessage(logMsg);
 
         Map<String, CollectedPlayer> gameSessions = allocateGameSession(address,
-                (fromEvent == PRE_DESTROY_LIFECYCLE /*|| */)
+                (flushEvent == SHUTDOWN_APPLICATION /*|| */)
                         ? REMOVE : REPLACE_IF_EXISTS);
 
         if(Objects.isNull(gameSessions) || gameSessions.isEmpty()) {
@@ -468,14 +468,9 @@ public class DatagramsConsumer {
         }
 
         List<CollectedPlayer> collectedPlayers = new ArrayList<>(gameSessions.values());
+        gameSessions.clear();
 
         int playersSize = collectedPlayers.size();
-        /*if (playersSize == 0) { //todo: why I'm write this?
-            logMsg = "Skip flush sessions, due empty collectedPlayers registry";
-            log.info(address + " " + logMsg);
-            serverData.addMessage(logMsg);
-            return;
-        }*/
 
         logMsg = "Prepared " + playersSize + " player" + (playersSize > 1 ? "s" : "") + " to flush";
         log.info(address + " " + logMsg);

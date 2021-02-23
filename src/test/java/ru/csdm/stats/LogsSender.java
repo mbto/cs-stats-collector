@@ -69,7 +69,7 @@ public class LogsSender {
 
                             Thread.sleep(ThreadLocalRandom.current().nextInt(1, 15));
                         }
-                    } catch (Exception e) {
+                    } catch (Throwable e) {
                         throw new RuntimeException(e);
                     }
                 })).<CompletableFuture<Void>>toArray(CompletableFuture[]::new);

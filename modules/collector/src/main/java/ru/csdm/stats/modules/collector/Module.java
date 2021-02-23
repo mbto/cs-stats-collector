@@ -7,7 +7,6 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
-import ru.csdm.stats.service.EventService;
 
 import javax.annotation.PostConstruct;
 import java.net.DatagramSocket;

@@ -9,6 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.util.LinkedCaseInsensitiveMap;
 import ru.csdm.stats.common.dto.CollectedPlayer;
 import ru.csdm.stats.common.dto.ServerData;
+import ru.csdm.stats.common.dto.Session;
 import ru.csdm.stats.webapp.DependentUtil;
 import ru.csdm.stats.webapp.application.ChangesCounter;
 
@@ -17,10 +18,7 @@ import javax.enterprise.context.RequestScoped;
 import javax.inject.Named;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 
@@ -146,7 +144,8 @@ public class RequestDashboard {
                     collectedPlayer.getCurrentSession(lastDateTime);
                 }
 
-                collectedPlayer.setLastseenDatetime(lastDateTime);
+                collectedPlayer.setLastseenDatetime(Objects.isNull(lastDateTime)
+                        ? LocalDateTime.now() : lastDateTime);
 
                 int ips = ThreadLocalRandom.current().nextInt(0, 1);
                 for (int j = 0; j < ips; j++) {

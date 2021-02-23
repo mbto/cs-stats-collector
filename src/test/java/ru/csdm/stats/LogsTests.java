@@ -31,7 +31,7 @@ import java.util.stream.Stream;
 
 import static org.junit.Assert.assertEquals;
 import static ru.csdm.stats.common.Constants.YYYYMMDD_HHMMSS_PATTERN;
-import static ru.csdm.stats.common.SystemEvent.FLUSH_FROM_FRONTEND;
+import static ru.csdm.stats.common.BrokerEvent.FLUSH_FROM_FRONTEND;
 import static ru.csdm.stats.common.model.collector.tables.DriverProperty.DRIVER_PROPERTY;
 import static ru.csdm.stats.common.model.collector.tables.Instance.INSTANCE;
 import static ru.csdm.stats.common.model.collector.tables.KnownServer.KNOWN_SERVER;
@@ -888,7 +888,7 @@ public class LogsTests {
                     eventService.flush(address, FLUSH_FROM_FRONTEND, false);
 
                     log.info("Flush " + address + " registered");
-                } catch (Exception e) {
+                } catch (Throwable e) {
                     log.warn(e.getMessage());
                 }
             }

@@ -22,7 +22,7 @@ import java.util.stream.Collectors;
 
 import static javax.faces.application.FacesMessage.SEVERITY_WARN;
 import static ru.csdm.stats.common.Constants.IPADDRESS_PORT_PATTERN;
-import static ru.csdm.stats.common.SystemEvent.FLUSH_FROM_FRONTEND;
+import static ru.csdm.stats.common.BrokerEvent.FLUSH_FROM_FRONTEND;
 
 @ViewScoped
 @Named
@@ -131,8 +131,8 @@ public class ViewAddressDetails {
         FacesContext fc = FacesContext.getCurrentInstance();
         try {
             eventService.flush(selectedAddress, FLUSH_FROM_FRONTEND, false);
-        } catch (Exception e) {
-            log.warn(selectedAddress + " Flush not registered, " + e.getMessage());
+        } catch (Throwable e) {
+            log.info(selectedAddress + " Flush not registered, " + e.getMessage()); // info, not warn
 
             fc.addMessage("msgs", new FacesMessage(SEVERITY_WARN,
                     "Flush " + selectedAddress + " not registered", e.getMessage()));

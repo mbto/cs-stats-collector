@@ -1,10 +1,10 @@
 package ru.csdm.stats.common;
 
-public enum SystemEvent {
+public enum BrokerEvent {
     CONSUME_DATAGRAM,
     REFRESH,
     FLUSH_FROM_FRONTEND,
     FLUSH_FROM_SCHEDULER,
-    QUIT,
-    FLUSH_AND_QUIT,
+    BREAK,
+    FLUSH_ALL_AND_BREAK,
 }

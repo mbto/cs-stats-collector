@@ -65,20 +65,23 @@
 
                 <p:commandButton value="Shutdown instance" actionListener="#{viewEditInstance.shutdownInstance()}"
                                  process="@this" update="@none"
-                                 onstart="PF('confDialDelete').hide();PF('buiInstects').show()" oncomplete="PF('buiInstects').hide()"
+                                 onstart="PF('confDialDelete').hide();PF('buiInstects').show()"
+                                 onerror="PF('successDialDeleted').show()"
                                  icon="ui-icon-power" style="margin-left:10px;"/>
                 <p:commandButton type="button" value="Cancel" onclick="PF('confDialDelete').hide()"
                                  icon="ui-icon-cancel" style="float:right;"/>
             </p:confirmDialog>
+            <p:dialog widgetVar="successDialDeleted" header="Success" closeOnEscape="true" modal="true"
+                      width="360" height="90" responsive="true">
+                <h:outputText value="Instance shut downed"/>
+            </p:dialog>
         </ui:fragment>
         </div></div>
     </h:form>
 <p:messages id="msgs" showSummary="true" showDetail="true" escape="false"/>
 </p:panel>
 </p:outputPanel>
-<p:blockUI widgetVar="buiInstects" block="edInstOutPanel" trigger="edInstForm:saveBtn" >
-    <p:graphicImage library="images" name="ajaxloadingbar.gif"/>
-</p:blockUI>
+<p:blockUI widgetVar="buiInstects" block="edInstOutPanel" trigger="edInstForm:saveBtn"/>
 </ui:fragment>
 </ui:define>
 </ui:composition>

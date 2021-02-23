@@ -82,7 +82,7 @@ public class DependentUtil implements Serializable {
             exCtx.redirect(url);
 
             return true;
-        } catch (IOException e) {
+        } catch (Throwable e) {
             String msg = "Failed redirect to '" + url + "'";
             log.warn(msg, e);
 //            fc.addMessage(null, new FacesMessage(FacesMessage.SEVERITY_WARN, msg, ""));

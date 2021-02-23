@@ -4,10 +4,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.jooq.types.UInteger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
-import ru.csdm.stats.common.SystemEvent;
-import ru.csdm.stats.common.dto.MessageQueue;
+import ru.csdm.stats.common.BrokerEvent;
 import ru.csdm.stats.common.dto.Message;
 import ru.csdm.stats.common.dto.ServerData;
 import ru.csdm.stats.common.utils.SomeUtils;
@@ -16,10 +14,8 @@ import java.time.LocalDateTime;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.BlockingDeque;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingDeque;
 
-import static ru.csdm.stats.common.SystemEvent.REFRESH;
+import static ru.csdm.stats.common.BrokerEvent.REFRESH;
 
 @Service
 @Lazy(false)
@@ -50,7 +46,7 @@ public class EventService {
     }
 
     public void flush(String address,
-                      SystemEvent systemEvent,
+                      BrokerEvent brokerEvent,
                       boolean stopIfRecentlyFlushed) {
 
         ServerData serverData = serverDataByAddress.get(address);
@@ -71,7 +67,7 @@ public class EventService {
             }
         }
 
-        Message<ServerData> message = new Message<>(address, serverData, systemEvent);
+        Message<ServerData> message = new Message<>(address, serverData, brokerEvent);
 
         try {
             brokerQueue.addFirst(message);

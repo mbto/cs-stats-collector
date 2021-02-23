@@ -195,7 +195,7 @@ public class ViewEditProject {
                                     RANK.getName()))
                         .fetchOne(DSL.count());
             });
-        } catch (Exception e) {
+        } catch (Throwable e) {
             tablesCount = null;
 
             fc.addMessage("msgs", new FacesMessage(SEVERITY_WARN,
@@ -241,7 +241,7 @@ public class ViewEditProject {
 
             fc.addMessage("msgs", new FacesMessage("Project [" + selectedProject.getId() + "] " +
                     selectedProject.getName() + " name/desc saved", localChangesCounter + " changes"));
-        } catch (Exception e) {
+        } catch (Throwable e) {
             fc.addMessage("msgs", new FacesMessage(SEVERITY_WARN,
                     "Failed save name/desc of project [" + selectedProject.getId() + "] " + selectedProject.getName(),
                     e.toString()));
@@ -309,7 +309,7 @@ public class ViewEditProject {
 
             fc.addMessage("msgs", new FacesMessage("Project [" + selectedProject.getId() + "] " +
                     selectedProject.getName() + " saved", localChangesCounter + " changes"));
-        } catch (Exception e) {
+        } catch (Throwable e) {
             fc.addMessage("msgs", new FacesMessage(SEVERITY_WARN,
                     "Failed save project [" + selectedProject.getId() + "] " + selectedProject.getName(),
                     e.toString()));
@@ -336,7 +336,7 @@ public class ViewEditProject {
                     .execute();
 
             changesCounter.increment(localChangesCounter);
-        } catch (Exception e) {
+        } catch (Throwable e) {
             FacesContext.getCurrentInstance().addMessage("msgs", new FacesMessage(SEVERITY_WARN,
                     "Failed delete project [" + selectedProject.getId() + "] " + selectedProject.getName(),
                     e.toString()));
