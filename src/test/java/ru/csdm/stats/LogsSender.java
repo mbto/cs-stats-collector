@@ -17,6 +17,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -75,6 +76,6 @@ public class LogsSender {
                 })).<CompletableFuture<Void>>toArray(CompletableFuture[]::new);
 
         CompletableFuture.allOf(tasks).join();
-        Thread.sleep(1000);
+        Thread.sleep(TimeUnit.SECONDS.toMillis(1));
     }
 }

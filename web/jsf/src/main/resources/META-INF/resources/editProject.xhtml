@@ -133,6 +133,7 @@
                          icon="ui-icon-plusthick"/>
 
         <p:separator />
+        <p:defaultCommand target="validateBtn"/>
         <p:commandButton id="validateBtn" value="Validate"
                          process="@form" update="@form msgs"
                          actionListener="#{viewEditProject.validate}"

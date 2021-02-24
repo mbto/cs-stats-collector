@@ -77,7 +77,7 @@ public class Application {
      * Pool used in 2 cases:
      * 1 - consume from UDP port -> send to brokerQueue;
      * 2 - consume from brokerQueue -> distribute to messageQueues;
-     * TODO: 3 - scheduler
+     * 3 - scheduler TODO:
      */
     @Bean("brokerTE")
     public ThreadPoolTaskExecutor brokerTE() {

@@ -16,11 +16,6 @@
 <ui:fragment rendered="#{not empty viewEditInstance.selectedInstance}">
 <p:outputPanel id="edInstOutPanel" style="width:500px;">
 <p:panel id="edInstPanel" header="[#{viewEditInstance.selectedInstance.id}] #{viewEditInstance.selectedInstance.name}">
-    <p:button id="showBtnKnServers" value="Show #{viewEditInstance.knownServersAtAllInstances} known servers"
-              href="/knownServersByInstance?instanceId=#{viewEditInstance.selectedInstance.id}"
-              icon="ui-icon-arrowthick-1-e" disabled="#{viewEditInstance.knownServersAtAllInstances == 0}"/>
-
-    <p:separator/>
     <h:form id="edInstForm">
         <p:panelGrid columns="2" style="width:100%;" styleClass="ui-panelgrid-blank ui-fluid">
             <h:outputText value="Reg date" />

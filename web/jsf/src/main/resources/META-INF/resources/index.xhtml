@@ -27,39 +27,39 @@
 <div class="ui-g-12 ui-xl-3 ui-lg-5 ui-md-12 ui-sm-12 ui-g-nopad">
 <h:form id="dbrForm"><!--TODO: enable-->
 <!--    <p:poll process="@this" update="oP oF oM oA oTF" async="true"-->
-<!--            interval="1" listener="#{statusShower.calculate}"/>-->
-<p:panelGrid style="width:350px;margin-bottom:10px;">
+<!--            interval="1" listener="#{viewDashboard.calculate}"/>-->
+<p:panelGrid style="width:350px;">
 <f:facet name="header">
-    <p:column colspan="2">Memory</p:column>
+    <p:row><p:column colspan="2">Memory</p:column></p:row>
 </f:facet>
 <p:row>
     <p:column width="10">Processors</p:column>
-    <p:column><h:outputText id="oP" value="#{statusShower.processors}"/></p:column>
+    <p:column><h:outputText id="oP" value="#{viewDashboard.processors}"/></p:column>
 </p:row>
 <p:row>
     <p:column>Free</p:column>
-    <p:column><h:outputText id="oF" value="#{statusShower.freeMemory} mb"/></p:column>
+    <p:column><h:outputText id="oF" value="#{viewDashboard.freeMemory} mb"/></p:column>
 </p:row>
 <p:row>
     <p:column>Max</p:column>
-    <p:column><h:outputText id="oM" value="#{statusShower.maxMemory} mb"/></p:column>
+    <p:column><h:outputText id="oM" value="#{viewDashboard.maxMemory} mb"/></p:column>
 </p:row>
 <p:row>
     <p:column>Allocated</p:column>
-    <p:column><h:outputText id="oA" value="#{statusShower.allocatedMemory} mb"/></p:column>
+    <p:column><h:outputText id="oA" value="#{viewDashboard.allocatedMemory} mb"/></p:column>
 </p:row>
 <p:row>
     <p:column>Total free</p:column>
-    <p:column><h:outputText id="oTF" value="#{statusShower.totalFreeMemory} mb"/></p:column>
+    <p:column><h:outputText id="oTF" value="#{viewDashboard.totalFreeMemory} mb"/></p:column>
 </p:row>
 </p:panelGrid>
 </h:form>
 </div>
 <div class="ui-g-12 ui-xl-3 ui-lg-5 ui-md-12 ui-sm-12 ui-g-nopad">
-<p:panelGrid style="width:350px;margin-bottom:10px;">
+<p:panelGrid id="executorsTblId" style="width:350px;">
 <f:facet name="header">
     <p:row>
-        <p:column colspan="4">Thread pools sizes</p:column>
+        <p:column colspan="4">Executors pools sizes</p:column>
     </p:row>
     <p:row>
         <p:column/>
@@ -73,27 +73,27 @@
     <p:column>#{brokerTE.getCorePoolSize()}</p:column>
     <p:column>#{brokerTE.getMaxPoolSize()}</p:column>
     <p:column style="background-color: #{empty brokerTE.getThreadPoolExecutor().getQueue()
-    ? '#d7ffd7' : '#ffcc74'}">#{brokerTE.getThreadPoolExecutor().getQueue().size()}</p:column>
+    ? '#d7ffd7' : '#fff0d7'}">#{brokerTE.getThreadPoolExecutor().getQueue().size()}</p:column>
 </p:row>
 <p:row>
     <p:column>Consumer</p:column>
     <p:column>#{consumerTE.getCorePoolSize()}</p:column>
     <p:column>#{consumerTE.getMaxPoolSize()}</p:column>
     <p:column style="background-color: #{empty consumerTE.getThreadPoolExecutor().getQueue()
-    ? '#d7ffd7' : '#ffcc74'}">#{consumerTE.getThreadPoolExecutor().getQueue().size()}</p:column>
+    ? '#d7ffd7' : '#fff0d7'}">#{consumerTE.getThreadPoolExecutor().getQueue().size()}</p:column>
 </p:row>
 <p:row>
     <p:column>Sender</p:column>
     <p:column>#{senderTE.getCorePoolSize()}</p:column>
     <p:column>#{senderTE.getMaxPoolSize()}</p:column>
     <p:column style="background-color: #{empty senderTE.getThreadPoolExecutor().getQueue()
-    ? '#d7ffd7' : '#ffcc74'}">#{senderTE.getThreadPoolExecutor().getQueue().size()}</p:column>
+    ? '#d7ffd7' : '#fff0d7'}">#{senderTE.getThreadPoolExecutor().getQueue().size()}</p:column>
 </p:row>
 </p:panelGrid>
 </div>
 <div class="ui-g-12 ui-xl-3 ui-lg-12 ui-md-12 ui-sm-12 ui-g-nopad">
-<p:dataTable value="#{messageQueueByQueueId.entrySet()}" var="datagramsEntry" emptyMessage="No queues found"
-style="width:350px;margin-bottom:10px;">
+<p:dataTable id="queuesTblId" value="#{messageQueueByQueueId.entrySet()}" var="datagramsEntry" emptyMessage="No queues found"
+style="width:350px;">
     <f:facet name="header">Queues</f:facet>
     <p:column headerText="ID" width="16">
         <h:outputText value="#{datagramsEntry.key}"/>
@@ -105,42 +105,63 @@ style="width:350px;margin-bottom:10px;">
         <h:outputText value="#{datagramsEntry.value.countPorts(false)}"/>
     </p:column>
     <p:column headerText="Pending"
-style="background-color: #{empty datagramsEntry.value.messageQueue ? '#d7ffd7' : '#ffcc74'}">
-        <h:outputText value="#{datagramsEntry.value.messageQueue.size()}"
-                      rendered="#{not empty datagramsEntry.value}"/>
+              style="background-color: #{empty datagramsEntry.value.messageQueue ? '#d7ffd7' : '#fff0d7'}">
+        <h:outputText value="#{datagramsEntry.value.messageQueue.size()}"/>
     </p:column>
 </p:dataTable>
 </div>
 </div>
-<div class="ui-g" style="margin-top:10px;">
-<p:commandButton value="Make fakes" process="@this" update="showAvailAddressesForm"
-                 actionListener="#{requestDashboard.makeFakes()}" immediate="true"/>
+<p:separator/>
+<div class="ui-g">
+<p:outputPanel id="showAvailPortsPanel">
+<h:form>
+<p:commandButton value="Make fakes" process="@this" update="flushBtn servDataTblId msgs" immediate="true"
+                 rendered="#{instanceHolder.devEnvironment}"
+                 onstart="PF('buiAvailPorts').show()" oncomplete="PF('buiAvailPorts').hide()"
+                 actionListener="#{viewDashboard.makeFakes()}"
+                 icon="ui-icon-circle-arrow-s"/>
+
+<p:commandButton id="flushBtn" value="#{viewDashboard.instanceSessionsCount == 0
+                 ? 'No sessions for flush' :
+                 ('Flush ' += viewDashboard.instanceSessionsCount += ' sessions')}"
+                 disabled="#{viewDashboard.instanceSessionsCount == 0}"
+                 process="@this" update="@this msgs servDataTblId" immediate="true"
+                 actionListener="#{viewDashboard.flushInstanceSessions()}"
+                 onstart="PF('buiAvailPorts').show()" oncomplete="PF('buiAvailPorts').hide()"
+                 icon="ui-icon-arrowthick-1-s"/>
+
+<p:commandButton value="Refresh instance settings"
+                 process="@this" update="servDataTblId msgs executorsTblId queuesTblId" immediate="true"
+                 actionListener="#{viewDashboard.refreshInstanceSettings()}"
+                 onstart="PF('buiAvailPorts').show()" oncomplete="PF('buiAvailPorts').hide()"
+                 icon="ui-icon-refresh"/>
+
+<p:messages id="msgs" showSummary="true" showDetail="true" escape="false" style="margin-top:10px;"/>
 <div class="ui-g-12 ui-g-nopad">
-<h:form id="showAvailAddressesForm">
-<p:dataTable value="#{requestDashboard.sortedServerData}" var="serverData" emptyMessage="No known servers found"
+<p:dataTable id="servDataTblId" value="#{viewDashboard.sortedServerData}" var="serverData" emptyMessage="No known servers found"
              reflow="true"
              selectionMode="single" rowKey="#{serverData.knownServer.ipport}"
              rowStyleClass="#{serverData.knownServerActive ? 'stActive' : 'stNotActive'}">
     <f:facet name="header">
-        Known servers: #{serverDataByAddress.size()} |
+        #{serverDataByAddress.size()} ports |
         instance: [#{instanceHolder.currentInstanceId}] #{instanceHolder.availableInstances.get(instanceHolder.currentInstanceId).name}
     </f:facet>
 
     <p:ajax event="rowSelect" immediate="true" process="@this" update="@none"
-            listener="#{requestDashboard.onRowSelect}"/>
+            listener="#{viewDashboard.onRowSelect}"/>
 
-    <p:column headerText="Queue ID" width="70">
+    <p:column headerText="Queue ID" width="50" style="text-align:center;">
         <h:outputText value="#{messageQueueByAddress.get(serverData.knownServer.ipport).queueId}"/>
     </p:column>
-    <p:column headerText="Status" width="145">
-        <h:outputText value="#{serverData.knownServerActive ? '[Active]' : '[Not active]'}"/>
-        <!-- TODO: use ICONS -->
+    <p:column headerText="Status" width="50">
+        <i title="#{serverData.knownServerActive ? 'Active' : 'Not active'}" style="margin:auto;"
+           class="ui-icon #{serverData.knownServerActive ? 'ui-icon-check' : 'ui-icon-close'}"/>
     </p:column>
-    <p:column headerText="Address" width="200">
+    <p:column headerText="Port" width="250">
         <h:outputText value="#{serverData.knownServer.ipport}"/>
     </p:column>
     <p:column headerText="Sessions" width="65">
-        <h:outputText value="#{requestDashboard.getSessionCount(serverData.knownServer.ipport)}"/>
+        <h:outputText value="#{viewDashboard.getSessionsCount(serverData.knownServer.ipport)}"/>
     </p:column>
     <p:column headerText="Project" width="200">
         <h:outputText value="[#{serverData.project.id}] #{serverData.project.name}"/>
@@ -148,9 +169,9 @@ style="background-color: #{empty datagramsEntry.value.messageQueue ? '#d7ffd7' :
     <p:column headerText="Name" width="200">
         <h:outputText value="#{serverData.knownServer.name}"/>
     </p:column>
-    <p:column headerText="Active" width="60">
-        <h:outputText value="#{serverData.knownServer.active ? 'Yes' : 'No'}" rendered="#{not empty serverData.knownServer.active}"/>
-    </p:column>
+<!--    <p:column headerText="Active" width="60">-->
+<!--        <h:outputText value="#{serverData.knownServer.active ? 'Yes' : 'No'}" rendered="#{not empty serverData.knownServer.active}"/>-->
+<!--    </p:column>-->
     <p:column headerText="FFA" width="60">
         <h:outputText value="#{serverData.knownServer.ffa ? 'Yes' : 'No'}" rendered="#{not empty serverData.knownServer.ffa}"/>
     </p:column>
@@ -161,9 +182,11 @@ style="background-color: #{empty datagramsEntry.value.messageQueue ? '#d7ffd7' :
         <h:outputText value="#{serverData.knownServer.startSessionOnAction ? 'Yes' : 'No'}" rendered="#{not empty serverData.knownServer.startSessionOnAction}"/>
     </p:column>
 </p:dataTable>
+</div>
 </h:form>
+</p:outputPanel>
 </div>
-</div>
+<p:blockUI widgetVar="buiAvailPorts" block="showAvailPortsPanel"/>
 </ui:define>
 </ui:composition>
 </html>

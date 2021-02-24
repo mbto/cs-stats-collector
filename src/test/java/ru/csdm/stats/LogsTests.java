@@ -26,6 +26,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -103,7 +104,7 @@ public class LogsTests {
             addKnownServer(transactionalDsl, instanceId, project.getId(), 27015, 27015, true, true, false, true);
         });
 
-        eventService.refresh(project.getId());
+        eventService.refreshSettings(project.getId());
 
         projectMaker.process(project, () -> {
             logsSender.sendLogs("server1.log", 27015, 27015);
@@ -132,7 +133,7 @@ public class LogsTests {
             addKnownServer(transactionalDsl, instanceId, project.getId(), 27015, 27015, true, true, false, true);
         });
 
-        eventService.refresh(project.getId());
+        eventService.refreshSettings(project.getId());
 
         projectMaker.process(project, () -> {
             logsSender.sendLogs("server1.log", 27015, 27015);
@@ -161,7 +162,7 @@ public class LogsTests {
             addKnownServer(transactionalDsl, instanceId, project.getId(), 27015, 27015, true, true, false, false);
         });
 
-        eventService.refresh(project.getId());
+        eventService.refreshSettings(project.getId());
 
         projectMaker.process(project, () -> {
             logsSender.sendLogs("server1_changing_names.log", 27015, 27015);
@@ -202,7 +203,7 @@ public class LogsTests {
             addKnownServer(transactionalDsl, instanceId, project.getId(), 27015, 27015, true, true, false, false);
         });
 
-        eventService.refresh(project.getId());
+        eventService.refreshSettings(project.getId());
 
         projectMaker.process(project, () -> {
             logsSender.sendLogs("server1_max_ips_steamids.log", 27015, 27015);
@@ -259,7 +260,7 @@ public class LogsTests {
             addKnownServer(transactionalDsl, instanceId, project.getId(), 27016, 27016, true, true, false, true);
         });
 
-        eventService.refresh(project.getId());
+        eventService.refreshSettings(project.getId());
 
         projectMaker.process(project, () -> {
             logsSender.sendLogs("server4.log", 27016, 27016);
@@ -301,7 +302,7 @@ public class LogsTests {
             addKnownServer(transactionalDsl, instanceId, project.getId(), 27015, 27016, true, true, false, true);
         });
 
-        eventService.refresh(project.getId());
+        eventService.refreshSettings(project.getId());
 
         projectMaker.process(project, () -> {
             logsSender.sendLogs("server1.log", 27015, 27016);
@@ -331,7 +332,7 @@ public class LogsTests {
             addKnownServer(transactionalDsl, instanceId, project.getId(), 27015, 27016, true, true, false, false);
         });
 
-        eventService.refresh(project.getId());
+        eventService.refreshSettings(project.getId());
 
         projectMaker.process(project, () -> {
             logsSender.sendLogs("server1.log", 27015, 27016);
@@ -361,7 +362,7 @@ public class LogsTests {
             addKnownServer(transactionalDsl, instanceId, project.getId(), 27015, 27015, true, true, false, true);
         });
 
-        eventService.refresh(project.getId());
+        eventService.refreshSettings(project.getId());
 
         projectMaker.process(project, () -> {
             logsSender.sendLogs("server2.log", 27015, 27015);
@@ -391,7 +392,7 @@ public class LogsTests {
             addKnownServer(transactionalDsl, instanceId, project.getId(), 27015, 27015, true, true, false, false);
         });
 
-        eventService.refresh(project.getId());
+        eventService.refreshSettings(project.getId());
 
         projectMaker.process(project, () -> {
             logsSender.sendLogs("server2.log", 27015, 27015);
@@ -421,7 +422,7 @@ public class LogsTests {
             addKnownServer(transactionalDsl, instanceId, project.getId(), 27015, 27015, true, true, false, true);
         });
 
-        eventService.refresh(project.getId());
+        eventService.refreshSettings(project.getId());
 
         projectMaker.process(project, () -> {
             logsSender.sendLogs("server3.log", 27015, 27015);
@@ -449,7 +450,7 @@ public class LogsTests {
             addKnownServer(transactionalDsl, instanceId, project.getId(), 27015, 27015, true, true, false, false);
         });
 
-        eventService.refresh(project.getId());
+        eventService.refreshSettings(project.getId());
 
         projectMaker.process(project, () -> {
             logsSender.sendLogs("server3.log", 27015, 27015);
@@ -479,7 +480,7 @@ public class LogsTests {
             addKnownServer(transactionalDsl, instanceId, project.getId(), 27015, 27015, true, true, false, true);
         });
 
-        eventService.refresh(project.getId());
+        eventService.refreshSettings(project.getId());
 
         projectMaker.process(project, () -> {
             logsSender.sendLogs("server4.log", 27015, 27015);
@@ -521,7 +522,7 @@ public class LogsTests {
             addKnownServer(transactionalDsl, instanceId, project.getId(), 27015, 27025, true, true, false, true);
         });
 
-        eventService.refresh(project.getId());
+        eventService.refreshSettings(project.getId());
 
         projectMaker.process(project, () -> {
             logsSender.sendLogs("server4.log", 27015, 27025);
@@ -564,7 +565,7 @@ public class LogsTests {
             addKnownServer(transactionalDsl, instanceId, project.getId(), 27015, 27015, true, true, false, true);
         });
 
-        eventService.refresh(project.getId());
+        eventService.refreshSettings(project.getId());
 
         projectMaker.process(project, () -> {
             logsSender.sendLogs("ffa.log", 27015, 27015);
@@ -593,7 +594,7 @@ public class LogsTests {
             addKnownServer(transactionalDsl, instanceId, project.getId(), 27015, 27015, true, true, false, false);
         });
 
-        eventService.refresh(project.getId());
+        eventService.refreshSettings(project.getId());
 
         projectMaker.process(project, () -> {
             logsSender.sendLogs("ffa.log", 27015, 27015);
@@ -624,7 +625,7 @@ public class LogsTests {
             addKnownServer(transactionalDsl, instanceId, project.getId(), 27015, 27015, true, false, false, true);
         });
 
-        eventService.refresh(project.getId());
+        eventService.refreshSettings(project.getId());
 
         projectMaker.process(project, () -> {
             logsSender.sendLogs("ffa.log", 27015, 27015);
@@ -650,7 +651,7 @@ public class LogsTests {
             addKnownServer(transactionalDsl, instanceId, project.getId(), 27015, 27015, true, false, false, false);
         });
 
-        eventService.refresh(project.getId());
+        eventService.refreshSettings(project.getId());
 
         projectMaker.process(project, () -> {
             logsSender.sendLogs("ffa.log", 27015, 27015);
@@ -681,7 +682,7 @@ public class LogsTests {
             addKnownServer(transactionalDsl, instanceId, project.getId(), 27015, 27015, true, true, false, true);
         });
 
-        eventService.refresh(project.getId());
+        eventService.refreshSettings(project.getId());
 
         projectMaker.process(project, () -> {
             logsSender.sendLogs("no_ffa.log", 27015, 27015);
@@ -711,7 +712,7 @@ public class LogsTests {
             addKnownServer(transactionalDsl, instanceId, project.getId(), 27015, 27015, true, true, false, false);
         });
 
-        eventService.refresh(project.getId());
+        eventService.refreshSettings(project.getId());
 
         projectMaker.process(project, () -> {
             logsSender.sendLogs("no_ffa.log", 27015, 27015);
@@ -741,7 +742,7 @@ public class LogsTests {
             addKnownServer(transactionalDsl, instanceId, project.getId(), 27015, 27015, true, false, false, true);
         });
 
-        eventService.refresh(project.getId());
+        eventService.refreshSettings(project.getId());
 
         projectMaker.process(project, () -> {
             logsSender.sendLogs("no_ffa.log", 27015, 27015);
@@ -767,7 +768,7 @@ public class LogsTests {
             addKnownServer(transactionalDsl, instanceId, project.getId(), 27015, 27015, true, false, false, false);
         });
 
-        eventService.refresh(project.getId());
+        eventService.refreshSettings(project.getId());
 
         projectMaker.process(project, () -> {
             logsSender.sendLogs("no_ffa.log", 27015, 27015);
@@ -797,7 +798,7 @@ public class LogsTests {
             addKnownServer(transactionalDsl, instanceId, project.getId(), 27015, 27025, true, true, true, true);
         });
 
-        eventService.refresh(project.getId());
+        eventService.refreshSettings(project.getId());
 
         projectMaker.process(project, () -> {
             logsSender.sendLogs("server4.log", 27015, 27017);
@@ -823,7 +824,7 @@ public class LogsTests {
             addKnownServer(transactionalDsl, instanceId, project.getId(), 27015, 27015, true, true, true, false);
         });
 
-        eventService.refresh(project.getId());
+        eventService.refreshSettings(project.getId());
 
         projectMaker.process(project, () -> {
             logsSender.sendLogs("server4.log", 27015, 27015);
@@ -850,7 +851,7 @@ public class LogsTests {
             addKnownServer(transactionalDsl, instanceId, project.getId(), 27015, 27025, true, true, true, false);
         });
 
-        eventService.refresh(project.getId());
+        eventService.refreshSettings(project.getId());
 
         projectMaker.process(project, () -> {
             logsSender.sendLogs("server4.log", 27015, 27017);
@@ -878,14 +879,14 @@ public class LogsTests {
             addKnownServer(transactionalDsl, instanceId, project.getId(), 27015, 27017, true, true, false, false);
         });
 
-        eventService.refresh(project.getId());
+        eventService.refreshSettings(project.getId());
 
         projectMaker.process(project, () -> {
             logsSender.sendLogs("server4_only_load.log", 27014, 27018);
 
             for (String address : serverDataByAddress.keySet()) {
                 try {
-                    eventService.flush(address, FLUSH_FROM_FRONTEND, false);
+                    eventService.flushSessions(address, FLUSH_FROM_FRONTEND, false);
 
                     log.info("Flush " + address + " registered");
                 } catch (Throwable e) {
@@ -894,7 +895,7 @@ public class LogsTests {
             }
 
             try {
-                Thread.sleep(1000);
+                Thread.sleep(TimeUnit.SECONDS.toMillis(1));
             } catch (InterruptedException ignored) {}
         }, Arrays.asList(PLAYER.LAST_SERVER_NAME));
         /* logs sends in parallel, so PLAYER.LAST_SERVER_NAME is undefined */

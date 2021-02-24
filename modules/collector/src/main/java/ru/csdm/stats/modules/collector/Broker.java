@@ -336,11 +336,6 @@ public class Broker {
                 newServerData.setMessages(currentServerData.getMessages());
 
                 serverDataByAddress.replace(port, newServerData);
-
-                String logMsg = "updated settings";
-
-                log.info(port + " " + logMsg);
-                newServerData.addMessage(logMsg);
             } else {
                 // not exists -> create
                 ServerData serverData = new ServerData();
@@ -352,11 +347,6 @@ public class Broker {
                 serverData.setLastTouchDateTime(now);
 
                 serverDataByAddress.put(port, serverData);
-
-                String logMsg = "created settings";
-
-                log.info(port + " " + logMsg);
-                serverData.addMessage(logMsg);
             }
         }
 

@@ -20,15 +20,16 @@
 <h:outputText value=" - [#{viewAddressDetails.selectedServerData.project.id}] #{viewAddressDetails.selectedServerData.project.name}"
               rendered="#{not empty viewAddressDetails.selectedServerData}"/>
 </f:facet>
-<h:form id="showSessionsForm">
+<h:form>
 <p:commandButton id="flushSessionsBtn" value="#{empty viewAddressDetails.aggregatedPlayers
                  ? 'No sessions for flush'
                  : ('Flush ' += viewAddressDetails.aggregatedPlayers.size() += ' sessions')}"
                  disabled="#{empty viewAddressDetails.aggregatedPlayers}"
-                 process="@this" update="@form msgs" immediate="true"
+                 process="@this" update="@this sessionsTblId flLogsTblId msgs" immediate="true"
                  actionListener="${viewAddressDetails.flushOneAddress()}"
+                 onstart="PF('buiSessions').show()" oncomplete="PF('buiSessions').hide()"
                  rendered="#{viewAddressDetails.selectedServerData.knownServer.instanceId == instanceHolder.currentInstanceId}"
-                 style="margin-right:10px;" icon="ui-icon-arrowstop-1-s"/>
+                 style="margin-right:10px;" icon="ui-icon-arrowthick-1-s"/>
 
 <p:button value="Edit known servers [#{viewAddressDetails.knownServersAtInstance} of #{viewAddressDetails.knownServersAtAllInstances}]"
           href="/knownServersByProject?projectId=#{viewAddressDetails.selectedServerData.knownServer.projectId}"
@@ -88,7 +89,7 @@
 </p:dataTable>
 </h:form>
 </p:panel>
-<p:blockUI block="showSessionsPanel" trigger="showSessionsForm:flushSessionsBtn"/>
+<p:blockUI widgetVar="buiSessions" block="showSessionsPanel"/>
 </ui:fragment>
 </ui:define>
 </ui:composition>

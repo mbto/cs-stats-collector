@@ -18,6 +18,7 @@ import javax.faces.view.ViewScoped;
 import javax.inject.Named;
 import javax.servlet.http.HttpServletRequest;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import static javax.faces.application.FacesMessage.SEVERITY_WARN;
@@ -130,7 +131,7 @@ public class ViewAddressDetails {
 
         FacesContext fc = FacesContext.getCurrentInstance();
         try {
-            eventService.flush(selectedAddress, FLUSH_FROM_FRONTEND, false);
+            eventService.flushSessions(selectedAddress, FLUSH_FROM_FRONTEND, false);
         } catch (Throwable e) {
             log.info(selectedAddress + " Flush not registered, " + e.getMessage()); // info, not warn
 
@@ -146,7 +147,7 @@ public class ViewAddressDetails {
                 "Flush " + selectedAddress + " registered", ""));
 
         try {
-            Thread.sleep(1 * 1000);
+            Thread.sleep(TimeUnit.SECONDS.toMillis(1));
         } catch (InterruptedException ignored) {}
 
         fetchAggregatedPlayers();

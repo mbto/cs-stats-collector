@@ -7,6 +7,7 @@ import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import ru.csdm.stats.common.BrokerEvent;
 import ru.csdm.stats.common.dto.Message;
+import ru.csdm.stats.common.dto.MessageQueue;
 import ru.csdm.stats.common.dto.ServerData;
 import ru.csdm.stats.common.utils.SomeUtils;
 
@@ -25,8 +26,8 @@ public class EventService {
     private BlockingDeque<Message<?>> brokerQueue;
     @Autowired
     private Map<String, ServerData> serverDataByAddress;
-//    @Autowired
-//    private Map<String, MessageQueue> messageQueueByAddress;
+    @Autowired
+    private Map<String, MessageQueue> messageQueueByAddress;
 //    @Autowired
 //    private Map<Integer, MessageQueue> messageQueueByQueueId;
 //TODO:
@@ -40,18 +41,23 @@ public class EventService {
     /**
      * Refresh changes in registries
      */
-    public void refresh(UInteger projectId) throws IllegalStateException {
+    public void refreshSettings(UInteger projectId) throws IllegalStateException {
         Message<UInteger> message = new Message<>(null, projectId, REFRESH);
         brokerQueue.addFirst(message);
     }
 
-    public void flush(String address,
-                      BrokerEvent brokerEvent,
-                      boolean stopIfRecentlyFlushed) {
+    public void flushSessions(String port,
+                              BrokerEvent brokerEvent,
+                              boolean stopIfRecentlyFlushed) {
 
-        ServerData serverData = serverDataByAddress.get(address);
+        ServerData serverData = serverDataByAddress.get(port);
         if(Objects.isNull(serverData))
-            throw new IllegalArgumentException("No serverData found at address '" + address + "'");
+            throw new IllegalArgumentException("No serverData found at port '" + port + "'");
+
+        // this case only for 'dev' environment, due messageQueueByAddress can be filled manually with ViewDashboard.makeFakes()
+        MessageQueue messageQueue = messageQueueByAddress.get(port);
+        if(Objects.isNull(messageQueue))
+            throw new IllegalArgumentException("No messageQueue found at port '" + port + "'");
 
         String logMsg;
         if(stopIfRecentlyFlushed) {
@@ -59,7 +65,7 @@ public class EventService {
             LocalDateTime now;
 
             if(Objects.nonNull(nextFlushDateTime) && nextFlushDateTime.isAfter(now = LocalDateTime.now())) {
-                logMsg = "Flush " + address + " not available, waiting "
+                logMsg = "Flush " + port + " not available, waiting "
                         + SomeUtils.humanLifetime(nextFlushDateTime, now) + " until next flush";
 
                 serverData.addMessage(logMsg);
@@ -67,16 +73,16 @@ public class EventService {
             }
         }
 
-        Message<ServerData> message = new Message<>(address, serverData, brokerEvent);
+        Message<ServerData> message = new Message<>(port, serverData, brokerEvent);
 
         try {
             brokerQueue.addFirst(message);
         } catch (Throwable e) {
-            serverData.addMessage("Flush " + address + " not registered, " + e.getMessage());
+            serverData.addMessage("Flush " + port + " not registered, " + e.getMessage());
 
             throw new RuntimeException(e);
         }
 
-        serverData.addMessage("Flush " + address + " registered");
+        serverData.addMessage("Flush " + port + " registered");
     }
 }

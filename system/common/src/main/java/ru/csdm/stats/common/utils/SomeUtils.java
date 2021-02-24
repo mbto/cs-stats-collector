@@ -14,6 +14,7 @@ import org.springframework.boot.jdbc.DataSourceBuilder;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.jdbc.datasource.TransactionAwareDataSourceProxy;
 import org.springframework.util.LinkedCaseInsensitiveMap;
+import ru.csdm.stats.common.dto.ServerData;
 import ru.csdm.stats.common.model.collector.enums.ProjectDatabaseServerTimezone;
 import ru.csdm.stats.common.model.csstats.tables.pojos.Player;
 import ru.csdm.stats.common.model.csstats.tables.records.PlayerRecord;
@@ -25,6 +26,7 @@ import java.sql.Timestamp;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.Comparator;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 
@@ -33,6 +35,14 @@ import static ru.csdm.stats.common.Constants.STEAMID_PATTERN;
 import static ru.csdm.stats.common.model.csstats.Csstats.CSSTATS;
 
 public class SomeUtils {
+
+    private static final UIntegerComparator uIntegerComparator = new UIntegerComparator();
+
+    public static final Comparator<ServerData> forDashboardServerDataComparator =
+            ((Comparator<ServerData>) (sd1, sd2) -> uIntegerComparator.compare(
+                    sd1.getKnownServer().getProjectId(), sd2.getKnownServer().getProjectId())
+            ).reversed()
+             .thenComparing(sd -> sd.getKnownServer().getId());
 
     public static String extractIp(String ipRaw) {
         if(StringUtils.isBlank(ipRaw))
